@@ -1,0 +1,102 @@
+import os
+import json
+import config
+
+def load_json(file_path):
+    """Load JSON data from a file."""
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return json.load(file)
+
+def transform_items_data(items_data):
+    """Transform items_data.json into a dictionary with IDs as keys, stripping variant names."""
+    transformed = {}
+    for item_name, item_info in items_data.items():
+        if "ID" in item_info:
+            base_name = item_name.split(" (")[0]  # Remove color/variant details
+            transformed[str(item_info["ID"])] = base_name
+    return transformed
+
+def determine_price_and_currency(item):
+    """Determine the price and currency based on non-zero values."""
+    if item.get("price", 0) > 0:
+        return item["price"], "Coins"
+    elif item.get("orbs", 0) > 0:
+        return item["orbs"], "Orbs"
+    elif item.get("tickets", 0) > 0:
+        return item["tickets"], "Tickets"
+    return None, None
+
+def get_item_name_by_id(item_id, items_data):
+    """Retrieve item name from transformed items_data based on ID."""
+    return items_data.get(str(item_id), f"Item {item_id}")
+
+def format_shop_data(shop_data, items_data):
+    """Format shop data into the required format."""
+    formatted_output = []
+    
+    for shop in shop_data:
+        shop_name = shop.get("shop_name", "Unknown Shop")
+        formatted_output.append(f"### {shop_name} ###")
+        formatted_output.append("{{Shop/header}}")
+        
+        # Process starting items
+        seen_items = set()
+        for item in shop.get("starting_items", []):
+            item_id = item.get("id")
+            if item_id is None:
+                continue
+            
+            item_name = get_item_name_by_id(item_id, items_data)
+            if item_name in seen_items:
+                continue
+            seen_items.add(item_name)
+            
+            price, currency = determine_price_and_currency(item)
+            if price and currency:
+                formatted_output.append(f"{{{{Shop|{item_name}|{price}|{currency}}}}}")
+        
+        # Process random items
+        random_items = shop.get("random_items", [])
+        if random_items:
+            formatted_output.append("<!-- Randomly Available Items -->")
+            for item in random_items:
+                item_id = item.get("id")
+                if item_id is None:
+                    continue
+                
+                item_name = get_item_name_by_id(item_id, items_data)
+                if item_name in seen_items:
+                    continue
+                seen_items.add(item_name)
+                
+                price, currency = determine_price_and_currency(item)
+                if price and currency:
+                    formatted_output.append(f"{{{{Shop|{item_name}|{price}|{currency}}}}}")
+        
+        formatted_output.append("{{Shop/footer}}\n")
+    
+    return "\n".join(formatted_output)
+
+def main():
+    """Main function to process the JSON files and create the formatted output."""
+    input_directory = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data")
+    output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Wiki Formatted")
+    os.makedirs(output_directory, exist_ok=True)
+    
+    shop_data_path = os.path.join(input_directory, "shop_data.json")
+    items_data_path = os.path.join(input_directory, "items_data.json")
+    output_file_path = os.path.join(output_directory, "shops.txt")
+    
+    shop_data = load_json(shop_data_path)
+    raw_items_data = load_json(items_data_path)
+    items_data = transform_items_data(raw_items_data)
+    
+    formatted_output = format_shop_data(shop_data, items_data)
+    
+    with open(output_file_path, 'w', encoding='utf-8') as output_file:
+        output_file.write(formatted_output)
+    
+    print("Shops file generated successfully.")
+
+if __name__ == "__main__":
+    main()
