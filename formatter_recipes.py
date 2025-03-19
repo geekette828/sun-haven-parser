@@ -3,7 +3,7 @@ import json
 import config
 
 # Define file paths
-input_file_path = os.path.join(config.OUTPUT_DIRECTORY, "Recipes", "recipes_data.json")
+input_file_path = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
 output_file_path = os.path.join(config.OUTPUT_DIRECTORY, "Wiki Formatted", "Recipes.txt")
 
 # Load the extracted recipe data

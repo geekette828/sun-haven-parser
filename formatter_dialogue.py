@@ -4,7 +4,7 @@ import config  # Import configuration file
 
 # Define input and output paths
 input_directory = os.path.join(config.INPUT_DIRECTORY, "TextAsset")
-output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Dialogues")
+output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Wiki Formatted/Dialogues")
 
 # Ensure output directory exists
 os.makedirs(output_directory, exist_ok=True)
@@ -189,4 +189,4 @@ for character, files in dialogue_groups.items():
             if season != "General":
                 write_one_liner_section(f"Married {season}", lines, level=3)
 
-print("Dialogue files have been successfully created in 'Output/2.0/Dialogues'.")
+print(f"Formatted dialogues generated successfully: {output_file_path}")
