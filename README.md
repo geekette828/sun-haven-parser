@@ -9,6 +9,9 @@ It also holds the mapping for numeric to text conversions of things like stats, 
 
 
 ## JSON Objects
+JSON_imageList.py --<br>
+Creates a massive json object based on sprite files located in the input directory. This will pull the image name and associated GUID.<br>
+
 JSON_itemList.py --<br>
 Creates a massive json object based on monobehaviour files located in the input directory. This will pull various information of each item, many of the fields in various infoboxes will use these numbers.<br>
 
@@ -30,5 +33,71 @@ formatter_quests.py --<br>
 formatter_recipes.py --<br>
 formatter_shops.py --<br>
 
-##pyWikiBot
-These use the mediawiki api to do various comparisons and page creations directly into the wiki.
+## pyWikiBot
+These use the mediawiki api to do various comparisons and page creations directly into the wiki.<br>
+The user must be in the PWB-Core folder and logged in to PyWikiBot using: python pwb.py login<br>
+
+pywikibot_MissingDataCheck.py --<br>
+This python module will review the SH wiki to make three lists: Items missing from the JSON file, Items missing from the wiki, Items in both the JSON and the wiki.<br>
+It will then do a comparison between items in both the JSON and Wiki, to see what infobox items need to be updated (WIP).
+
+pywikibot_ImageUploader.py --<br>
+(WIP) Reviews the `comparison_summary.txt` file for the items not in the wiki. Then creates a file of items and their associated images.<br>
+Image names get updated, then using pillow we scale up the images, then using pywikibot we upload them to the wiki.<br>
+
+# Using the Parser
+## Getting the Assets
+1. Download an application that allows you to look at the assets. I use [AssetRipper](https://github.com/AssetRipper/AssetRipper).
+2. In the preferred asset manager, load the `Sun Haven_Data` folder. For most people it will be located in something like this:
+  * Windows: `C:/Program Files (x86)/Steam/steamapps/common/Sun Haven/Sun Haven_Data`
+  * Linux: `${HOME}/.steam/steam/steamapps/common/Sun Haven/Sun Haven_Data`
+3. Export the folder to an area of your choosing.
+
+## Directory Structure
+```
+└── ExportedProject
+    ├── Assets
+    │   ├── AssetBundle
+    │   ├── AudioClip
+    │   ├── AudioManager
+    │   ├── BuildSettings
+    │   ├── CustomRenderTexture
+    │   ├── DelayedCallManager
+    │   ├── EditorBuildSettings
+    │   ├── EditorSettings
+    │   ├── Font
+    │   ├── GraphicsSettings
+    │   ├── InputManager
+    │   ├── LightingSettings
+    │   ├── Mesh
+    │   ├── MonoBehaviour           # This is where the majority of the item data is.
+    │   ├── MonoManager
+    │   ├── NavMeshProjectSettings
+    │   ├── Physics2DSettings
+    │   ├── PhysicsManager
+    │   ├── PhysicsMaterial2D
+    │   ├── PlayerSettings
+    │   ├── PrefabHierarchyObject
+    │   ├── QualitySettings
+    │   ├── RenderTexture
+    │   ├── ResourceManager
+    │   ├── Resources
+    │   ├── RuntimeInitializeOnLoadManager
+    │   ├── SceneHierarchyObject
+    │   ├── Shader
+    │   ├── ShaderNameRegistry
+    │   ├── Sprite                  # This is where the png filename and GUID information is.
+    │   ├── SpriteAtlas
+    │   ├── StreamingManager
+    │   ├── SunHaven
+    │   ├── TagManager
+    │   ├── TextAsset               # This is where the files for the conversations and dialogues are.
+    │   ├── Texture2D               # This is where many of the images are.
+    │   ├── TimeManager
+    │   ├── UnityConnectSettings    
+    │   ├── VFXManager
+    │   ├────── 
+    │   └── A Bunch of JSON Source Files    
+    ├── Assembilies
+    └── Scripts
+```
