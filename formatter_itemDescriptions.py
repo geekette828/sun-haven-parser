@@ -16,7 +16,9 @@ with open(input_file_path, "r", encoding="utf-8") as file:
     data = json.load(file)
 
 # Organize descriptions alphabetically, merging similar ones
+# Organize descriptions alphabetically, merging similar ones
 descriptions = {}
+seen_keys = set()  # Set of simplified names we've already added
 
 for item, details in data.items():
     name = details.get("Name", "").lower().replace("_", " ")
@@ -25,23 +27,22 @@ for item, details in data.items():
     if not name or not description:
         continue  # Skip entries without name or description
 
-    # Scrub description: Remove backslashes, replace \n with <br>, remove double quotes
+    # Scrub description: Remove unwanted formatting
     description = description.replace("\\", "").replace("\n", "<br>").replace('"', "")
-
-    # Remove <color=...> and </color> tags
-    description = re.sub(r"<color=[^>]*>", "", description)  # Remove opening color tag
-    description = description.replace("</color>", "")  # Remove closing color tag
-
-    # Remove <sprite=...> tags
+    description = re.sub(r"<color=[^>]*>", "", description)
+    description = description.replace("</color>", "")
     description = re.sub(r"<sprite=[^>]*>", "", description)
 
-    # Normalize names by removing color variations and trailing numbers
-    simplified_name = re.sub(r"\s?\(.*?\)$", "", name)  # Remove colors like (black), (red)
-    simplified_name = re.sub(r"\s\d+$", "", simplified_name)  # Remove numbers like "alien chair 1"
+    # Normalize item name: remove (Color), trailing numbers, extra whitespace
+    simplified_name = re.sub(r"\s?\(.*?\)$", "", name)  # Remove (Green), (Blue), etc.
+    simplified_name = re.sub(r"\s\d+$", "", simplified_name)  # Remove "Chair 1", "Chair 101"
+    simplified_name = simplified_name.strip()
 
-    # Store unique descriptions only
-    if simplified_name in descriptions:
-        continue  # Skip if it's a duplicate
+    # Only add if this simplified name hasn't been seen yet
+    if simplified_name in seen_keys:
+        continue
+
+    seen_keys.add(simplified_name)
 
     first_letter = simplified_name[0].lower()
     if first_letter not in descriptions:

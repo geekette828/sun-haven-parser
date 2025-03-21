@@ -24,48 +24,37 @@ comparison_json_only_path = os.path.join(output_directory, "Comparison_JSONOnly.
 comparison_output_path = os.path.join(output_directory, "Comparison_Infobox.txt")
 json_path = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
 
-def get_base_name(name):
-    """
-    Normalize item names by removing numeric variants and grouping color variants under their base name.
-    """
-    # Preserve suffix (like 'outfit', 'mount whistle', etc.) while removing color variants
-    color_variant = re.search(r'\((.*?)\)', name)
-    if color_variant:
-        base_name = name[:color_variant.start()].strip()
-    else:
-        base_name = name
-    
-    # Ensure we only remove numbers that are truly numeric variants (not part of the item name)
-    base_name = re.sub(r' \d+$', '', base_name)  # Remove trailing numbers ONLY
-    
-    return base_name.strip().lower()
+def get_base_and_variant(name):
+    name = name.strip().lower()
+    name = re.sub(r'[_ ]\d+$', '', name)  # Remove trailing numeric suffixes
+
+    # Only handle (variant) cases, ignore all others
+    match = re.search(r'^(.*?)\s*\((.*?)\)\s*(.*)$', name)
+    if match:
+        # Combine front and back parts of the base name without extra space
+        front = match.group(1).strip()
+        back = match.group(3).strip()
+        base = f"{front} {back}".strip()
+        variant = match.group(2).strip().capitalize()
+        return base, variant
+
+    return name, None  # Don't group or show variant if no parentheses
 
 def categorize_items(item_list):
     categorized = defaultdict(set)
     for item in item_list:
-        base_name = get_base_name(item)
-        color_variant = re.search(r'\((.*?)\)', item)
-        if color_variant:
-            variant = color_variant.group(1).strip()
+        base_name, variant = get_base_and_variant(item)
+        if variant:  # Only include if it's a parenthetical variant
             categorized[base_name].add(variant)
-        else:
-            categorized[base_name].add(None)  # Default item without variants
     return categorized
 
 def format_output(categorized_items):
-    """
-    Format output so that:
-    - Items without color variants are listed as is.
-    - Items with color variants are grouped under the base name.
-    - Numeric variants are removed entirely.
-    """
     output_lines = []
     for base_name, variants in sorted(categorized_items.items()):
         output_lines.append(base_name)
-        sorted_variants = sorted(filter(None, variants))
-        if sorted_variants:
-            for variant in sorted_variants:
-                output_lines.append(f"   - {variant}")
+        sorted_variants = sorted(variants)
+        for variant in sorted_variants:
+            output_lines.append(f"   - {variant}")
     return "\n".join(output_lines)
 
 def load_json_items():
@@ -81,30 +70,32 @@ def get_infobox_pages():
         template_page = pywikibot.Page(site, f"Template:{template_name}")
         transclusions = template_page.embeddedin(namespaces=[0])
         for page in transclusions:
-            norm_name = page.title()
+            norm_name = page.title().strip().lower()
+            norm_name = re.sub(r'[_ ]\d+$', '', norm_name)
+            norm_name = re.sub(r'^(.*?)\s*\((.*?)\)\s*(.*)$', lambda m: f"{m.group(1).strip()} {m.group(3).strip()}".strip(), norm_name)
             wiki_names.add(norm_name)
     return wiki_names
 
 def compare_infobox_to_json(wiki_names, json_items):
-    wiki_base_names = {get_base_name(name) for name in wiki_names}
-    json_base_names = {get_base_name(name) for name in json_items.keys()}
-    
+    wiki_base_names = {get_base_and_variant(name)[0] for name in wiki_names}
+    json_base_names = {get_base_and_variant(name)[0] for name in json_items.keys()}
+
     wiki_only = wiki_base_names - json_base_names
     json_only = json_base_names - wiki_base_names
     both = wiki_base_names & json_base_names
-    
+
     categorized_wiki = categorize_items(wiki_names)
     categorized_json = categorize_items(json_items.keys())
-    
+
     with open(comparison_wiki_json_path, "w", encoding="utf-8") as f:
         f.write(format_output({name: categorized_json[name] for name in sorted(both)}))
-    
+
     with open(comparison_wiki_only_path, "w", encoding="utf-8") as f:
         f.write(format_output({name: categorized_wiki[name] for name in sorted(wiki_only)}))
-    
+
     with open(comparison_json_only_path, "w", encoding="utf-8") as f:
         f.write(format_output({name: categorized_json[name] for name in sorted(json_only)}))
-    
+
     return both
 
 def extract_infobox_data(page):
@@ -137,7 +128,7 @@ def compare_wiki_json(both_items):
         if not page.exists():
             continue
         wiki_data = extract_infobox_data(page)
-        base_item = get_base_name(item)
+        base_item, _ = get_base_and_variant(item)
         json_data = json_items.get(base_item, {})
         comparison_results.append(f"{item}:")
         for wiki_field, wiki_value in wiki_data.items():
