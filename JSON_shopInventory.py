@@ -30,16 +30,15 @@ def parse_asset_file(asset_path):
         "starting_items": [],
         "random_items": []
     }
-    
-    # Read asset file
+
     with open(asset_path, "r", encoding="utf-8", errors="ignore") as asset_file:
         lines = asset_file.readlines()
-    
+
     current_section = None
     item = {}
     for line in lines:
         line = line.strip()
-        
+
         if line.startswith("startingItems2:"):
             current_section = "starting"
             continue
@@ -47,38 +46,40 @@ def parse_asset_file(asset_path):
             current_section = "random"
             continue
         elif re.match(r"-\s*id:", line):
-            if "id" in item:  # Ensure we capture full items before resetting
+            if "id" in item:
                 if current_section == "starting":
                     shop_data["starting_items"].append(item)
                 elif current_section == "random":
                     shop_data["random_items"].append(item)
-            item = {}  # Start a new item
-        
-        match = re.match(r"(?:-\s*)?(id|price|orbs|tickets|isLimited|qty|resetDay|itemToUseAsCurrency|chance|saleItem):\s*(.*)", line)
+            item = {}
+
+        match = re.match(r"(?:-\s*)?(id|price|orbs|tickets|isLimited|qty|resetDay|chance|saleItem):\s*(.*)", line)
         if match:
             key, value = match.groups()
             if value.isdigit():
                 value = int(value)
             item[key] = value
-    
-    # Ensure the last item is appended
+        elif "itemToUseAsCurrency:" in line:
+            guid_match = re.search(r"guid:\s*([a-f0-9]+)", line)
+            item["itemToUseAsCurrency"] = guid_match.group(1) if guid_match else None
+
     if "id" in item:
         if current_section == "starting":
             shop_data["starting_items"].append(item)
         elif current_section == "random":
             shop_data["random_items"].append(item)
-    
+
     return shop_data
 
-# Find all MerchantTable asset files
+# Gather all MerchantTable.asset files
 shop_list = []
 for file_name in os.listdir(input_directory):
-    if "MerchantTable" in file_name and file_name.endswith(".asset"):
+    if file_name.endswith(".asset") and "MerchantTable" in file_name:
         file_path = os.path.join(input_directory, file_name)
         shop_data = parse_asset_file(file_path)
         shop_list.append(shop_data)
 
-# Ensure data is not empty before writing JSON
+# Write to JSON if data exists
 if shop_list:
     with open(shops_json_path, "w", encoding="utf-8") as json_file:
         json.dump(shop_list, json_file, indent=4)
