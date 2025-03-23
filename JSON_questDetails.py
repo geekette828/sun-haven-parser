@@ -6,7 +6,7 @@ import config
 # Construct full paths
 input_directory = os.path.join(config.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data")
-debug_directory = os.path.join(output_directory, "debug")
+debug_directory = os.path.join(config.OUTPUT_DIRECTORY, "Debug")
 
 # Ensure output and debug directories exist
 os.makedirs(output_directory, exist_ok=True)
