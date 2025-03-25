@@ -51,9 +51,8 @@ Image names get updated, then using pillow we scale up the images, then using py
 2. In the preferred asset manager, load the `Sun Haven_Data` folder. For most people it will be located in something like this:
   * Windows: `C:/Program Files (x86)/Steam/steamapps/common/Sun Haven/Sun Haven_Data`
   * Linux: `${HOME}/.steam/steam/steamapps/common/Sun Haven/Sun Haven_Data`
-3. Export the folder to an area of your choosing.
-
-## Directory Structure
+3. Export the folder to an area of your choosing. You will want to choose the export type: `Unity Project`. This is how it will export:
+### Directory Structure
 ```
 └── ExportedProject
     ├── Assets
@@ -97,7 +96,12 @@ Image names get updated, then using pillow we scale up the images, then using py
     │   ├── UnityConnectSettings    
     │   ├── VFXManager
     │   ├────── 
-    │   └── A Bunch of JSON Source Files    
+    │   └── A Bunch of other .asset and .meta files    
     ├── Assembilies
     └── Scripts
 ```
+## Using the collection of scripts
+4. Rename & update `config.example.py` where applicable for your paths.
+5. Take the necessary file folders from the ripped project and drop them into the parser project input folder.
+6. Run all of the JSON scripts first, to generate objects that the rest of the scripts will use to pull their data from. Then run all of the formatter scripts.
+  * I recommend comparing the most recent pull of data to the previous pull of data using a comparison application like WinMerge.

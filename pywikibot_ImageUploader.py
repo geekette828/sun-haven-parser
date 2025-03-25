@@ -1,91 +1,98 @@
 import sys
+import config
 import os
 import json
-import config
-
-# Ensure Pywikibot is accessible
-sys.path.append(r"C:\Users\marjo\PWB\core") 
+import re
+import time
 import pywikibot
+import datetime
 
-# Define paths
+# Set up necessary configurations before other imports
+sys.path.append(config.ADDITIONAL_PATHS["PWB"])
+site = pywikibot.Site()
+
+# Paths
 json_data_directory = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data")
-file_input_directory = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot")
 output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot")
 
-# Define input and output files
-comparison_file = os.path.join(file_input_directory, "comparison_summary.txt")
 items_data_file = os.path.join(json_data_directory, "items_data.json")
 images_data_file = os.path.join(json_data_directory, "images_data.json")
-output_comparison_file = os.path.join(output_directory, "sprite to file comparison.txt")
+missing_names_txt = os.path.join(output_directory, "images that dont exist.txt")
+missing_files_txt = os.path.join(output_directory, "missing images with filenames.txt")
 
-def extract_json_only_items(file_path):
-    """Extract items from the '##### JSON Only #####' section in the comparison summary file."""
-    if not os.path.exists(file_path):
-        print(f"Error: {file_path} not found.")
-        return []
+# Rate limiting (in seconds)
+RATE_LIMIT_SECONDS = 1.0
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+def format_time(seconds):
+    """Format seconds as MM:SS."""
+    minutes = int(seconds // 60)
+    seconds = int(seconds % 60)
+    return f"{minutes}m {seconds}s" if minutes else f"{seconds}s"
 
-    json_only_items = []
-    inside_json_section = False
-
-    for line in lines:
-        if line.strip() == "##### JSON Only #####":
-            inside_json_section = True
-            continue
-        if inside_json_section:
-            if line.strip() == "":  # Stop at an empty line
-                break
-            json_only_items.append(line.strip())
-
-    return json_only_items
-
-def load_json(file_path):
-    """Load JSON data from a file."""
-    if not os.path.exists(file_path):
-        print(f"Error: {file_path} not found.")
-        return {}
-    
-    with open(file_path, "r", encoding="utf-8") as f:
+def load_json(path):
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def find_icon_guid(items_data, item_name):
-    """Find the GUID for a given item name (case-insensitive)."""
-    lower_items = {key.lower(): value for key, value in items_data.items()}
-    item_data = lower_items.get(item_name.lower())
-    return item_data.get("GUID") if item_data else None  # Corrected field name
+def ensure_dir(path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
 
-def find_image_filename(images_data, icon_guid):
-    """Find the corresponding image filename for a given GUID (reverse lookup)."""
-    for image_name, guid in images_data.items():
-        if guid == icon_guid:
-            return image_name  # Return the filename mapped to the GUID
-    return "No matching image found"
-
-def generate_sprite_comparison():
-    """Generate a file listing each JSON-only item with its matching sprite filename."""
-    json_items = extract_json_only_items(comparison_file)
-    if not json_items:
-        print("No JSON-only items found.")
-        return
+# Check for missing images and map to file names using preload and single output.
+def step1_combined_check_and_map():
+    print("Checking JSON names for images...")
+    ensure_dir(missing_files_txt)
 
     items_data = load_json(items_data_file)
     images_data = load_json(images_data_file)
 
-    with open(output_comparison_file, "w", encoding="utf-8") as f:
-        f.write("### Sprite to File Comparison ###\n\n")
+    item_names = list(items_data.keys())
+    total = len(item_names)
+    progress_checkpoints = {int(total * i / 20) for i in range(1, 21)}  # Every 5%
+    start_time = time.time()
 
-        for item in json_items:
-            icon_guid = find_icon_guid(items_data, item)
+    # Build and preload all pages in a single batch
+    file_pages = [pywikibot.FilePage(site, f"{name}.png") for name in item_names]
+    preloaded_pages = list(site.preloadpages(file_pages))
+
+    # Collect missing items first
+    missing_items = []
+    for page in preloaded_pages:
+        if not page.exists():
+            name = page.title(with_ns=False).rsplit(".", 1)[0]
+            missing_items.append(name)
+
+    print("Gathering missing images complete.")
+    print("Mapping missing images to their filename...")
+
+    # Start the progress for mapping
+    total_missing = len(missing_items)
+    mapping_checkpoints = {int(total_missing * i / 20) for i in range(1, 21)}
+    start_mapping_time = time.time()
+
+    with open(missing_files_txt, "w", encoding="utf-8") as f:
+        for index, name in enumerate(missing_items, start=1):
+            item = items_data.get(name)
+            if not item:
+                f.write(f"{name}: Item not found in items_data.json\n")
+                continue
+
+            icon_guid = item.get("iconGUID")
             if not icon_guid:
-                image_filename = "No icon GUID found"
-            else:
-                image_filename = find_image_filename(images_data, icon_guid)
+                f.write(f"{name}: No iconGUID found\n")
+                continue
 
-            f.write(f"{item}: {image_filename}\n")
+            image_info = images_data.get(icon_guid)
+            if not image_info:
+                f.write(f"{name}: No image mapping for GUID {icon_guid}\n")
+                continue
 
-    print(f"Comparison file saved: {output_comparison_file}")
+            filename = image_info.get("image") or "No filename in image mapping"
+            f.write(f"{name}: {filename}\n")
 
-if __name__ == "__main__":
-    generate_sprite_comparison()
+            if index in mapping_checkpoints:
+                percent = int((index / total_missing) * 100)
+                elapsed = time.time() - start_mapping_time
+                avg_time = elapsed / index
+                eta = avg_time * (total_missing - index)
+                print(f"...{percent}% complete — approx. {format_time(eta)} remaining")
+
+    print(f"Missing image mapping written to: {missing_files_txt}")

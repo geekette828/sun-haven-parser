@@ -3,7 +3,7 @@ INPUT_DIRECTORY = "N:/Sun Haven Parser/Input/2.0 Assets"
 OUTPUT_DIRECTORY = "N:/Sun Haven Parser/Output/2.0"
 
 ADDITIONAL_PATHS = {
-    "PWB": r"C:\Users\marjo\PWB\core"
+    "PWB": r"YOUR PATH/TO/PWB"
 }
 
 STAT_TYPE_MAPPING = {
