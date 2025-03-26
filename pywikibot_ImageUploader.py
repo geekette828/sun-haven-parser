@@ -1,98 +1,121 @@
 import sys
 import config
 import os
-import json
-import re
-import time
 import pywikibot
-import datetime
+import traceback
+import time
+from datetime import datetime
+from PIL import Image
 
-# Set up necessary configurations before other imports
+# Set up pyWikiBot configurations
 sys.path.append(config.ADDITIONAL_PATHS["PWB"])
 site = pywikibot.Site()
+pywikibot.config.verbose_output = False
+pywikibot.config.log = []
+pywikibot.config.noisy_output = False
 
 # Paths
-json_data_directory = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data")
-output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot")
+input_file_path = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot", "imagesTEST.txt") #will be missing images with filenames.txt eventually
+image_input_directory = os.path.join(config.INPUT_DIRECTORY, "Texture2D")
+output_file_path = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot")
+debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug", "pywikibot_imageUploader_debug.txt")
+os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 
-items_data_file = os.path.join(json_data_directory, "items_data.json")
-images_data_file = os.path.join(json_data_directory, "images_data.json")
-missing_names_txt = os.path.join(output_directory, "images that dont exist.txt")
-missing_files_txt = os.path.join(output_directory, "missing images with filenames.txt")
+missing_file_output_path = os.path.join(output_file_path, "MissingImages_missingTextureFile.txt")
+missing_files = []
 
-# Rate limiting (in seconds)
-RATE_LIMIT_SECONDS = 1.0
+# Settings
+target_scale = 4  # Scale image dimensions
+summary_text = "Uploading upscaled version of image"
+upload_template = "{{Games}}"  # Change if needed
+CHUNK_SIZE = 5
+CHUNK_SLEEP_SECONDS = 10
 
-def format_time(seconds):
-    """Format seconds as MM:SS."""
-    minutes = int(seconds // 60)
-    seconds = int(seconds % 60)
-    return f"{minutes}m {seconds}s" if minutes else f"{seconds}s"
+def log_debug(message):
+    timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+    with open(debug_log_path, "a", encoding="utf-8") as f:
+        f.write(f"{timestamp} {message}\n")
 
-def load_json(path):
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def scale_image(image_path, scale):
+    with Image.open(image_path) as img:
+        new_size = (img.width * scale, img.height * scale)
+        return img.resize(new_size, Image.NEAREST)
+    
+def chunk_list(lst, chunk_size):
+    for i in range(0, len(lst), chunk_size):
+        yield lst[i:i + chunk_size]
 
-def ensure_dir(path):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+def upload_image(image, upload_name):
+    temp_path = os.path.join(output_file_path, upload_name)
+    image.save(temp_path)
 
-# Check for missing images and map to file names using preload and single output.
-def step1_combined_check_and_map():
-    print("Checking JSON names for images...")
-    ensure_dir(missing_files_txt)
+    page = pywikibot.FilePage(site, "File:" + upload_name)
+    page.text = upload_template
 
-    items_data = load_json(items_data_file)
-    images_data = load_json(images_data_file)
+    try:
+        if page.exists():
+            log_debug(f"Skipped upload for {upload_name} (already exists on wiki)")
+        else:
+            page.upload(temp_path, comment=summary_text, ignore_warnings=False)
+            log_debug(f"Uploaded: {upload_name}")
+    except Exception as e:
+        log_debug(f"Upload failed for {upload_name}: {e}")
+        log_debug(traceback.format_exc())
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
-    item_names = list(items_data.keys())
-    total = len(item_names)
-    progress_checkpoints = {int(total * i / 20) for i in range(1, 21)}  # Every 5%
-    start_time = time.time()
+def process_image_line(line):
+    if '->' not in line:
+        return
 
-    # Build and preload all pages in a single batch
-    file_pages = [pywikibot.FilePage(site, f"{name}.png") for name in item_names]
-    preloaded_pages = list(site.preloadpages(file_pages))
+    item_name, file_name = [x.strip() for x in line.split('->', 1)]
+    upload_name = item_name + ".png"
+    image_path = os.path.join(image_input_directory, file_name)
 
-    # Collect missing items first
-    missing_items = []
-    for page in preloaded_pages:
-        if not page.exists():
-            name = page.title(with_ns=False).rsplit(".", 1)[0]
-            missing_items.append(name)
+    if not os.path.exists(image_path):
+        log_debug(f"Missing file for upload: {file_name} (Expected path: {image_path})")
+        missing_files.append(f"{item_name} -> {file_name}")
+        return
 
-    print("Gathering missing images complete.")
-    print("Mapping missing images to their filename...")
+    try:
+        log_debug(f"Processing: {item_name}")
+        scaled_image = scale_image(image_path, target_scale)
+        upload_image(scaled_image, upload_name)
+    except Exception as e:
+        log_debug(f"Error with {item_name}: {e}")
+        log_debug(traceback.format_exc())
 
-    # Start the progress for mapping
-    total_missing = len(missing_items)
-    mapping_checkpoints = {int(total_missing * i / 20) for i in range(1, 21)}
-    start_mapping_time = time.time()
+def main():
+    if not os.path.exists(input_file_path):
+        print(f"Input file not found: {input_file_path}")
+        log_debug(f"Input file missing: {input_file_path}")
+        return
 
-    with open(missing_files_txt, "w", encoding="utf-8") as f:
-        for index, name in enumerate(missing_items, start=1):
-            item = items_data.get(name)
-            if not item:
-                f.write(f"{name}: Item not found in items_data.json\n")
-                continue
+    with open(input_file_path, 'r', encoding='utf-8') as f:
+        lines = [line.strip() for line in f if line.strip()]
 
-            icon_guid = item.get("iconGUID")
-            if not icon_guid:
-                f.write(f"{name}: No iconGUID found\n")
-                continue
+    total = len(lines)
+    actual_processed = 0
+    last_reported_percent = -1
 
-            image_info = images_data.get(icon_guid)
-            if not image_info:
-                f.write(f"{name}: No image mapping for GUID {icon_guid}\n")
-                continue
+    for i, chunk in enumerate(chunk_list(lines, CHUNK_SIZE), start=1):
+        for line in chunk:
+            process_image_line(line)
+            actual_processed += 1
 
-            filename = image_info.get("image") or "No filename in image mapping"
-            f.write(f"{name}: {filename}\n")
+            percent = int((actual_processed / total) * 100)
+            if percent >= last_reported_percent + 10:
+                print(f"  ✅ {actual_processed}/{total} image uploads complete — ({percent}%). Sleeping {CHUNK_SLEEP_SECONDS}s...")
+                last_reported_percent = percent
 
-            if index in mapping_checkpoints:
-                percent = int((index / total_missing) * 100)
-                elapsed = time.time() - start_mapping_time
-                avg_time = elapsed / index
-                eta = avg_time * (total_missing - index)
-                print(f"...{percent}% complete — approx. {format_time(eta)} remaining")
+        time.sleep(CHUNK_SLEEP_SECONDS)
 
-    print(f"Missing image mapping written to: {missing_files_txt}")
+    # Optional: Final summary
+    print(f"\n✅ Upload complete: {actual_processed}/{total} files processed.")
+
+if __name__ == "__main__":
+    main()
+    if missing_files:
+        with open(missing_file_output_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(missing_files))

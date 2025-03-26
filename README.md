@@ -37,13 +37,16 @@ formatter_shops.py --<br>
 These use the mediawiki api to do various comparisons and page creations directly into the wiki.<br>
 The user must be in the PWB-Core folder and logged in to PyWikiBot using: python pwb.py login<br>
 
-pywikibot_MissingDataCheck.py --<br>
+pywikibot_missingDataCheck.py --<br>
 This python module will review the SH wiki to make three lists: Items missing from the JSON file, Items missing from the wiki, Items in both the JSON and the wiki.<br>
 It will then do a comparison between items in both the JSON and Wiki, to see what infobox items need to be updated (WIP).
 
-pywikibot_ImageUploader.py --<br>
-(WIP) Reviews the `comparison_summary.txt` file for the items not in the wiki. Then creates a file of items and their associated images.<br>
-Image names get updated, then using pillow we scale up the images, then using pywikibot we upload them to the wiki.<br>
+pywikibot_missingImageCheck.py --<br>
+Reviews the wiki and looks for itemname.png, anything missing itemname.png it puts in a list. The script then looks up the icon GUID to produce the image name. The overall output is a file that has missing images, and what their associated image name in the texture2D file is.
+
+pywikibot_imageUploader.py --<br>
+This python module well take the outputs from `pywikibot_missingImageCheck.py` and will grab associated images from the texture2D folder to automatically upload a scaled version to the wiki, with the correct naming convention and copywrite template. It generates a list of files it could not find in the folder, for additional manual work.
+
 
 # Using the Parser
 ## Getting the Assets

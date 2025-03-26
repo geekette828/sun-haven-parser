@@ -1,4 +1,3 @@
-.gitignore
 config.py
 __pycache__
 Input/
