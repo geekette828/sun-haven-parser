@@ -20,6 +20,8 @@ images_data_file = os.path.join(json_data_directory, "images_data.json")
 missing_names_txt = os.path.join(output_directory, "MissingImages_nonexistentImages.txt")
 missing_files_txt = os.path.join(output_directory, "MissingImages_filenameConversion.txt")
 
+debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug", "pywikibot_missingImageCheck_skipped.txt")
+
 # Constants
 CHUNK_SIZE = 750
 CHUNK_SLEEP_SECONDS = 3
@@ -35,9 +37,13 @@ def chunk_list(lst, chunk_size):
     for i in range(0, len(lst), chunk_size):
         yield lst[i:i + chunk_size]
 
+# Check for missing images and map to file names, separating skipped cases into debug log.
 def step1_combined_check_and_map():
-    print("🔍 Step 1: Checking JSON names for images...")
+    print("🔍 Checking JSON names for images...")
     ensure_dir(missing_files_txt)
+
+    debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug", "pywikibot_missingImageCheck_skipped.txt")
+    ensure_dir(debug_log_path)
 
     # Load data
     items_data = load_json(items_data_file)
@@ -79,27 +85,35 @@ def step1_combined_check_and_map():
 
     print("🔗 Mapping missing images to their filenames...")
 
-    with open(missing_files_txt, "w", encoding="utf-8") as f:
+    with open(missing_files_txt, "w", encoding="utf-8") as f, \
+         open(debug_log_path, "w", encoding="utf-8") as debug:
+        
         for name in missing_items:
+            # Skip rules first
+            if any(char.isdigit() for char in name) or "(" in name or ")" in name:
+                debug.write(f"{name} -> Skipped (naming rule)\n")
+                continue
+
             item = items_data.get(name)
             if not item:
-                f.write(f"{name}: Item not found in items_data.json\n")
+                debug.write(f"{name} -> Item not found in items_data.json\n")
                 continue
 
             icon_guid = item.get("iconGUID")
             if not icon_guid:
-                f.write(f"{name} -> No iconGUID found\n")
+                debug.write(f"{name} -> No iconGUID found\n")
                 continue
 
             image_info = images_data.get(icon_guid)
             if not image_info:
-                f.write(f"{name}: No image mapping for GUID {icon_guid}\n")
+                debug.write(f"{name} -> No image mapping for GUID {icon_guid}\n")
                 continue
 
             filename = image_info.get("image") or "No filename in image mapping"
             f.write(f"{name} -> {filename}\n")
 
     print(f"📝 Missing image mapping written to: {missing_files_txt}")
+    print(f"🛠️  Skipped items written to: {debug_log_path}")
 
 # Entry point
 if __name__ == "__main__":
