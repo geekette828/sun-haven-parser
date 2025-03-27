@@ -89,8 +89,16 @@ def step1_combined_check_and_map():
          open(debug_log_path, "w", encoding="utf-8") as debug:
         
         for name in missing_items:
-            # Skip rules first
-            if any(char.isdigit() for char in name) or "(" in name or ")" in name:
+            # Skip some items first
+            lower_name = name.lower()
+            if (
+                any(char.isdigit() for char in name) or
+                "(" in name or
+                ")" in name or
+                "stone node" in lower_name or
+                "bundle" in lower_name or
+                "octavius" in lower_name
+            ):
                 debug.write(f"{name} -> Skipped (naming rule)\n")
                 continue
 
