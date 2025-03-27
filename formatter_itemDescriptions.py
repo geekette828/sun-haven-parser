@@ -50,6 +50,27 @@ for item, details in data.items():
 
     descriptions[first_letter][simplified_name] = description
 
+# Add hardcoded aliases (after all items are added)
+alias_map = {
+    "sprinkles": "blueberry sprinkles",
+    "shiver": "black shiver",
+    "kitty (pet)": "black kitty"
+}
+
+for alias, original in alias_map.items():
+    original_key = original.lower()
+    alias_key = alias.lower()
+    orig_letter = original_key[0]
+    alias_letter = alias_key[0]
+
+    if orig_letter in descriptions and original_key in descriptions[orig_letter]:
+        desc = descriptions[orig_letter][original_key]
+
+        if alias_letter not in descriptions:
+            descriptions[alias_letter] = {}
+
+        descriptions[alias_letter][alias_key] = desc
+
 # Generate Lua script output
 lua_script = """local p = {}
 local lib = require('Module:Feature')
