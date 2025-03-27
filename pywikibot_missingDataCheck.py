@@ -24,6 +24,7 @@ infobox_txt_path = os.path.join(output_directory, "infobox_pages.txt")
 comparison_wiki_json_path = os.path.join(output_directory, "Comparison_WikiJSON.txt")
 comparison_wiki_only_path = os.path.join(output_directory, "Comparison_WikiOnly.txt")
 comparison_json_only_path = os.path.join(output_directory, "Comparison_JSONOnly.txt")
+debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug")
 
 def get_base_and_variant(name):
     name = name.strip().lower()
@@ -134,9 +135,8 @@ def recheck_jsononly_against_wiki(json_items, json_only):
     print("Completed the comparison between the left over json names and the wiki")
 
     # Log recovered base names
-    debug_dir = os.path.join(output_directory, "Debug")
-    os.makedirs(debug_dir, exist_ok=True)
-    recovered_log_path = os.path.join(debug_dir, "recovered_redirects.txt")
+    os.makedirs(debug_log_path, exist_ok=True)
+    recovered_log_path = os.path.join(debug_log_path, "MissingDataCheck_recoveredRedirects.txt")
     with open(recovered_log_path, "w", encoding="utf-8") as f:
         for item in sorted(recovered):
             f.write(f"{item}\n")
@@ -181,4 +181,3 @@ both |= recovered  # Merge new discoveries into the 'both' set
 
 write_outputs(json_items, wiki_names, both, wiki_only, json_only)
 print("✅ Completed missing data check.")
-
