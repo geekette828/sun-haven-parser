@@ -9,26 +9,26 @@ config/
 
 
 ## JSON Objects
-JSON_imageList.py --<br>
-Creates a massive json object based on sprite files located in the input directory. This will pull the image name and associated GUID.<br>
-
-JSON_itemList.py --<br>
+JSON_item_list.py --<br>
 Creates a massive json object based on monobehaviour files located in the input directory. This will pull various information of each item, many of the fields in various infoboxes will use these numbers.<br>
 
-JSON_questDetails.py --<br>
+JSON_image_list.py --<br>
+Creates a massive json object based on sprite files located in the input directory. This will pull the image name and associated GUID.<br>
+
+JSON_quest_details.py --<br>
 Creates a json object based on quest specific monobehaviour files located in the input directory. This will pull various information of each quest, many of the fields in various infoboxes will use these numbers.<br>
 
-JSON_recipesList.py --<br>
+JSON_recipes_list.py --<br>
 Creates a json object based on recipes for items.<br>
 
-JSON_shopInventory.py --<br>
+JSON_shop_inventory.py --<br>
 Cretes a json object for the inventory of various shops.<br>
 
 ## Formatted for Wiki Consumption
 Each of these will take the information from the JSON objects, or the asset files in the monobehaviour directory to build text files that have the wiki formatting already in them, so people can copy and paste directly into the wiki and worry less about formatting.<br>
 
 formatter_dialogue.py --<br>
-formatter_itemDescriptions.py --<br>
+formatter_item_descriptions.py --<br>
 formatter_quests.py --<br>
 formatter_recipes.py --<br>
 formatter_shops.py --<br>
@@ -37,21 +37,26 @@ formatter_iteminfobox.py -- <br>
     └── formatter_iteminfobox_itemData.py
 
 ## PyWikiBot
-These scripts use the mediawiki api [Pywikibot](https://support.wiki.gg/wiki/Pywikibot) to do various comparisons and page creations directly into the wiki.<br>
+These scripts use the mediawiki api [Pywikibot](https://support.wiki.gg/wiki/Pywikibot) to do various comparisons, page creations, or uploads directly into the wiki.<br>
 The user must be in the PWB-Core folder and logged in to PyWikiBot using: python pwb.py login<br>
 
-pywikibot_missingDataCheck.py --<br>
+pywikibot_missing_data_check.py --<br>
 This python module will review the SH wiki to make three lists: Items missing from the JSON file, Items missing from the wiki, Items in both the JSON and the wiki.<br>
 It will then do a comparison between items in both the JSON and Wiki, to see what infobox items need to be updated (WIP).
 
-pywikibot_missingImageCheck.py --<br>
+pywikibot_missing_image_check.py --<br>
 Reviews the wiki and looks for itemname.png, anything missing itemname.png it puts in a list. The script then looks up the icon GUID to produce the image name. The overall output is a file that has missing images, and what their associated image name in the texture2D file is.
 
-pywikibot_imageUploader.py --<br>
+pywikibot_image_uploader.py --<br>
 This python script takes the outputs from `pywikibot_missingImageCheck.py` and grabs associated images from the texture2D folder to automatically upload a scaled version to the wiki, with the correct naming convention and copywrite template. It generates a list of files it could not find in the folder, for additional manual work.
 
-pywikibot_updatePetImages.py -- <br>
-THis python script pulls a list of pages that are both `Pets` and `DLC`, then associates specific cateogories for those file images, so they show up in various DPL queries on the wiki.
+pywikibot_images_dlc_pet.py -- <br>
+This python script pulls a list of pages that are both `Pets` and `DLC`, then associates specific cateogories for those file images, so they show up in various DPL queries on the wiki.
+
+pywikibot_redirect_creation.py -- <br>
+This python script will create redirect pages to certain pages. Helpful for redirecting variants of something to the main page.
+
+
 
 # Using the Parser
 ## Getting the Assets
@@ -60,7 +65,7 @@ THis python script pulls a list of pages that are both `Pets` and `DLC`, then as
   * Windows: `C:/Program Files (x86)/Steam/steamapps/common/Sun Haven/Sun Haven_Data`
   * Linux: `${HOME}/.steam/steam/steamapps/common/Sun Haven/Sun Haven_Data`
 3. Export the folder to an area of your choosing. You will want to choose the export type: `Unity Project`. This is how it will export:
-### Directory Structure
+### Asset Directory Structure
 ```
 └── ExportedProject
     ├── Assets
@@ -109,7 +114,7 @@ THis python script pulls a list of pages that are both `Pets` and `DLC`, then as
     └── Scripts
 ```
 ## Using the collection of scripts
-4. Rename & update `config.example.py` where applicable for your paths.
+4. Rename & update `constants.example.py` where applicable for your paths.
 5. Take the necessary file folders from the ripped project and drop them into the parser project input folder.
 6. Run all of the JSON scripts first, to generate objects that the rest of the scripts will use to pull their data from. Then run all of the formatter scripts.
   * I recommend comparing the most recent pull of data to the previous pull of data using a comparison application like WinMerge.
