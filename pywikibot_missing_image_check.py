@@ -1,5 +1,5 @@
 import sys
-import config
+import config.constants as constants
 import os
 import json
 import re
@@ -8,19 +8,19 @@ import pywikibot
 import datetime
 
 # Set up necessary configurations before other imports
-sys.path.append(config.ADDITIONAL_PATHS["PWB"])
+sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
 site = pywikibot.Site()
 
 # Paths
-json_data_directory = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data")
-output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot")
+json_data_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
+output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot")
 
 items_data_file = os.path.join(json_data_directory, "items_data.json")
 images_data_file = os.path.join(json_data_directory, "images_data.json")
 missing_names_txt = os.path.join(output_directory, "MissingImages_nonexistentImages.txt")
 missing_files_txt = os.path.join(output_directory, "MissingImages_filenameConversion.txt")
 
-debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug", "pywikibot_missingImageCheck_skipped.txt")
+debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_missingImageCheck_skipped.txt")
 
 # Constants
 CHUNK_SIZE = 750
@@ -42,7 +42,7 @@ def step1_combined_check_and_map():
     print("🔍 Checking JSON names for images...")
     ensure_dir(missing_files_txt)
 
-    debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug", "pywikibot_missingImageCheck_skipped.txt")
+    debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_missingImageCheck_skipped.txt")
     ensure_dir(debug_log_path)
 
     # Load data

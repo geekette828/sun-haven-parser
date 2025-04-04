@@ -1,10 +1,10 @@
 import os
 import json
-import config
+import config.constants as constants
 
 # Define file paths
-input_file_path = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
-output_file_path = os.path.join(config.OUTPUT_DIRECTORY, "Wiki Formatted", "Recipes.txt")
+input_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
+output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "Recipes.txt")
 
 # Load the extracted recipe data
 with open(input_file_path, "r", encoding="utf-8") as file:

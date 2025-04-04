@@ -1,11 +1,11 @@
 import os
 import json
 import re
-import config
+import config.constants as constants
 
 # Define paths
-input_directory = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data")
-output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Wiki Formatted")
+input_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
+output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted")
 os.makedirs(output_directory, exist_ok=True)
 
 input_file_path = os.path.join(input_directory, "items_data.json")

@@ -1,9 +1,10 @@
-config.py
 __pycache__
 Input/
+_input/
 Output/
+_output/
+Config/constants.py
 cropPull.py
-infoboxData.py
 Sun Haven Parser.code-workspace
 throttle.ctrl
 pywikibotinstructions.txt

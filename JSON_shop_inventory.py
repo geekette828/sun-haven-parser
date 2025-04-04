@@ -1,11 +1,11 @@
 import os
 import json
 import re
-import config
+import config.constants as constants
 
 # Define paths
-input_directory = os.path.join(config.INPUT_DIRECTORY, "MonoBehaviour")
-output_directory = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data")
+input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
+output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 os.makedirs(output_directory, exist_ok=True)
 
 # Define output file

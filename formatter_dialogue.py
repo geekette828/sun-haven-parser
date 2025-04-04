@@ -1,10 +1,10 @@
 import os
 import re
-import config  # Import configuration file
+import config.constants as constants
 
 # Define input and output paths
-input_directory = os.path.join(config.INPUT_DIRECTORY, "TextAsset")
-output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Wiki Formatted/Dialogues")
+input_directory = os.path.join(constants.INPUT_DIRECTORY, "TextAsset")
+output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted/Dialogues")
 
 # Ensure output directory exists
 os.makedirs(output_directory, exist_ok=True)

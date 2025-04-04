@@ -1,5 +1,5 @@
 import sys
-import config
+import config.constants as constants
 import os
 import pywikibot
 import traceback
@@ -8,17 +8,18 @@ from datetime import datetime
 from PIL import Image
 
 # Set up pyWikiBot configurations
-sys.path.append(config.ADDITIONAL_PATHS["PWB"])
+sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
 site = pywikibot.Site()
 pywikibot.config.verbose_output = False
 pywikibot.config.log = []
 pywikibot.config.noisy_output = False
 
 # Paths
-input_file_path = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot", "imagesTEST.txt") #will be missing images with filenames.txt eventually
-image_input_directory = os.path.join(config.INPUT_DIRECTORY, "Texture2D")
-output_file_path = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot")
-debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug", "pywikibot_imageUploader_debug.txt")
+input_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "imagesTEST.txt") #will be missing images with filenames.txt eventually
+#image_input_directory = os.path.join(config.INPUT_DIRECTORY, "Texture2D")
+image_input_directory = r"N:\Images\Sprite"
+output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot")
+debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_imageUploader_debug.txt")
 os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 
 missing_file_output_path = os.path.join(output_file_path, "MissingImages_missingTextureFile.txt")

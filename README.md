@@ -3,9 +3,9 @@ Putting these into output files, so we can do a compare between patches, and onl
 Some scripts to do some comparisons using pywikibot
 
 # Parser Collections
-config.py --<br>
-This file specifies the input and output directories, so they can be dynamic based on the end user's file structure. <br>
-It also holds the mapping for numeric to text conversions of things like stats, seasons, quest types, etc.<br>
+config/
+├── constants.py     → Mapping for numeric to text conversions of things like stats, seasons, quest types, etc.
+├── skip_list.py     → List of assets that aren't real items.
 
 
 ## JSON Objects

@@ -1,6 +1,6 @@
 
-INPUT_DIRECTORY = "N:/Sun Haven Parser/Input/2.0 Assets"
-OUTPUT_DIRECTORY = "N:/Sun Haven Parser/Output/2.0"
+INPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_input/2.0 Assets"
+OUTPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_output/2.0"
 
 ADDITIONAL_PATHS = {
     "PWB": r"YOUR PATH/TO/PWB"

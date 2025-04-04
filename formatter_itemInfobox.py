@@ -1,9 +1,9 @@
 import os
 import json
 import logging
-import config  
+import config.constants as constants  
 from formatter_itemInfobox_classifications import classify_item
-from formatter_itemInfobox_itemData import format_item_data
+from formatter_itemInfobox_item_Data import format_item_data
 
 def setup_logger(debug_log_path):
     logger = logging.getLogger("formatter_itemInfobox")
@@ -65,9 +65,9 @@ def create_full_infobox(item):
     return full_infobox
 
 def main():
-    json_file_path = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
-    output_file_path = os.path.join(config.OUTPUT_DIRECTORY, "Wiki Formatted", "itemInfobox.txt")
-    debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug", "formatter_itemInfobox_debug.txt")
+    json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
+    output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "itemInfobox.txt")
+    debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "formatter_itemInfobox_debug.txt")
     
     logger = setup_logger(debug_log_path)
     logger.info("Starting full infobox formatting.")

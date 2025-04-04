@@ -3,7 +3,7 @@ This python module will review the SH wiki and compare the JSON file with item i
 The user must be in the PWB-Core folder and logged in to PyWikiBot using: python pwb.py login
 """
 import sys
-import config
+import config.constants as constants
 import os
 import json
 import re
@@ -13,18 +13,18 @@ from collections import defaultdict
 from itertools import islice
 
 # Set up paths and pywikibot site
-sys.path.append(config.ADDITIONAL_PATHS["PWB"])
+sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
 site = pywikibot.Site("en", "sunhaven")
 
-output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot")
+output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot")
 os.makedirs(output_directory, exist_ok=True)
 
-json_path = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
+json_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
 infobox_txt_path = os.path.join(output_directory, "infobox_pages.txt")
 comparison_wiki_json_path = os.path.join(output_directory, "Comparison_WikiJSON.txt")
 comparison_wiki_only_path = os.path.join(output_directory, "Comparison_WikiOnly.txt")
 comparison_json_only_path = os.path.join(output_directory, "Comparison_JSONOnly.txt")
-debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug")
+debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug")
 
 def get_base_and_variant(name):
     name = name.strip().lower()

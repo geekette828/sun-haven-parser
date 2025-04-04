@@ -1,4 +1,4 @@
-import config
+import config.constants as constants
 
 def compute_restores(item):
     health = item.get("health", 0)
@@ -19,8 +19,8 @@ def compute_statInc(item):
             increase_val = int(entry.get("increase", 0))
         except Exception:
             continue
-        stat_name = config.STAT_TYPE_MAPPING.get(stat_key, "none")
-        inc_str = config.FOOD_STAT_INCREASES.get(increase_val, "")
+        stat_name = constants.STAT_TYPE_MAPPING.get(stat_key, "none")
+        inc_str = constants.FOOD_STAT_INCREASES.get(increase_val, "")
         if inc_str:
             inc_str = inc_str.lower()
         stat_inc_list.append(f"{stat_name}»({inc_str})")
@@ -51,7 +51,7 @@ def compute_season(item):
             set_season = int(set_season)
         except Exception:
             return ""
-        return config.SEASONS.get(set_season, "")
+        return constants.SEASONS.get(set_season, "")
     elif has_set == 0:
         return "Any"
     return ""
@@ -71,7 +71,7 @@ def compute_effect(item):
             value = stat.get("value", 0)
         except Exception:
             continue
-        stat_name = config.STAT_TYPE_MAPPING.get(stat_type, "none")
+        stat_name = constants.STAT_TYPE_MAPPING.get(stat_type, "none")
         effects.append(f"{stat_name}»{value}")
     return "; ".join(effects)
 

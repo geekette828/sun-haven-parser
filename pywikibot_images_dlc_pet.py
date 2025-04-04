@@ -1,17 +1,17 @@
 import sys
-import config
+import config.constants as constants
 import os
 import pywikibot
 import time
 import re
 
 # Set up pyWikiBot configurations
-sys.path.append(config.ADDITIONAL_PATHS["PWB"])
+sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
 site = pywikibot.Site()
 
 # Paths
-output_file_path = os.path.join(config.OUTPUT_DIRECTORY, "Pywikibot", "pywikibot_updatePetImage.txt")
-debug_log_path = os.path.join(config.OUTPUT_DIRECTORY, "Debug", "pywikibot_updatePetImage_debug.txt")
+output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "pywikibot_updatePetImage.txt")
+debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_updatePetImage_debug.txt")
 os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 
 # Constants

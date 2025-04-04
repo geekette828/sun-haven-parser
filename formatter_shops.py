@@ -1,6 +1,6 @@
 import os
 import json
-import config
+import config.constants as constants
 
 def load_json(file_path):
     """Load JSON data from a file."""
@@ -88,8 +88,8 @@ def format_shop_data(shop_data, items_data):
 
 def main():
     """Main function to process the JSON files and create the formatted output."""
-    input_directory = os.path.join(config.OUTPUT_DIRECTORY, "JSON Data")
-    output_directory = os.path.join(config.OUTPUT_DIRECTORY, "Wiki Formatted")
+    input_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
+    output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted")
     os.makedirs(output_directory, exist_ok=True)
 
     shop_data_path = os.path.join(input_directory, "shop_data.json")
