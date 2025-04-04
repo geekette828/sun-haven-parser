@@ -62,3 +62,11 @@ QUEST_TYPES = {
     4: "Nel'Vari Main Quest",
     8: "Brinestone Deep Main Quest",
 }
+
+RARITY_TYPE_MAPPING = {
+    0: "Common",
+    1: "Uncommon",
+    2: "Rare",
+    3: "Epic",
+    4: "Legendary",
+}

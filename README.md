@@ -32,15 +32,20 @@ Cretes a json object for the inventory of various shops.<br>
 
 ## Formatted for Wiki Consumption
 Each of these will take the information from the JSON objects, or the asset files in the monobehaviour directory to build text files that have the wiki formatting already in them, so people can copy and paste directly into the wiki and worry less about formatting.<br>
+```
+├── formatter_dialogue.py 
+├── formatter_item_descriptions.py 
+├── formatter_quests.py 
+├── formatter_recipes.py 
+├── formatter_shops.py 
+├── formatter_item_page.py
+    ├── formatter_iteminfobox.py 
+    │   ├── formatter_iteminfobox_classifications.py
+    |   └── formatter_iteminfobox_itemData.py
+    ├── formatter_item_page_summary.py.py
+    └── formatter_item_page_navbox.py
 
-formatter_dialogue.py --<br>
-formatter_item_descriptions.py --<br>
-formatter_quests.py --<br>
-formatter_recipes.py --<br>
-formatter_shops.py --<br>
-formatter_iteminfobox.py -- <br>
-    ├── formatter_iteminfobox_classifications.py
-    └── formatter_iteminfobox_itemData.py
+ ```   
 
 ## PyWikiBot
 These scripts use the mediawiki api [Pywikibot](https://support.wiki.gg/wiki/Pywikibot) to do various comparisons, page creations, or uploads directly into the wiki.<br>

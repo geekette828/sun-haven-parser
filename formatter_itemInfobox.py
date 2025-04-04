@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import logging
 
@@ -66,7 +67,7 @@ def create_full_infobox(item):
         full_infobox = basic + "}}"
     return full_infobox
 
-def main():
+def process_items(test_items=None):
     json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
     output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "itemInfobox.txt")
     debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "formatter_itemInfobox_debug.txt")
@@ -78,29 +79,14 @@ def main():
     logger = setup_logger(debug_log_path)
     logger.info("Starting full infobox formatting.")
     
-    # Hard-coded test items for development; update as needed.
-    test_items = [
-        "iris shirt", 
-        "iris skirt", 
-        "iris wig", 
-        "iris' bed", 
-        "iris' bench", 
-        "iris' chair", 
-        "iris' dresser", 
-        "iris' lamp", 
-        "iris' painting", 
-        "iris' plushie", 
-        "iris' rug", 
-        "iris' table", 
-        "iris' topiary", 
-        "iris' wardrobe", 
-        "mage master coat", 
-        "mage master pants", 
-        "mage master wig", 
-        "mage student pants", 
-        "mage student shirt", 
-        "mage student wig"
-    ]
+    if test_items is None:
+        # Use hard-coded test items if none are provided.
+        test_items = [
+            "item name", 
+            "item name", 
+            "item name", 
+            "item name", 
+        ]
     logger.info(f"Test items: {test_items}")
     
     try:
@@ -130,7 +116,10 @@ def main():
     except Exception as e:
         logger.exception("Failed to write output file.")
 
+def main():
+    process_items()
+
 if __name__ == "__main__":
     main()
 
-print(f"Infobox creation complete")
+print("Infobox creation complete")

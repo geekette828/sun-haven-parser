@@ -103,17 +103,20 @@ def format_item_data(classification, item):
     itemType, subtype, _ = classification
     data_lines = []
     
-    if itemType == "Animal":
+    if subtype == "Barn Animal":
         data_lines.append("<!-- Item Data-->")
         data_lines.append("|region      = ")
         data_lines.append("|produces    = ")
         data_lines.append("|capacity    = ")
     elif itemType == "Furniture":
         return ""
+    elif subtype in ["Pet", "Wild Animal"]:
+        return ""
     elif subtype == "Food":
         restores = compute_restores(item)
         statInc = compute_statInc(item)
         organic = compute_organic(item)
+        data_lines.append("<!-- Item Data-->")
         data_lines.append("|restores    = " + restores)
         data_lines.append("|statInc     = " + statInc)
         data_lines.append("|organic     = " + organic)
@@ -122,21 +125,25 @@ def format_item_data(classification, item):
         statInc = compute_statInc(item)
         season = compute_season(item)
         exp = compute_exp(item)
+        data_lines.append("<!-- Item Data-->")
         data_lines.append("|restores    = " + restores)
         data_lines.append("|statInc     = " + statInc)
         data_lines.append("|region      = ")
         data_lines.append("|season      = " + season)
         data_lines.append("|exp         = " + exp)
     elif subtype in ["Clothing"]:
+        data_lines.append("<!-- Item Data-->")
         data_lines.append("|armorset    = ")
     elif subtype in ["Armor", "Accessory"]:
         effect_val = compute_effect(item)
         req_val = compute_requirement(item, classification)
+        data_lines.append("<!-- Item Data-->")
         data_lines.append("|armorset    = ")
         data_lines.append("|effect      = " + effect_val)
         data_lines.append("|requirement = " + req_val)
     elif subtype in ["Tool", "Weapon"]:
         req_val = compute_requirement(item, classification)
+        data_lines.append("<!-- Item Data-->")
         data_lines.append("|requirement = " + req_val)
     
     return "\n".join(data_lines)
