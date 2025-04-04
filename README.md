@@ -32,9 +32,12 @@ formatter_itemDescriptions.py --<br>
 formatter_quests.py --<br>
 formatter_recipes.py --<br>
 formatter_shops.py --<br>
+formatter_iteminfobox.py -- <br>
+    ├── formatter_iteminfobox_classifications.py
+    └── formatter_iteminfobox_itemData.py
 
-## pyWikiBot
-These use the mediawiki api to do various comparisons and page creations directly into the wiki.<br>
+## PyWikiBot
+These scripts use the mediawiki api [Pywikibot](https://support.wiki.gg/wiki/Pywikibot) to do various comparisons and page creations directly into the wiki.<br>
 The user must be in the PWB-Core folder and logged in to PyWikiBot using: python pwb.py login<br>
 
 pywikibot_missingDataCheck.py --<br>
@@ -45,8 +48,10 @@ pywikibot_missingImageCheck.py --<br>
 Reviews the wiki and looks for itemname.png, anything missing itemname.png it puts in a list. The script then looks up the icon GUID to produce the image name. The overall output is a file that has missing images, and what their associated image name in the texture2D file is.
 
 pywikibot_imageUploader.py --<br>
-This python module well take the outputs from `pywikibot_missingImageCheck.py` and will grab associated images from the texture2D folder to automatically upload a scaled version to the wiki, with the correct naming convention and copywrite template. It generates a list of files it could not find in the folder, for additional manual work.
+This python script takes the outputs from `pywikibot_missingImageCheck.py` and grabs associated images from the texture2D folder to automatically upload a scaled version to the wiki, with the correct naming convention and copywrite template. It generates a list of files it could not find in the folder, for additional manual work.
 
+pywikibot_updatePetImages.py -- <br>
+THis python script pulls a list of pages that are both `Pets` and `DLC`, then associates specific cateogories for those file images, so they show up in various DPL queries on the wiki.
 
 # Using the Parser
 ## Getting the Assets
