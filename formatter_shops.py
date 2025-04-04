@@ -1,11 +1,6 @@
 import os
-import json
 import config.constants as constants
-
-def load_json(file_path):
-    """Load JSON data from a file."""
-    with open(file_path, 'r', encoding='utf-8') as file:
-        return json.load(file)
+from utils import json_utils, file_utils
 
 def transform_items_data(items_data):
     """Transform items_data.json into a dictionary with IDs and GUIDs as keys."""
@@ -90,20 +85,19 @@ def main():
     """Main function to process the JSON files and create the formatted output."""
     input_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
     output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted")
-    os.makedirs(output_directory, exist_ok=True)
+    file_utils.ensure_dir_exists(output_directory)
 
     shop_data_path = os.path.join(input_directory, "shop_data.json")
     items_data_path = os.path.join(input_directory, "items_data.json")
     output_file_path = os.path.join(output_directory, "shops.txt")
 
-    shop_data = load_json(shop_data_path)
-    raw_items_data = load_json(items_data_path)
+    shop_data = json_utils.load_json(shop_data_path)
+    raw_items_data = json_utils.load_json(items_data_path)
     items_data = transform_items_data(raw_items_data)
 
     formatted_output = format_shop_data(shop_data, items_data)
 
-    with open(output_file_path, 'w', encoding='utf-8') as output_file:
-        output_file.write(formatted_output)
+    file_utils.write_lines(output_file_path, [formatted_output])
 
     print("Shops file generated successfully.")
 

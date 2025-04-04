@@ -7,6 +7,12 @@ config/
 ├── constants.py     → Mapping for numeric to text conversions of things like stats, seasons, quest types, etc.
 ├── skip_list.py     → List of assets that aren't real items.
 
+utils/
+├── file_utils.py     → Utility pulls together functions around read/write with logs or structured text files.
+├── guid_utils.py     → Utility pulls together functions around guid extraction.
+├── json_utils.py     → Utility pulls together functions around JSON parsing.
+└── text_utils.py     → Utility pulls together functions around general string clean up.
+
 
 ## JSON Objects
 JSON_item_list.py --<br>

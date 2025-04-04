@@ -1,21 +1,19 @@
 import os
-import json
 import re
 import config.constants as constants
+from utils import json_utils, file_utils
 
 # Define paths
 input_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted")
-os.makedirs(output_directory, exist_ok=True)
+file_utils.ensure_dir_exists(output_directory)
 
 input_file_path = os.path.join(input_directory, "items_data.json")
 output_file_path = os.path.join(output_directory, "item_descriptions.txt")
 
-# Read JSON data
-with open(input_file_path, "r", encoding="utf-8") as file:
-    data = json.load(file)
+# Read JSON data using json_utils
+data = json_utils.load_json(input_file_path)
 
-# Organize descriptions alphabetically, merging similar ones
 # Organize descriptions alphabetically, merging similar ones
 descriptions = {}
 seen_keys = set()  # Set of simplified names we've already added
@@ -111,9 +109,8 @@ end
 return p
 """
 
-# Write output to file
-with open(output_file_path, "w", encoding="utf-8") as file:
-    file.write(lua_script)
+# Write output to file using file_utils
+file_utils.write_lines(output_file_path, [lua_script])
 
 # Print final success message (NO extra terminal spam)
 print(f"Lua script generated successfully: {output_file_path}")

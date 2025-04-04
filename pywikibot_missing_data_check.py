@@ -9,6 +9,8 @@ import json
 import re
 import time
 import pywikibot
+import fnmatch
+from config.skip_items import SKIP_ITEMS, SKIP_PATTERNS
 from collections import defaultdict
 from itertools import islice
 
@@ -25,6 +27,15 @@ comparison_wiki_json_path = os.path.join(output_directory, "Comparison_WikiJSON.
 comparison_wiki_only_path = os.path.join(output_directory, "Comparison_WikiOnly.txt")
 comparison_json_only_path = os.path.join(output_directory, "Comparison_JSONOnly.txt")
 debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug")
+
+def should_skip(name):
+    name = name.lower()
+    if name in SKIP_ITEMS:
+        return True
+    for pattern in SKIP_PATTERNS:
+        if fnmatch.fnmatch(name, pattern.lower()):
+            return True
+    return False
 
 def get_base_and_variant(name):
     name = name.strip().lower()
@@ -56,7 +67,11 @@ def format_output(categorized_items):
 
 def load_json_items():
     with open(json_path, "r", encoding="utf-8") as file:
-        return json.load(file)
+        json_data = json.load(file)
+    return {
+        name: item for name, item in json_data.items()
+        if not should_skip(name)
+    }
 
 # Step 1: Extract wiki pages that transclude infobox templates 
 def get_infobox_pages():
@@ -115,7 +130,7 @@ def recheck_jsononly_against_wiki(json_items, json_only):
                 for original, page in zip(batch, preloaded):
                     if page.exists():
                         recovered.add(get_base_and_variant(original)[0])
-                break  # success
+                break
             except pywikibot.exceptions.APIError as e:
                 if 'ratelimited' in str(e).lower():
                     print(f"⚠️ Rate limited. Sleeping for {batch_size} seconds...")
@@ -126,10 +141,10 @@ def recheck_jsononly_against_wiki(json_items, json_only):
 
         time.sleep(0.1)
 
-        progress = min((idx + 1) * 20, total)
-        percent = int((progress / total) * 100)
+        processed = (idx + 1) * batch_size
+        percent = int((processed / total) * 100)
         if percent % 25 == 0 and percent != last_percent:
-            print(f"Comparison progress: {progress}/{total} -- {percent}%")
+            print(f"Comparison progress: {processed}/{total} -- {percent}%")
             last_percent = percent
 
     print("Completed the comparison between the left over json names and the wiki")
@@ -171,13 +186,14 @@ def write_outputs(json_items, wiki_names, both, wiki_only, json_only):
 
     print("Finished comparing the wiki page names to the json")
 
+# Main
 json_items = load_json_items()
 wiki_names = get_infobox_pages()
 both, wiki_only, json_only = compare_infobox_to_json(wiki_names, json_items)
 
 # Redirect/page existence recheck
 recovered, json_only = recheck_jsononly_against_wiki(json_items, json_only)
-both |= recovered  # Merge new discoveries into the 'both' set
+both |= recovered  # Add recovered back into both
 
 write_outputs(json_items, wiki_names, both, wiki_only, json_only)
 print("✅ Completed missing data check.")

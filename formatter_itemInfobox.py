@@ -1,13 +1,15 @@
 import os
-import json
 import logging
+
+from utils import json_utils, file_utils, text_utils
 import config.constants as constants  
 from formatter_itemInfobox_classifications import classify_item
-from formatter_itemInfobox_item_Data import format_item_data
+from formatter_itemInfobox_item_data import format_item_data
 
 def setup_logger(debug_log_path):
     logger = logging.getLogger("formatter_itemInfobox")
     logger.setLevel(logging.DEBUG)
+    file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
     fh = logging.FileHandler(debug_log_path, mode="w", encoding="utf-8")
     fh.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -69,6 +71,10 @@ def main():
     output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "itemInfobox.txt")
     debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "formatter_itemInfobox_debug.txt")
     
+    # Ensure necessary directories exist.
+    file_utils.ensure_dir_exists(os.path.dirname(output_file_path))
+    file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
+    
     logger = setup_logger(debug_log_path)
     logger.info("Starting full infobox formatting.")
     
@@ -98,8 +104,7 @@ def main():
     logger.info(f"Test items: {test_items}")
     
     try:
-        with open(json_file_path, "r", encoding="utf-8") as f:
-            items_data = json.load(f)
+        items_data = json_utils.load_json(json_file_path)
         logger.info("Successfully loaded JSON data.")
     except Exception as e:
         logger.exception("Failed to load JSON data.")
@@ -120,11 +125,12 @@ def main():
             logger.warning(f"Item '{item_name}' not found in JSON data.")
     
     try:
-        with open(output_file_path, "w", encoding="utf-8") as outf:
-            outf.write("\n\n".join(output_lines))
+        file_utils.write_lines(output_file_path, ["\n\n".join(output_lines)])
         logger.info("Successfully wrote output file.")
     except Exception as e:
         logger.exception("Failed to write output file.")
 
 if __name__ == "__main__":
     main()
+
+print(f"Infobox creation complete")
