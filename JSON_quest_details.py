@@ -1,7 +1,7 @@
 import os
-import json
 import re
 import config.constants as constants
+from utils import file_utils, json_utils
 
 # Construct full paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
@@ -9,20 +9,20 @@ output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 debug_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Debug")
 
 # Ensure output and debug directories exist
-os.makedirs(output_directory, exist_ok=True)
-os.makedirs(debug_directory, exist_ok=True)
+file_utils.ensure_dir_exists(output_directory)
+file_utils.ensure_dir_exists(debug_directory)
 
 def log_debug(filename, message):
-    with open(os.path.join(debug_directory, filename), "a", encoding="utf-8") as debug_file:
-        debug_file.write(message + "\n")
+    debug_file_path = os.path.join(debug_directory, filename)
+    file_utils.append_line(debug_file_path, message)
 
 def extract_guid(meta_file_path):
     try:
-        with open(meta_file_path, "r", encoding="utf-8") as meta_file:
-            for line in meta_file:
-                match = re.search(r"guid:\s*([a-f0-9]+)", line)
-                if match:
-                    return match.group(1)
+        lines = file_utils.read_file_lines(meta_file_path)
+        for line in lines:
+            match = re.search(r"guid:\s*([a-f0-9]+)", line)
+            if match:
+                return match.group(1)
     except Exception as e:
         log_debug("guid_extraction.txt", f"Error reading meta file {meta_file_path}: {e}")
     return None
@@ -48,9 +48,7 @@ def parse_quest_asset(file_path, guid_lookup):
     }
 
     try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            lines = file.readlines()
-
+        lines = file_utils.read_file_lines(file_path)
         current_section = None  
         pending_id = None  
 
@@ -74,8 +72,9 @@ def parse_quest_asset(file_path, guid_lookup):
             elif "nextQuest:" in line:
                 match = re.search(r"{fileID: (\d+), guid: ([a-f0-9]+), type: (\d+)}", line)
                 if match:
-                    quest_data["nextQuest"] = {"fileID": int(match.group(1)), "guid": match.group(2), "type": int(match.group(3))}
-
+                    quest_data["nextQuest"] = {"fileID": int(match.group(1)),
+                                               "guid": match.group(2),
+                                               "type": int(match.group(3))}
             elif "items2:" in line:
                 current_section = "itemRequirements"
                 pending_id = None  
@@ -88,7 +87,6 @@ def parse_quest_asset(file_path, guid_lookup):
             elif "---" in line:
                 current_section = None  
                 pending_id = None  
-
             elif current_section and "id:" in line:
                 pending_id = line.split(":")[-1].strip()
             elif current_section and "amount:" in line and pending_id is not None:
@@ -101,6 +99,7 @@ def parse_quest_asset(file_path, guid_lookup):
 
     return quest_data
 
+# Build GUID lookup for each quest asset
 guid_lookup = {}
 guid_to_name = {}
 
@@ -128,6 +127,7 @@ for filename in os.listdir(input_directory):
 
         all_quests.append(quest_info)
 
+# Resolve nextQuest fields using guid_to_name
 for quest in all_quests:
     if quest["nextQuest"] and "guid" in quest["nextQuest"]:
         quest_guid = quest["nextQuest"]["guid"]
@@ -145,10 +145,10 @@ for quest in all_quests:
     
     quest_categories[category][quest["questType"]].append(quest)
 
+# Write JSON output for each quest category
 for category, data in quest_categories.items():
     output_path = os.path.join(output_directory, f"{category}.json")
     try:
-        with open(output_path, "w", encoding="utf-8") as json_file:
-            json.dump(data, json_file, indent=4)
+        json_utils.write_json(data, output_path, indent=4)
     except Exception as e:
         log_debug("json_writing.txt", f"Error writing {output_path}: {e}")

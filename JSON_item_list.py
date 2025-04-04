@@ -1,7 +1,7 @@
 import os
-import json
 import re
 import config.constants as constants
+from utils import file_utils, json_utils
 
 # Construct full paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
@@ -9,34 +9,37 @@ output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 output_file = "items_data.json"
 
 # Ensure the output directory exists
-os.makedirs(output_directory, exist_ok=True)
+file_utils.ensure_dir_exists(output_directory)
 
 def extract_guid(meta_file):
     """Extracts GUID from .meta files."""
-    with open(meta_file, 'r', encoding='utf-8') as f:
-        content = f.read()
+    try:
+        content = "\n".join(file_utils.read_file_lines(meta_file))
+    except Exception as e:
+        print(f"Error reading {meta_file}: {e}")
+        return None
     match = re.search(r'guid:\s*([a-f0-9]+)', content)
     return match.group(1) if match else None
 
 def extract_icon_guid(asset_file):
     """Extracts the icon GUID from .asset files."""
     try:
-        with open(asset_file, 'r', encoding='utf-8') as f:
-            content = f.readlines()
-
-        for line in content:
-            match = re.match(r'icon:\s*{fileID:\s*\d+,\s*guid:\s*([\da-f]+),', line.strip())
-            if match:
-                return match.group(1)
+        lines = file_utils.read_file_lines(asset_file)
     except Exception as e:
         print(f"Error reading {asset_file}: {e}")
+        return None
+    for line in lines:
+        line = line.strip()
+        if match := re.match(r'icon:\s*{fileID:\s*\d+,\s*guid:\s*([\da-f]+),', line):
+            return match.group(1)
     return None
 
 def extract_item_info(asset_file):
     """Extracts item ID and name from .asset file name."""
-    match = re.match(r"(\d+)\s+-\s+(.+)\.asset", os.path.basename(asset_file))
+    basename = os.path.basename(asset_file)
+    match = re.match(r"(\d+)\s+-\s+(.+)\.asset", basename)
     if match:
-        return int(match.group(1)), match.group(2)  # Return both ID (as int) and Name
+        return int(match.group(1)), match.group(2)
     return None, None
 
 def should_exclude_item(item_name):
@@ -81,9 +84,7 @@ def extract_attributes(asset_file):
     }
 
     try:
-        with open(asset_file, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-
+        lines = file_utils.read_file_lines(asset_file)
         capturing_description = False
         capturing_stats = False
         capturing_food_stat = False
@@ -212,9 +213,7 @@ def generate_item_data():
                     items_data[item_name] = {"Name": item_name, "GUID": guid, **attributes}
 
     output_path = os.path.join(output_directory, output_file)
-    with open(output_path, "w", encoding="utf-8") as json_file:
-        json.dump(items_data, json_file, indent=4)
-
+    json_utils.write_json(items_data, output_path, indent=4)
     print(f"JSON data saved to {output_path}")
 
 if __name__ == "__main__":

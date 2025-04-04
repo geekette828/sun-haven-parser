@@ -1,27 +1,25 @@
 import os
-import json
 import re
 import config.constants as constants
+from utils import file_utils, json_utils
 
 # Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
-os.makedirs(output_directory, exist_ok=True)
+file_utils.ensure_dir_exists(output_directory)
 
 # Define output file
 shops_json_path = os.path.join(output_directory, "shop_data.json")
 
-# Function to extract GUID from .meta file
 def extract_guid(meta_file_path):
     if os.path.exists(meta_file_path):
-        with open(meta_file_path, "r", encoding="utf-8", errors="ignore") as meta_file:
-            for line in meta_file:
-                match = re.match(r"guid:\s*(\S+)", line)
-                if match:
-                    return match.group(1)
+        lines = file_utils.read_file_lines(meta_file_path, encoding="utf-8")
+        for line in lines:
+            match = re.match(r"guid:\s*(\S+)", line)
+            if match:
+                return match.group(1)
     return None
 
-# Function to parse asset file
 def parse_asset_file(asset_path):
     shop_data = {
         "file_name": os.path.basename(asset_path),
@@ -31,14 +29,11 @@ def parse_asset_file(asset_path):
         "random_items": []
     }
 
-    with open(asset_path, "r", encoding="utf-8", errors="ignore") as asset_file:
-        lines = asset_file.readlines()
-
+    lines = file_utils.read_file_lines(asset_path, encoding="utf-8")
     current_section = None
     item = {}
     for line in lines:
         line = line.strip()
-
         if line.startswith("startingItems2:"):
             current_section = "starting"
             continue
@@ -52,7 +47,7 @@ def parse_asset_file(asset_path):
                 elif current_section == "random":
                     shop_data["random_items"].append(item)
             item = {}
-
+        
         match = re.match(r"(?:-\s*)?(id|price|orbs|tickets|isLimited|qty|resetDay|chance|saleItem):\s*(.*)", line)
         if match:
             key, value = match.groups()
@@ -68,7 +63,7 @@ def parse_asset_file(asset_path):
             shop_data["starting_items"].append(item)
         elif current_section == "random":
             shop_data["random_items"].append(item)
-
+    
     return shop_data
 
 # Gather all MerchantTable.asset files
@@ -81,8 +76,7 @@ for file_name in os.listdir(input_directory):
 
 # Write to JSON if data exists
 if shop_list:
-    with open(shops_json_path, "w", encoding="utf-8") as json_file:
-        json.dump(shop_list, json_file, indent=4)
+    json_utils.write_json(shop_list, shops_json_path, indent=4)
     print(f"Shop JSON data saved to {shops_json_path}")
 else:
     print("No valid shop data found. JSON file was not created.")

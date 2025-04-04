@@ -1,27 +1,30 @@
 import os
-import json
 import re
 import config.constants as constants
+from utils import file_utils, json_utils
 
 # Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
-os.makedirs(output_directory, exist_ok=True)
+file_utils.ensure_dir_exists(output_directory)
 
-# Define file paths
+# Define output JSON file path
 recipes_json_path = os.path.join(output_directory, "recipes_data.json")
 
-# Function to extract GUID from meta file
 def extract_guid(meta_file_path):
-    with open(meta_file_path, "r", encoding="utf-8") as meta_file:
-        for line in meta_file:
+    """Extract GUID from a meta file."""
+    try:
+        lines = file_utils.read_file_lines(meta_file_path)
+        for line in lines:
             match = re.search(r"guid:\s*([a-f0-9]+)", line)
             if match:
                 return match.group(1)
+    except Exception as e:
+        print(f"Error reading {meta_file_path}: {e}")
     return None
 
-# Function to parse recipe asset file
 def parse_recipe_asset(file_path):
+    """Parse a recipe asset file to extract recipe data."""
     recipe_data = {
         "inputs": [],
         "output": {},
@@ -31,9 +34,7 @@ def parse_recipe_asset(file_path):
         "questProgressTokens": None,
     }
 
-    with open(file_path, "r", encoding="utf-8") as file:
-        lines = file.readlines()
-
+    lines = file_utils.read_file_lines(file_path)
     input_section = False
     output_section = False
 
@@ -68,7 +69,9 @@ def parse_recipe_asset(file_path):
             if i + 1 < len(lines) and "id:" in line and "amount:" in lines[i + 1]:
                 item_id = line.split(":")[-1].strip()
                 amount = lines[i + 1].split(":")[-1].strip()
-                name = lines[i + 2].split(":")[-1].strip() if (i + 2 < len(lines) and "name:" in lines[i + 2]) else "Unknown"
+                name = (lines[i + 2].split(":")[-1].strip() 
+                        if (i + 2 < len(lines) and "name:" in lines[i + 2]) 
+                        else "Unknown")
                 recipe_data["inputs"].append({"id": item_id, "amount": amount, "name": name})
             if "---" in line:
                 input_section = False
@@ -77,7 +80,9 @@ def parse_recipe_asset(file_path):
             if i + 1 < len(lines) and "id:" in line and "amount:" in lines[i + 1]:
                 item_id = line.split(":")[-1].strip()
                 amount = lines[i + 1].split(":")[-1].strip()
-                name = lines[i + 2].split(":")[-1].strip() if (i + 2 < len(lines) and "name:" in lines[i + 2]) else "Unknown"
+                name = (lines[i + 2].split(":")[-1].strip() 
+                        if (i + 2 < len(lines) and "name:" in lines[i + 2]) 
+                        else "Unknown")
                 recipe_data["output"] = {"id": item_id, "amount": amount, "name": name}
             if "---" in line:
                 output_section = False
@@ -102,12 +107,13 @@ workbench_recipes = {}
 for workbench_file in os.listdir(input_directory):
     if workbench_file.startswith("RecipeList_") and workbench_file.endswith(".asset"):
         workbench_name = workbench_file.replace("RecipeList_", "").replace(".asset", "")
-        with open(os.path.join(input_directory, workbench_file), "r", encoding="utf-8") as file:
-            for line in file:
-                match = re.search(r'guid: ([\w-]+)', line)
-                if match:
-                    recipe_guid = match.group(1)
-                    workbench_recipes[recipe_guid] = workbench_name
+        workbench_path = os.path.join(input_directory, workbench_file)
+        lines = file_utils.read_file_lines(workbench_path)
+        for line in lines:
+            match = re.search(r'guid: ([\w-]+)', line)
+            if match:
+                recipe_guid = match.group(1)
+                workbench_recipes[recipe_guid] = workbench_name
 
 # Associate recipes with their workbenches
 for recipe_name, recipe in recipe_data_collection.items():
@@ -115,9 +121,7 @@ for recipe_name, recipe in recipe_data_collection.items():
     if recipe_guid and recipe_guid in workbench_recipes:
         recipe["workbench"] = workbench_recipes[recipe_guid]
 
-# Save all recipe data into one JSON file
-output_path = os.path.join(output_directory, "recipes_data.json")
-with open(output_path, "w", encoding="utf-8") as json_file:
-    json.dump(recipe_data_collection, json_file, indent=4)
+# Save all recipe data into one JSON file using json_utils
+json_utils.write_json(recipe_data_collection, recipes_json_path, indent=4)
 
 print("Recipe data extraction completed.")
