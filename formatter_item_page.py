@@ -3,7 +3,7 @@ from utils import json_utils, file_utils
 import config.constants as constants
 from formatter_itemInfobox import create_full_infobox
 from formatter_item_page_summary import create_item_summary, parse_infobox
-from formatter_item_page_navbox import create_item_navbox  # New import
+from formatter_item_page_navbox import create_item_navbox
 
 def create_item_page(item, display_name=None):
     # Generate the item infobox (which already has computed values)
@@ -59,6 +59,11 @@ File:filename.png|File Description
 *{{{{History|x.x|Description of change}}}}-->
 
 {navbox}"""
+    
+    # If the computed dlc field is true, append the DLC category to the page.
+    if computed.get("dlc", "false").lower() == "true":
+        page_template += "\n\n[[Category:Unknown dlc pack]]"
+    
     return page_template
 
 def main():
@@ -73,7 +78,7 @@ def main():
         return
 
     items_data_lower = { key.lower(): value for key, value in items_data.items() }
-    test_items = [
+    test_items = [ #This is not used when called from pywikibot_create_item_page.py
         "iris shirt", 
         "iris skirt", 
         "iris wig",

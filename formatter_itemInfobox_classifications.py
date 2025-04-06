@@ -137,7 +137,15 @@ def classify_item(item):
     if isPotion == 0 and isForageable == 0 and foodStat:
         return "Consumable", "Food", ""
     
-    # 7. Furniture classification.
+    # 7. Record classification.
+    if use_desc == "(Use on record player to play)":
+        return "Record", "", ""
+    
+    # 8. Mount classification.
+    if use_desc == "(Left click to summon/unsummon mount)":
+        return "Mount", "", ""
+
+    # 9. Furniture classification.
     if use_desc == "(Left click to place)":
         if "end table" in name or "nightstand" in name or "night stand" in name:
             return "Furniture", "Nightstand", ""
@@ -157,15 +165,23 @@ def classify_item(item):
             return "Furniture", "Fireplace", ""
         if any(keyword in name for keyword in ["light", "lamp", "lantern", "candle", "candelabra"]):
             return "Furniture", "Lighting", ""
-        if "plushie" in name:
+        if any(keyword in name for keyword in ["plushie", "plush"]):
             return "Furniture", "Plushie", ""
+        if any(keyword in name for keyword in ["rug", "mat", "doormat"]):
+            return "Furniture", "Rug", ""
         if "table" in name:
             return "Furniture", "Table", ""
+        if any(keyword in name for keyword in ["tile", "tiles", "flooring"]):
+            return "Furniture", "Tile", ""
+        if "wallpaper" in name:
+            return "Furniture", "Wallpaper", ""
         if any(keyword in name for keyword in ["wardrobe", "dresser"]):
             return "Furniture", "Wardrobe", ""
+        if any(keyword in name for keyword in ["window", "windows"]):
+            return "Furniture", "Window", ""
         return "Furniture", "Misc", ""
     
-    # 8. Equipment fallback classification.
+    # 10. Equipment fallback classification.
     # First, if stats is non-empty, check for Accessory rules.
     if stats:
         if "ring" in name:

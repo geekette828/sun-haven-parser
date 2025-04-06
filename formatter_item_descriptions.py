@@ -52,7 +52,8 @@ for item, details in data.items():
 alias_map = {
     "sprinkles": "blueberry sprinkles",
     "shiver": "black shiver",
-    "kitty (pet)": "black kitty"
+    "kitty (pet)": "black kitty",
+    "cape": "black cape"
 }
 
 for alias, original in alias_map.items():
