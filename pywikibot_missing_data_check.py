@@ -67,11 +67,15 @@ def format_output(categorized_items):
 
 def load_json_items():
     with open(json_path, "r", encoding="utf-8") as file:
-        json_data = json.load(file)
-    return {
-        name: item for name, item in json_data.items()
-        if not should_skip(name)
-    }
+        raw_data = json.load(file)
+
+    name_to_filename = {}
+    for filename, data in raw_data.items():
+        display_name = data.get("Name", "").strip()
+        if display_name and not should_skip(display_name):
+            name_to_filename[display_name] = filename
+
+    return name_to_filename
 
 # Step 1: Extract wiki pages that transclude infobox templates 
 def get_infobox_pages():
@@ -96,22 +100,18 @@ def compare_infobox_to_json(wiki_names, json_items):
     wiki_only = wiki_base_names - json_base_names
     json_only = json_base_names - wiki_base_names
 
+    print("Finished comparing the wiki page names to the json")
     return both, wiki_only, json_only
 
+# Step 3: Check for pages/redirects for JSON-only names
 def recheck_jsononly_against_wiki(json_items, json_only):
     recovered = set()
-    all_json_keys = list(json_items.keys())
-
     to_check = [
-        name for name in all_json_keys
+        name for name in json_items
         if get_base_and_variant(name)[0] in json_only
     ]
 
     print("Beginning the comparison between the left over json names and the wiki")
-
-    batch_size = 20
-    last_percent = -1
-    total = len(to_check)
 
     def chunked(iterable, size):
         it = iter(iterable)
@@ -120,6 +120,10 @@ def recheck_jsononly_against_wiki(json_items, json_only):
             if not chunk:
                 break
             yield chunk
+
+    batch_size = 20
+    last_percent = -1
+    total = len(to_check)
 
     for idx, batch in enumerate(chunked(to_check, batch_size)):
         pages = [pywikibot.Page(site, name) for name in batch]
@@ -141,15 +145,14 @@ def recheck_jsononly_against_wiki(json_items, json_only):
 
         time.sleep(0.1)
 
-        processed = (idx + 1) * batch_size
-        percent = int((processed / total) * 100)
+        progress = min((idx + 1) * batch_size, total)
+        percent = int((progress / total) * 100)
         if percent % 25 == 0 and percent != last_percent:
-            print(f"Comparison progress: {processed}/{total} -- {percent}%")
+            print(f"Comparison progress: {progress}/{total} -- {percent}%")
             last_percent = percent
 
     print("Completed the comparison between the left over json names and the wiki")
 
-    # Log recovered base names
     os.makedirs(debug_log_path, exist_ok=True)
     recovered_log_path = os.path.join(debug_log_path, "MissingDataCheck_recoveredRedirects.txt")
     with open(recovered_log_path, "w", encoding="utf-8") as f:
@@ -159,14 +162,16 @@ def recheck_jsononly_against_wiki(json_items, json_only):
     json_only -= recovered
     return recovered, json_only
 
-# Step 3: Categorize and Write Output Files
+# Step 4: Categorize and Write Output Files
 def write_outputs(json_items, wiki_names, both, wiki_only, json_only):
+    json_names = list(json_items.keys())
+
     categorized_json_only = categorize_items([
-        name for name in json_items
+        name for name in json_names
         if get_base_and_variant(name)[0] in json_only
     ])
     categorized_both = categorize_items([
-        name for name in json_items
+        name for name in json_names
         if get_base_and_variant(name)[0] in both
     ])
     categorized_wiki = categorize_items(wiki_names)
@@ -184,16 +189,12 @@ def write_outputs(json_items, wiki_names, both, wiki_only, json_only):
             if name in wiki_only
         }))
 
-    print("Finished comparing the wiki page names to the json")
+    print("✅ Completed missing data check.")
 
 # Main
 json_items = load_json_items()
 wiki_names = get_infobox_pages()
 both, wiki_only, json_only = compare_infobox_to_json(wiki_names, json_items)
-
-# Redirect/page existence recheck
 recovered, json_only = recheck_jsononly_against_wiki(json_items, json_only)
-both |= recovered  # Add recovered back into both
-
+both |= recovered
 write_outputs(json_items, wiki_names, both, wiki_only, json_only)
-print("✅ Completed missing data check.")

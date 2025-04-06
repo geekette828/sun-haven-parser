@@ -2,17 +2,18 @@ import os
 import re
 import config.constants as constants
 from utils import file_utils, json_utils
+from config import skip_items
 
 # Construct full paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 output_file = "items_data.json"
+en_display_name_file = os.path.join(constants.INPUT_DIRECTORY, "English.prefab")
 
 # Ensure the output directory exists
 file_utils.ensure_dir_exists(output_directory)
 
 def extract_guid(meta_file):
-    """Extracts GUID from .meta files."""
     try:
         content = "\n".join(file_utils.read_file_lines(meta_file))
     except Exception as e:
@@ -22,7 +23,6 @@ def extract_guid(meta_file):
     return match.group(1) if match else None
 
 def extract_icon_guid(asset_file):
-    """Extracts the icon GUID from .asset files."""
     try:
         lines = file_utils.read_file_lines(asset_file)
     except Exception as e:
@@ -35,7 +35,6 @@ def extract_icon_guid(asset_file):
     return None
 
 def extract_item_info(asset_file):
-    """Extracts item ID and name from .asset file name."""
     basename = os.path.basename(asset_file)
     match = re.match(r"(\d+)\s+-\s+(.+)\.asset", basename)
     if match:
@@ -43,14 +42,34 @@ def extract_item_info(asset_file):
     return None, None
 
 def should_exclude_item(item_name):
-    """Checks if an item should be excluded based on naming patterns."""
-    exclude_patterns = [
-        "minerock", "ore node", "hiddenchest", "recurringchest", "onetimechest", "sombasu's fortune"
-    ]
-    return any(pattern in item_name.lower() for pattern in exclude_patterns)
+    name = item_name.lower()
+    for pattern in skip_items.SKIP_ITEMS:
+        if name == pattern:
+            return True
+    for pattern in skip_items.SKIP_PATTERNS:
+        if pattern.startswith("*") and name.endswith(pattern[1:]):
+            return True
+        if pattern.endswith("*") and name.startswith(pattern[:-1]):
+            return True
+    return False
+
+def get_display_names(prefab_file):
+    display_names = {}
+    try:
+        lines = file_utils.read_file_lines(prefab_file)
+        current_term = None
+        for line in lines:
+            line = line.strip()
+            if line.startswith("- Term:"):
+                current_term = line.split(":", 1)[1].strip()
+            elif current_term and line.startswith("- ") and not line.startswith("- Term"):
+                display_names[current_term] = line[2:].strip()
+                current_term = None
+    except Exception as e:
+        print(f"Error reading display names: {e}")
+    return display_names
 
 def extract_attributes(asset_file):
-    """Extracts relevant attributes from the .asset file."""
     attributes = {
         "ID": None,
         "description": None,
@@ -190,8 +209,8 @@ def extract_attributes(asset_file):
     return attributes
 
 def generate_item_data():
-    """Scans the input directory, extracts item names, GUIDs, and attributes, and saves them to a JSON file."""
     items_data = {}
+    display_name_map = get_display_names(en_display_name_file)
 
     for file in os.listdir(input_directory):
         if file.endswith(".asset.meta"):
@@ -209,8 +228,16 @@ def generate_item_data():
                 attributes["ID"] = item_id
                 attributes["iconGUID"] = icon_guid
 
+                term_key = f"{item_name}.Name"
+                display_name = display_name_map.get(term_key, item_name)
+
                 if item_name and guid:
-                    items_data[item_name] = {"Name": item_name, "GUID": guid, **attributes}
+                    items_data[item_name] = {
+                        "assetName": item_name,
+                        "Name": display_name,
+                        "GUID": guid,
+                        **attributes
+                    }
 
     output_path = os.path.join(output_directory, output_file)
     json_utils.write_json(items_data, output_path, indent=4)

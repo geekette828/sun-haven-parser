@@ -1,5 +1,6 @@
 SKIP_ITEMS = [
     "aegis",
+    "adamant ore node",
     "alchemy bundle",
     "alien chair",
     "amethystnode",
@@ -45,7 +46,6 @@ SKIP_ITEMS = [
     "bundle aquarium winter",
     "bundle aquarium withergate",
     "burlap gift",
-    "candyfloss machine",
     "cardboard chest",
     "catch of the day",
     "catherine chest",
@@ -130,7 +130,6 @@ SKIP_ITEMS = [
     "homemade gift",
     "hot chocolate machine",
     "house customization kit",
-    "hu",
     "hungry slime bundle one",
     "hungry slime bundle three",
     "hungry slime bundle two",
@@ -299,11 +298,23 @@ SKIP_ITEMS = [
     "zaria chest",
     "zaria's bucket",
     "zaria's empty bucket",
-    "zen bridge decor"
+    "zen bridge decor",
+    "emerald elegance chest",
+    "lynn anvil",
+    "lynn's pickaxe",
+    "marble bridge decor",
+    "seal of sun haven",
+    "snow ball crop",
+    "snow cone machine",
+    "ticket",
+    "warehouse",
 ]
 
 SKIP_PATTERNS = [
     "* tree seeds",
     "* bundle",
-    "* teleportation spell"
+    "* teleportation spell",
+    "* onetimechest",
+    "* node",
+    "*minerock*"
 ]
