@@ -203,17 +203,17 @@ def classify_item(item):
             return "Equipment", "Armor", "Cape"
     else:
         # If stats is empty, apply Clothing rules.
-        if any(keyword in name for keyword in ["hat", "crown", "headband", "headphones", "hood", "goggles", "tiara", "helmet"]):
+        if any(keyword in name for keyword in ["hat", "crown", "headband", "headphones", "hood", "goggles", "tiara", "helmet", "head scarf", "beanie"]):
             return "Equipment", "Clothing", "Hat"
         if "wig" in name:
             return "Equipment", "Clothing", "Wig"
         if "dress" in name or "robe" in name:
             return "Equipment", "Clothing", "Dress"
-        if any(keyword in name for keyword in ["chest", "chestplate", "chest plate", "shirt", "tank top", "hoodie", "jacket", "crop top", "sweater", "torso", "costume", "outfit", "vest", "coat", "tee", "t-shirt"]):
+        if any(keyword in name for keyword in ["chest", "chestplate", "chest plate", "shirt", "tank top", "hoodie", "jacket", "crop top", "sweater", "torso", "costume", "outfit", "vest", "coat", "tee", "t-shirt", "blouse"]):
             return "Equipment", "Clothing", "Shirt"
         if any(keyword in name for keyword in ["gloves", "gauntlets"]):
             return "Equipment", "Clothing", "Gloves"
-        if "cape" in name:
+        if any(keyword in name for keyword in ["cape", "wings", "tail"]):
             return "Equipment", "Clothing", "Cape"
         if any(keyword in name for keyword in ["pants", "slacks", "shoes", "boots", "greaves"]):
             return "Equipment", "Clothing", "Pants"

@@ -139,7 +139,7 @@ def create_item_summary(item, computed, display_name=None):
     from formatter_itemInfobox_classifications import classify_item
     itemType, subtype, category = classify_item(item)
     key = normalize_classification(itemType, subtype, category)
-    summary_template = SUMMARIES.get(key, "No summary available for this item. [[Category:Summary needed]]")
+    summary_template = SUMMARIES.get(key, "No summary available for this item. [[Category:Missing summary]]")
     
     # Use display_name override if provided, otherwise use the item's name.
     if display_name is None:

@@ -11,7 +11,19 @@ def compute_restores(item):
     return "; ".join(parts)
 
 def compute_statInc(item):
+    """
+    Computes the 'statInc' value from the foodStat field.
+    If any foodStat entry has "increase": "999", returns an empty string.
+    Otherwise, each entry is formatted as:
+         <STAT_NAME>»(<mapped increase>)
+    Multiple entries are joined by a semicolon.
+    """
     food_stats = item.get("foodStat", [])
+    # If any entry has an increase value of "999", leave statInc blank.
+    for entry in food_stats:
+        if str(entry.get("increase", "")) == "999":
+            return ""
+    
     stat_inc_list = []
     for entry in food_stats:
         try:
