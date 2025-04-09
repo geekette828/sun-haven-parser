@@ -6,7 +6,7 @@ def transform_items_data(items_data):
     """Transform items_data.json into a dictionary with IDs and GUIDs as keys."""
     transformed = {}
     for item_name, item_info in items_data.items():
-        base_name = item_name.split(" (")[0]  # Remove color/variant details
+        base_name = item_info.get("Name", item_name.split(" (")[0])  # Remove color/variant details
         if "ID" in item_info:
             transformed[str(item_info["ID"])] = base_name
         if "GUID" in item_info:

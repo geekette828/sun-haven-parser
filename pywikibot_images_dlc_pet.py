@@ -5,6 +5,13 @@ import pywikibot
 import time
 import re
 
+# Apply Pywikibot config from constants
+sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
+pywikibot.config.throttle = constants.PWB_SETTINGS["throttle"]
+pywikibot.config.max_retries = constants.PWB_SETTINGS["max_retries"]
+pywikibot.config.retry_wait = constants.PWB_SETTINGS["retry_wait"]
+pywikibot.config.user_agent = constants.PWB_SETTINGS["user_agent"]
+
 # Set up pyWikiBot configurations
 sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
 site = pywikibot.Site()
@@ -47,20 +54,17 @@ def get_category_members(category_name):
 
 def main():
     try:
-        # Step 1: Collect pages from both categories
         pets_pages = get_category_members("Pets")
         dlc_pages = get_category_members("DLC")
         common_pages = sorted(pets_pages & dlc_pages)
 
         print(f"✅ Found {len(common_pages)} pages that are both 'Pets' and 'DLC' categories.")
-        print("📦 Gathering and updating category information from matched pages...")
+        print("📦 Gathering category information from matched pages...")
 
-        # Step 2: Preload both the pages and their image files
         page_map = preload_pages(common_pages)
         file_titles = [f"{title}.png" for title in common_pages]
         file_map = preload_file_pages(file_titles)
 
-        # Containers for sorting results
         missing_images = []
         missing_base = []
         mismatch_pack = []
@@ -78,95 +82,97 @@ def main():
 
             image_categories = get_category_titles(file_page)
             original_categories = get_category_titles(original_page)
-
-            # Check base categories and fix if needed
-            missing = BASE_CATEGORIES - image_categories
+            updated_text = file_page.text
+            modified = False
             fix_log_parts = []
-            if missing:
-                updated_text = file_page.text
-                modified = False
 
-                if "Sun Haven assets" in missing:
-                    has_licensing_header = re.search(r'^\s*==\s*Licensing\s*==\s*$', file_page.text, re.IGNORECASE | re.MULTILINE)
-                    has_games_template = "{{Games}}" in file_page.text
+            # --- Caption ---
+            if not re.search(r'^\s*==\s*Caption\s*==\s*$', updated_text, re.IGNORECASE | re.MULTILINE):
+                caption_block = f"==Caption==\n[[{title}|{title}]]\n\n"
+                updated_text = caption_block + updated_text
+                modified = True
+                fix_log_parts.append("Caption section")
 
-                    if has_games_template and not has_licensing_header:
-                        # Insert '==Licensing==' above '{{Games}}'
-                        updated_text = re.sub(r'(\{\{Games\}\})', r'==Licensing==\n\1', file_page.text, count=1, flags=re.IGNORECASE)
-                        modified = True
-                        fix_log_parts.append("Inserted Licensing header above {{Games}}")
-                    elif not has_games_template and not has_licensing_header:
-                        # Add both at the end
-                        updated_text = file_page.text + "\n\n==Licensing==\n{{Games}}"
-                        modified = True
-                        fix_log_parts.append("Added Licensing section with {{Games}}")
-                    else:
-                        updated_text = file_page.text  # No changes needed here
-
-                cat_lines = []
-                if "DLC pet images" in missing:
-                    cat_lines.append("[[Category:DLC pet images]]")
-                    fix_log_parts.append("DLC category")
-                if "Pet images" in missing:
-                    cat_lines.append("[[Category:Pet images]]")
-                    fix_log_parts.append("Pet category")
-                if cat_lines:
-                    updated_text += "\n" + "\n".join(cat_lines)
+            # --- Licensing ---
+            missing = BASE_CATEGORIES - image_categories
+            has_games_template = "{{Games}}" in updated_text
+            if has_games_template:
+                if not re.search(r'==\s*Licensing\s*==\s*\n\{\{Games\}\}', updated_text, re.IGNORECASE):
+                    updated_text = re.sub(r'(\{\{Games\}\})', r'==Licensing==\n\1', updated_text, count=1, flags=re.IGNORECASE)
                     modified = True
+                    fix_log_parts.append("Inserted Licensing header above {{Games}}")
+            else:
+                updated_text += "\n\n==Licensing==\n{{Games}}"
+                modified = True
+                fix_log_parts.append("Added Licensing section with {{Games}}")
 
-                if modified and updated_text.strip() != file_page.text.strip():
-                    file_page.text = updated_text
+            cat_lines = []
+            if "DLC pet images" in missing:
+                cat_lines.append("[[Category:DLC pet images]]")
+                fix_log_parts.append("DLC category")
+            if "Pet images" in missing:
+                cat_lines.append("[[Category:Pet images]]")
+                fix_log_parts.append("Pet category")
+            if cat_lines:
+                updated_text += "\n" + "\n".join(cat_lines)
+                modified = True
+
+            # --- Pack category from pet page ---
+            pack_category = None
+            for cat in original_categories:
+                if cat.endswith("pack") and cat.lower() != "unknown dlc pack":
+                    pack_category = cat
+                    break
+            if pack_category:
+                pack_image_category = f"{pack_category} images"
+                if pack_image_category not in image_categories:
+                    updated_text = updated_text.rstrip() + f"\n[[Category:{pack_image_category}]]"
+                    modified = True
+                    fix_log_parts.append(f"Added [[Category:{pack_image_category}]]")
+
+                # Always check for creation, even if already present in image
+                image_cat_page = pywikibot.Page(site, f"Category:{pack_image_category}")
+                if not image_cat_page.exists():
                     try:
-                        file_page.save(summary="Added missing base image categories and/or licensing section")
-                        log_debug(f"🔧 Fixed {file_name}: Added {' + '.join(fix_log_parts)}")
+                        image_cat_page.text = f"{{{{category}}}}\n[[Category:{pack_category}]]"
+                        image_cat_page.save(summary=f"Creating image category for {pack_category}")
+                        log_debug(f"📁 Created category: [[Category:{pack_image_category}]]")
+                        time.sleep(6)
                     except Exception as e:
-                        log_debug(f"❌ Failed to save {file_name}: {e}")
-                        missing_base.append(f"{file_name}: missing {', '.join(sorted(missing))}")
-                else:
-                    missing_base.append(f"{file_name}: missing {', '.join(sorted(missing))}")
+                        log_debug(f"❌ Failed to create category page [[Category:{pack_image_category}]]: {e}")
 
-            # Check unknown pack
+            # --- Save the page if needed ---
+            if modified and updated_text.strip() != file_page.text.strip():
+                file_page.text = updated_text
+                try:
+                    file_page.save(summary="Updated image page: added missing caption, licensing, and categories")
+                    log_debug(f"🔧 Fixed {file_name}: " + " + ".join(fix_log_parts))
+                    time.sleep(6)  # Respect server limits
+                except Exception as e:
+                    log_debug(f"❌ Failed to save {file_name}: {e}")
+                    time.sleep(10)  # Backoff after failure
+                    if missing:
+                        missing_base.append(f"{file_name}: missing {', '.join(sorted(missing))}")
+                    if not re.search(r'^\s*==\s*Caption\s*==\s*$', updated_text, re.IGNORECASE | re.MULTILINE):
+                        missing_caption.append(file_name)
+
+            # --- Other status checks ---
             if UNKNOWN_PACK_CATEGORY in image_categories:
                 unknown_pack.append(file_name)
 
-            # Check matching pack category
-            has_pack_category = False
-            pack_mismatch_found = False
-            for cat in image_categories:
-                if cat.endswith(PACK_SUFFIX):
-                    has_pack_category = True
-                    base_name = cat.replace(PACK_SUFFIX, "").strip()
-                    expected = f"{base_name} pack"
-                    if expected not in original_categories:
-                        mismatch_pack.append(f"{file_name}: has '{cat}' but page lacks '{expected}'")
-                        pack_mismatch_found = True
+            if pack_category:
+                expected = f"{pack_category} images"
+                if expected not in image_categories:
+                    mismatch_pack.append(f"{file_name}: has no match for '{expected}' from pet page")
 
-            # Check for ==Caption== section
-            has_caption = re.search(r'^\s*==\s*Caption\s*==\s*$', file_page.text, re.IGNORECASE | re.MULTILINE)
-            if not has_caption:
-                caption_block = f"==Caption==\n[[{title}|{title}]]\n\n"
-                updated_text = caption_block + file_page.text
-                if updated_text.strip() != file_page.text.strip():
-                    file_page.text = updated_text
-                    try:
-                        file_page.save(summary="Added missing caption section to file")
-                        log_debug(f"🔧 Fixed {file_name}: Added caption section")
-                    except Exception as e:
-                        log_debug(f"❌ Failed to add caption to {file_name}: {e}")
-                        missing_caption.append(file_name)
-                else:
-                    missing_caption.append(file_name)
-
-            # Log good files (fully compliant)
             if (
-                not missing
-                and UNKNOWN_PACK_CATEGORY not in image_categories
-                and not pack_mismatch_found
-                and has_caption
+                not missing and
+                UNKNOWN_PACK_CATEGORY not in image_categories and
+                re.search(r'^\s*==\s*Caption\s*==\s*$', updated_text, re.IGNORECASE | re.MULTILINE) and
+                pack_category and f"{pack_category} images" in updated_text
             ):
                 log_debug(f"✅ {file_name} passed all checks.")
 
-        # Write to output file
         with open(output_file_path, "w", encoding="utf-8") as out:
             if missing_images:
                 write_section_header(out, "Missing Images")

@@ -2,6 +2,13 @@
 INPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_input/2.0 Assets"
 OUTPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_output/2.0"
 
+PWB_SETTINGS = {
+    "throttle": 5,
+    "max_retries": 5,
+    "retry_wait": 10,
+    "user_agent": "SH Wiki User (https://sunhaven.wiki.gg/wiki/User:YOURUSERNAMEHERE)",
+}
+
 ADDITIONAL_PATHS = {
     "PWB": r"YOUR PATH/TO/PWB"
 }
