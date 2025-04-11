@@ -1,5 +1,5 @@
 import re
-from formatter_itemInfobox_classifications import classify_item
+from formatter_item_page_infobox_classifications import classify_item
 import config.constants as constants
 
 # Dictionary mapping (Item Type, Subtype, Category) to summary text.
@@ -136,7 +136,7 @@ def create_item_summary(item, computed, display_name=None):
     The display name will be processed using custom_title() so that it is in title case,
     but preserves the correct casing after apostrophes.
     """
-    from formatter_itemInfobox_classifications import classify_item
+    from formatter_item_page_infobox_classifications import classify_item
     itemType, subtype, category = classify_item(item)
     key = normalize_classification(itemType, subtype, category)
     summary_template = SUMMARIES.get(key, "No summary available for this item. [[Category:Missing summary]]")
