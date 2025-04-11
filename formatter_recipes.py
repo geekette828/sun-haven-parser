@@ -27,10 +27,15 @@ sorted_outputs = sorted(recipes_by_output.keys())
 # Prepare the formatted recipe lines
 lines = []
 for output_name in sorted_outputs:
+    recipes = recipes_by_output[output_name]
+    formatted = [format_recipe(r) for r in recipes]
+    formatted = [f for f in formatted if f.strip()]  # skip blanks
+
+    if not formatted:
+        continue  # skip header if nothing to write
+
     lines.append(f"### {output_name}\n")
-    for recipe in recipes_by_output[output_name]:
-        recipe_text = format_recipe(recipe) + "\n\n"
-        lines.append(recipe_text)
+    lines.extend(r + "\n\n" for r in formatted)
 
 # Write output to file using file_utils
 file_utils.write_lines(output_file_path, lines)

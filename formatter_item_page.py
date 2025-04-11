@@ -1,14 +1,15 @@
 # formatter_item_page.py
 import os
 from utils import json_utils, file_utils
+from utils.text_utils import clean_whitespace
 import config.constants as constants
 from formatter_item_page_infobox import create_full_infobox
 from formatter_item_page_summary import create_item_summary, parse_infobox
 from formatter_item_page_navbox import create_item_navbox
+from formatter_item_page_recipe import get_recipe_markup_for_item
 
-# Import your recipe helper and recipes data
-from utils.recipe_utils import format_recipe
-from formatter_recipes import recipes_by_output
+def normalize_name(name):
+    return clean_whitespace(name).lower()
 
 def create_item_page(item, display_name=None):
     # Generate the item infobox (which already has computed values)
@@ -38,15 +39,7 @@ def create_item_page(item, display_name=None):
         )
     
     # Lookup the recipe for this item. Use the item name as the lookup key.
-    item_name_for_lookup = item.get("name", "").strip()
-    recipe_markup = ""
-    if item_name_for_lookup in recipes_by_output:
-        # If there are multiple recipes for the same item, join them together.
-        recipes = recipes_by_output[item_name_for_lookup]
-        recipe_entries = [format_recipe(recipe) for recipe in recipes]
-        recipe_markup = "\n".join(recipe_entries)
-    else:
-        recipe_markup = "{{Recipe/none}}"
+    recipe_markup = get_recipe_markup_for_item(item)
     
     # Build the complete page template.
     page_template = f"""{infobox}
@@ -111,12 +104,7 @@ def main():
 
     items_data_lower = { key.lower(): value for key, value in items_data.items() }
     test_items = [ #This is not used when called from pywikibot_create_item_page.py
-        "iris shirt", 
-        "iris skirt", 
-        "iris wig",
-        "Jiggles",
-        "Glorite Watering Can",
-        "Acorn Anchovy"
+        "Beach Sand Floor Tile"
     ]
     
     for item_name in test_items:
