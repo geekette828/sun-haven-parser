@@ -1,6 +1,7 @@
 import os
 import config.constants as constants
 from utils import json_utils, file_utils
+from utils.recipe_utils import format_recipe
 
 # Define file paths
 input_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
@@ -27,20 +28,9 @@ sorted_outputs = sorted(recipes_by_output.keys())
 lines = []
 for output_name in sorted_outputs:
     lines.append(f"### {output_name}\n")
-    for recipe in recipes_by_output[output_name]:
-        ingredients = "; ".join(
-            [f"{item.get('name', 'Unknown')}*{item.get('amount', '1')}" for item in recipe.get("inputs", [])]
-        )
-        recipe_text = (
-            f"{{{{Recipe\n"
-            f"|recipesource = \n"
-            f"|workbench    = \n"
-            f"|ingredients  = {ingredients}\n"
-            f"|time         = {recipe.get('hoursToCraft', '0')}hr\n"
-            f"|product      = {recipe.get('output', {}).get('name', 'Unknown')}\n"
-            f"|yield        = {recipe.get('output', {}).get('amount', '1')}}}}}\n\n"
-        )
-        lines.append(recipe_text)
+for recipe in recipes_by_output[output_name]:
+    recipe_text = format_recipe(recipe) + "\n\n"
+    lines.append(recipe_text)
 
 # Write output to file using file_utils
 file_utils.write_lines(output_file_path, lines)
