@@ -145,7 +145,15 @@ def classify_item(item):
     if use_desc == "(Left click to summon/unsummon mount)":
         return "Mount", "", ""
 
-    # 9. Furniture classification.
+    # 9. Flooring
+    if use_desc == "(Left click to place path on farm)":
+        return "Furniture", "Tile", ""
+
+    # 10. Wallpaper
+    if use_desc == "(Use on a wall to place)":
+        return "Furniture", "Wallpaper", ""
+    
+    # 11. Other Furniture classification.
     if use_desc == "(Left click to place)":
         name = name.lower() 
         if "end table" in name or "nightstand" in name or "night stand" in name:
@@ -178,10 +186,6 @@ def classify_item(item):
             return "Furniture", "Rug", ""
         if "table" in name:
             return "Furniture", "Table", ""
-        if any(keyword in name for keyword in ["tile", "tiles", "flooring", "floor tile"]):
-            return "Furniture", "Tile", ""
-        if "wallpaper" in name:
-            return "Furniture", "Wallpaper", ""
         if any(keyword in name for keyword in ["wardrobe", "dresser"]):
             return "Furniture", "Wardrobe", ""
         if any(keyword in name for keyword in ["window", "windows"]):
