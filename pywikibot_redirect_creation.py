@@ -17,8 +17,8 @@ def main():
     site = pywikibot.Site()
     
     redirect_map = {
-        "Cape": [
-            "Black Cape", "Blue Cape", "Brown Cape", "Gray Cape", "Green Cape", "Orange Cape", "Pink Cape", "Purple Cape", "Red Cape", "White Cape", "Yellow Cape"
+        "BASE PAGE NAME HERE": [
+            "REDIRECT PAGE NAME", "REDIRECT PAGE NAME", "REDIRECT PAGE NAME"
         ]
        # "Yeti Mount Whistle": [
         #    "Blue Snow Yeti Mount Whistle", "Pink Snow Yeti Mount Whistle"

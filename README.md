@@ -39,9 +39,9 @@ Each of these will take the information from the JSON objects, or the asset file
 ├── formatter_recipes.py 
 ├── formatter_shops.py 
 ├── formatter_item_page.py
-    ├── formatter_iteminfobox.py 
-    │   ├── formatter_iteminfobox_classifications.py
-    |   └── formatter_iteminfobox_itemData.py
+    ├── formatter_item_page_infobox.py 
+    │   ├── formatter_item_page_infobox_classifications.py
+    |   └── formatter_item_page_infobox_item_data.py
     ├── formatter_item_page_summary.py.py
     └── formatter_item_page_navbox.py
 
@@ -64,9 +64,17 @@ This python script takes the outputs from `pywikibot_missingImageCheck.py` and g
 pywikibot_images_dlc_pet.py -- <br>
 This python script pulls a list of pages that are both `Pets` and `DLC`, then associates specific cateogories for those file images, so they show up in various DPL queries on the wiki.
 
+pywikibot_images_dlc_mount.py -- <br>
+This python script pulls a list of pages that are both `Mounts` and `DLC`, then associates specific cateogories for those file images, so they show up in various DPL queries on the wiki.
+
+pywikibot_images_dlc_mount_display.py -- (WIP) <br>
+This python script checks for missing front and side mount images. Since the data has a top and bottom image of the mount, it will put them together, scale it, and upload it to the wiki.
+
 pywikibot_redirect_creation.py -- <br>
 This python script will create redirect pages to certain pages. Helpful for redirecting variants of something to the main page.
 
+pywikibot_create_item_page.py -- <br>
+This python script reads a file of missing items, then runs `formatter_item_page.py` against that file to upload the pages to the wiki.
 
 
 # Using the Parser
