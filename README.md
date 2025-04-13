@@ -51,15 +51,24 @@ Each of these will take the information from the JSON objects, or the asset file
 These scripts use the mediawiki api [Pywikibot](https://support.wiki.gg/wiki/Pywikibot) to do various comparisons, page creations, or uploads directly into the wiki.<br>
 The user must be in the PWB-Core folder and logged in to PyWikiBot using: python pwb.py login<br>
 
-pywikibot_missing_data_check.py --<br>
+pywikibot_compare_recipe.py -- (WIP) <br>
+This python script will compare the `{{recipe}}` template on a page, to the recipe json to find recipes that need to be updated.
+
+pywikibot_missing_item_check.py --<br>
 This python module will review the SH wiki to make three lists: Items missing from the JSON file, Items missing from the wiki, Items in both the JSON and the wiki.<br>
 It will then do a comparison between items in both the JSON and Wiki, to see what infobox items need to be updated (WIP).
 
 pywikibot_missing_image_check.py --<br>
 Reviews the wiki and looks for itemname.png, anything missing itemname.png it puts in a list. The script then looks up the icon GUID to produce the image name. The overall output is a file that has missing images, and what their associated image name in the texture2D file is.
 
-pywikibot_image_uploader.py --<br>
+pywikibot_missing_quest_check.py --<br>
+Reviews the wiki and compares against the quest json to create a list of missing quests.
+
+pywikibot_create_missing_image.py --<br>
 This python script takes the outputs from `pywikibot_missingImageCheck.py` and grabs associated images from the texture2D folder to automatically upload a scaled version to the wiki, with the correct naming convention and copywrite template. It generates a list of files it could not find in the folder, for additional manual work.
+
+pywikibot_create_missing_item_page.py -- <br>
+This python script reads a file of missing items, then runs `formatter_item_page.py` against that file to upload the pages to the wiki.
 
 pywikibot_images_dlc_pet.py -- <br>
 This python script pulls a list of pages that are both `Pets` and `DLC`, then associates specific cateogories for those file images, so they show up in various DPL queries on the wiki.
@@ -72,10 +81,6 @@ This python script checks for missing front and side mount images. Since the dat
 
 pywikibot_redirect_creation.py -- <br>
 This python script will create redirect pages to certain pages. Helpful for redirecting variants of something to the main page.
-
-pywikibot_create_item_page.py -- <br>
-This python script reads a file of missing items, then runs `formatter_item_page.py` against that file to upload the pages to the wiki.
-
 
 # Using the Parser
 ## Getting the Assets
