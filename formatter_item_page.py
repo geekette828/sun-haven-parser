@@ -93,7 +93,7 @@ File:filename.png|File Description
 
 def main():
     json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
-    output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "Wiki Pages")
+    output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "Item Pages")
     file_utils.ensure_dir_exists(output_directory)
     
     try:
