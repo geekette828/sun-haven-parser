@@ -13,7 +13,7 @@ sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
 site = pywikibot.Site()
 
 # Paths
-input_file = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "CreatePageTest.txt")
+input_file = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "Item_Comparison_JSONOnly.txt")
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
 debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_create_item_page.txt")
 
