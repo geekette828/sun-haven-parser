@@ -1,3 +1,8 @@
+'''
+This python script will create redirect pages that redirect to the base page name.
+This is useful for mounts/pets/clothing when many colors direct to the base page.
+'''
+
 import sys
 import config.constants as constants
 import pywikibot

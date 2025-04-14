@@ -1,6 +1,7 @@
-
-INPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_input/2.0 Assets"
-OUTPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_output/2.0"
+ROOT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser"
+INPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_input/x.x"
+IMAGE_INPUT_DIRECTORY = r"YOUR PATH/TO/IMAGES/"
+OUTPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_output/x.x"
 
 PWB_SETTINGS = {
     "throttle": 5,

@@ -2,15 +2,16 @@ import subprocess
 import os
 
 script_order = [
-    "JSON_item_list.py",
-    "JSON_quest_details.py",
-    "JSON_shop_inventory.py",
-    "JSON_image_list.py",
-    "formatter_item_descriptions.py",
-    "formatter_dialogue.py",
-    "formatter_recipes.py",
-    "formatter_shops.py",
-    "formatter_quests.py"
+    "json_tools/item_list.py",
+    "json_tools/quest_details.py",
+    "json_tools/shop_inventory.py",
+    "json_tools/recipes_list.py",
+    "json_tools/image_list.py",
+    "formatter/item_descriptions.py",
+    "formatter/dialogue.py",
+    "formatter/recipes.py",
+    "formatter/shops.py",
+    "formatter/quests.py"
 ]
 
 def run_scripts(script_list):

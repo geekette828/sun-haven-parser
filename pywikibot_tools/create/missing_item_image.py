@@ -1,3 +1,9 @@
+'''
+This script will take the list executed from `validators/missing_item_images.py`
+and attempt to upload the correct icon images to the wiki. 
+Ensure image files are in the right place.
+'''
+
 import sys
 import config.constants as constants
 import os
@@ -15,9 +21,8 @@ pywikibot.config.log = []
 pywikibot.config.noisy_output = False
 
 # Paths
-input_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "imagesTEST.txt") #will be missing images with filenames.txt eventually
-#image_input_directory = os.path.join(config.INPUT_DIRECTORY, "Texture2D")
-image_input_directory = r"N:\Images\Sprite"
+input_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "imagesTEST.txt")
+image_input_directory = os.path.join(constants.IMAGE_INPUT_DIRECTORY) #os.path.join(constants.INPUT_DIRECTORY, "Texture2D")
 output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot")
 debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_imageUploader_debug.txt")
 os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)

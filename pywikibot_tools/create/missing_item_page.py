@@ -3,7 +3,7 @@ import os
 import time
 import pywikibot
 import config.constants as constants
-from formatter_item_page import create_item_page
+from formatter.item_page.create_page import create_item_page
 from utils.file_utils import read_file_lines, write_debug_log
 from utils.json_utils import load_json
 from config.skip_items import SKIP_ITEMS, SKIP_PATTERNS

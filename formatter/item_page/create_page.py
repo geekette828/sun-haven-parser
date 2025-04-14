@@ -3,10 +3,10 @@ import os
 from utils import json_utils, file_utils
 from utils.text_utils import clean_whitespace
 import config.constants as constants
-from formatter_item_page_infobox import create_full_infobox
-from formatter_item_page_summary import create_item_summary, parse_infobox
-from formatter_item_page_navbox import create_item_navbox
-from formatter_item_page_recipe import get_recipe_markup_for_item
+from formatter.item_page.infobox import create_full_infobox
+from formatter.item_page.summary import create_item_summary, parse_infobox
+from formatter.item_page.navbox import create_item_navbox
+from formatter.item_page.recipe import get_recipe_markup_for_item
 
 def normalize_name(name):
     return clean_whitespace(name).lower()
@@ -22,7 +22,7 @@ def create_item_page(item, display_name=None):
     navbox = create_item_navbox(item)
     
     # Determine if we need to add a Mount Display section.
-    from formatter_item_page_infobox_classifications import classify_item
+    from formatter.item_page.infobox_classifications import classify_item
     itemType, subtype, _ = classify_item(item)
     mount_section = ""
     if itemType.lower() == "mount":

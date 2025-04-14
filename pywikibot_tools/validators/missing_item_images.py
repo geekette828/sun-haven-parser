@@ -1,3 +1,8 @@
+'''
+This python script compares the items.json file to the wiki for missing item images.
+For items missing their image in the wiki, it will map the file name of the item to that item in the output.
+'''
+
 import sys
 import config.constants as constants
 import os

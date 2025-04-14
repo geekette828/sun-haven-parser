@@ -4,8 +4,8 @@ import logging
 
 from utils import json_utils, file_utils, text_utils
 import config.constants as constants  
-from formatter_item_page_infobox_classifications import classify_item
-from formatter_item_page_infobox_item_data import format_item_data
+from formatter.item_page.infobox_classifications import classify_item
+from formatter.item_page.infobox_item_data import format_item_data
 
 def setup_logger(debug_log_path):
     logger = logging.getLogger("formatter_itemInfobox")

@@ -1,5 +1,5 @@
 """
-This python module will review the SH wiki and compare the JSON file with item infobox items
+This python script will review the SH wiki and compare the JSON file with item infobox items
 The user must be in the PWB-Core folder and logged in to PyWikiBot using: python pwb.py login
 """
 import sys

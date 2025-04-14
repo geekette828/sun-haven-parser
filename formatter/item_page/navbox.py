@@ -1,7 +1,7 @@
 import os
 from utils import json_utils, file_utils
 import config.constants as constants
-from formatter_item_page_infobox_classifications import classify_item
+from formatter.item_page.infobox_classifications import classify_item
 
 def create_item_navbox(item):
     """

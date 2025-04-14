@@ -1,3 +1,9 @@
+'''
+This python script pulls a list of pages that are both `Pets` and `DLC`
+then associates specific cateogories to those image files
+so they show up in various DPL queries on the wiki.
+'''
+
 import sys
 import config.constants as constants
 import os

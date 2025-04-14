@@ -304,7 +304,6 @@ SKIP_ITEMS = [
     "lynn's pickaxe",
     "marble bridge decor",
     "seal of sun haven",
-    "snow ball crop",
     "snow cone machine",
     "ticket",
     "warehouse",
@@ -316,5 +315,6 @@ SKIP_PATTERNS = [
     "* teleportation spell",
     "* onetimechest",
     "* node",
-    "*minerock*"
+    "*minerock*",
+    "alien chair*"
 ]
