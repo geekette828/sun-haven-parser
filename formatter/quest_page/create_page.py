@@ -1,7 +1,9 @@
 import os
-from utils import json_utils, file_utils, text_utils
-import config.constants as constants
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+import config.constants as constants
+from utils import json_utils, file_utils, text_utils
 from formatter.quest_page.infobox import create_quest_infobox, load_item_lookup, build_guid_lookup
 from formatter.quest_page.layout import create_quest_layout
 

@@ -3,14 +3,14 @@ This python script compares the items.json file to the wiki for missing item ima
 For items missing their image in the wiki, it will map the file name of the item to that item in the output.
 '''
 
-import sys
-import config.constants as constants
 import os
-import json
-import re
-import time
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+import config.constants as constants
 import pywikibot
-import datetime
+import json
+import time
 
 # Set up necessary configurations before other imports
 sys.path.append(constants.ADDITIONAL_PATHS["PWB"])

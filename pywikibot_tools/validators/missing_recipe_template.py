@@ -3,11 +3,13 @@ This python script will create a list of pages and redirects
 that do not have `Template:Recipe` based on `recipes_data.json`
 '''
 
-import pywikibot
-import sys
 import os
-import json
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 import config.constants as constants
+import pywikibot
+import json
 from utils import file_utils
 
 # Setup PWB and site

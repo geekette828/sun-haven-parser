@@ -1,8 +1,11 @@
-# formatter_item_page.py
+
 import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+import config.constants as constants
 from utils import json_utils, file_utils
 from utils.text_utils import clean_whitespace
-import config.constants as constants
 from formatter.item_page.infobox import create_full_infobox
 from formatter.item_page.summary import create_item_summary, parse_infobox
 from formatter.item_page.navbox import create_item_navbox

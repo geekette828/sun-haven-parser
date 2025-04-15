@@ -4,12 +4,14 @@ then associates specific cateogories to those image files
 so they show up in various DPL queries on the wiki.
 '''
 
-import sys
-import config.constants as constants
 import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import config.constants as constants
 import pywikibot
-import time
 import re
+import time
 
 # Apply Pywikibot config from constants
 sys.path.append(constants.ADDITIONAL_PATHS["PWB"])

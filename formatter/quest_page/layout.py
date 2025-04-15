@@ -1,6 +1,10 @@
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+import textwrap
 from formatter.quest_page.infobox import resolve_quest_type
 from utils import text_utils
-import textwrap
 
 def create_quest_layout(quest, npc="", bulletin="", end_text=""):
     quest_type = resolve_quest_type(quest).lower()

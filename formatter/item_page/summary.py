@@ -1,6 +1,10 @@
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+import config.constants as constants
 import re
 from formatter.item_page.infobox_classifications import classify_item
-import config.constants as constants
 
 # Dictionary mapping (Item Type, Subtype, Category) to summary text.
 # Replace '''ITEM NAME''' with the actual item name.

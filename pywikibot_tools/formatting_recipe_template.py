@@ -4,10 +4,13 @@ Each field needs to be on its own line, in the wiki for it to work properly.
 This script also updates the spacing to make it more uniform.
 '''
 
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import config.constants as constants
 import pywikibot
 import re
-import config.constants as constants
-import os
 
 # Setup PWB
 import sys

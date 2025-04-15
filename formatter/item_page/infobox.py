@@ -1,9 +1,10 @@
-#!/usr/bin/env python3
 import os
-import logging
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+import config.constants as constants
+import logging
 from utils import json_utils, file_utils, text_utils
-import config.constants as constants  
 from formatter.item_page.infobox_classifications import classify_item
 from formatter.item_page.infobox_item_data import format_item_data
 

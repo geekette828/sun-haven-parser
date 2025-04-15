@@ -1,10 +1,17 @@
-__pycache__
-Input/
-_input/
-Output/
-_output/
-Config/constants.py
-cropPull.py
+.hidden/
+__pycache__/
+**/__pycache__/
+*.pyc
 Sun Haven Parser.code-workspace
-throttle.ctrl
-pywikibotinstructions.txt
+
+_input/
+_output/
+config/constants.py
+
+cropPull.py
+
+pwb/logs
+pwb/apicache
+pwb/pywikibot-Geekette828.lwp
+pwb/user-config.py
+pwb/user-password.py

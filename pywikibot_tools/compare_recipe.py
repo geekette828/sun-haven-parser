@@ -3,15 +3,15 @@ This python script compares data in recipies_data.json to the wiki
 Allows user to see which pages need to be updated.
 '''
 
-import pywikibot
-import sys
 import os
-import re
-import json
-import time
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import config.constants as constants
-from utils import file_utils
+import pywikibot
+import json
 import mwparserfromhell
+from utils import file_utils
 
 # Testing Config
 test_mode = False  # Set to False to run the full recipe comparison

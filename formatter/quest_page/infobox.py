@@ -1,6 +1,9 @@
 import os
-from utils import json_utils, file_utils, text_utils
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 import config.constants as constants
+from utils import json_utils, file_utils, text_utils
 
 def ensure_output_dir():
     output_dir = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "Quest Pages")

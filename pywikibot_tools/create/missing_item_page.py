@@ -1,8 +1,16 @@
-import sys
+'''
+This script creates missing item pages. 
+This script is dependent on output from
+pywikibot_tools/validators/missing_item.py
+'''
+
 import os
-import time
-import pywikibot
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 import config.constants as constants
+import pywikibot
+import time
 from formatter.item_page.create_page import create_item_page
 from utils.file_utils import read_file_lines, write_debug_log
 from utils.json_utils import load_json

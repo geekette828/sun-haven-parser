@@ -4,9 +4,11 @@ and attempt to upload the correct icon images to the wiki.
 Ensure image files are in the right place.
 '''
 
-import sys
-import config.constants as constants
 import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+import config.constants as constants
 import pywikibot
 import traceback
 import time

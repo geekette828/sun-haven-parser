@@ -1,10 +1,7 @@
 Collection of Parser Items for the Sun Haven wiki found at: https://sunhaven.wiki.gg/ <br>
 Putting these into output files, so we can do a compare between patches, and only update pages that need it.
 
-Some scripts to do some comparisons using the mediawiki api [Pywikibot](https://support.wiki.gg/wiki/Pywikibot) to do various comparisons, page creations, or uploads directly into the wiki.<br>
-The user must be in the PWB-Core folder and logged in to PyWikiBot using: python pwb.py login<br>
-
-# Parser Collection
+# File Structure
 ```
 Sun Haven Parser/
 ├── _output/
@@ -15,11 +12,19 @@ Sun Haven Parser/
 │   └── skip_items.py
 │
 ├── utils/
-│   ├── file_utils.py     → Utility pulls together functions around read/write with logs or structured text files.
-│   ├── guid_utils.py     → Utility pulls together functions around guid extraction.
-│   ├── json_utils.py     → Utility pulls together functions around JSON parsing.
-│   ├── recipe_utils.py   → Utility pulls together functions around recipe formatting.
-│   └── text_utils.py     → Utility pulls together functions around general string clean up.
+│   ├── file_utils.py         → Utility pulls together functions around read/write with logs or structured text files.
+│   ├── guid_utils.py         → Utility pulls together functions around guid extraction.
+│   ├── json_utils.py         → Utility pulls together functions around JSON parsing.
+│   ├── recipe_utils.py       → Utility pulls together functions around recipe formatting.
+│   └── text_utils.py         → Utility pulls together functions around general string clean up.
+│
+├── pwb/                      → Pywikibot engine
+│   ├── pwb.py
+│   ├── pywikibot/            → Core library
+│   ├── scripts/              → Required for login and maintenance commands
+│   ├── families/
+│   │   └── sunhaven_family.py
+│   └── user-config.py        → Your wiki credentials
 │
 ├── formatter/            → Scripts in this directory will format data for wiki consumption.
 │   ├── item_page/        → Creates item pages, in their entirety. 
@@ -64,6 +69,7 @@ Sun Haven Parser/
 │   └── redirect_creation.py            → Creates redirect pages to specific base pages.
 |
 ├── _run_for_new_patch.py               → Runs JSON and Formatter scripts in correct order for new patch.
+├── pwb.ps1                             → Recommended launcher script for pywikibot stuff
 ├── .gitignore
 └── README.md
 ```
@@ -128,3 +134,13 @@ Sun Haven Parser/
 5. Take the necessary file folders from the ripped project and drop them into the parser project input folder.
 6. Run all of the JSON scripts first, to generate objects that the rest of the scripts will use to pull their data from. Then run all of the formatter scripts.
   * I recommend comparing the most recent pull of data to the previous pull of data using a comparison application like WinMerge.
+
+## Using Pywikibot
+Some scripts in this project use the mediawiki api [Pywikibot](https://support.wiki.gg/wiki/Pywikibot) to perform wiki operations such as page creation, comparison, or image uploads. This project includes a full, vendored version of Pywikibot inside the pwb/ folder. There’s no need to install it separately or use it as a submodule.
+
+    💡 All Pywikibot commands should be run through the included pwb.ps1 launcher to ensure the correct environment is used.
+
+### First Time Setup
+1. Copy the provided `pwb/user-config.py.sample` to `pwb/user-config.py` and `pwb/user-password.py.sample` to `pwb/user-password.py`
+2. Open `pwb/user-config.py` and change the username.
+3. Update user-password.py is created in the same folder and contains your login credentials.

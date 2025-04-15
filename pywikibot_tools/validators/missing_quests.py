@@ -3,13 +3,14 @@ Compare quest names from JSON files to wiki page titles using Pywikibot.
 Includes redirect checking and shared config setup.
 """
 
-import sys
 import os
-import time
-from itertools import islice
-import pywikibot
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import config.constants as constants
+import pywikibot
+import time
+from itertools import islice
 from utils import json_utils, file_utils
 
 # Setup PWB and site
