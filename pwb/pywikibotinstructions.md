@@ -12,7 +12,7 @@ Replace `YourUserNameHere` with your wiki.gg username.
 Replace `YourBotNameHere` with the name you gave it in the `Special:ApplicationPasswords` page
 Replace `YourBotPasswordHere` with the long unique hash for that specific bot name, that the wiki gave you. 
 
-    DO NOT SHARE THIS PASSWORD WITH ANYONE.
+    🚨🔐 DO NOT SHARE THIS PASSWORD WITH ANYONE. 🔐🚨
 
 Login to pywikibot useing the command:
 `.\pwb.ps1 login`
