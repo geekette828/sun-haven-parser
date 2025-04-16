@@ -22,25 +22,28 @@ def compute_statInc(item):
          <STAT_NAME>»(<mapped increase>)
     Multiple entries are joined by a semicolon.
     """
-    food_stats = item.get("foodStat", [])
-    # If any entry has an increase value of "999", leave statInc blank.
-    for entry in food_stats:
-        if str(entry.get("increase", "")) == "999":
-            return ""
-    
-    stat_inc_list = []
-    for entry in food_stats:
-        try:
-            stat_key = int(entry.get("stat", 999))
-            increase_val = int(entry.get("increase", 0))
-        except Exception:
+    parts = []
+
+    # Handle foodStat
+    for stat in item.get("foodStat", []):
+        if stat.get("increase") == "999":
             continue
-        stat_name = constants.STAT_TYPE_MAPPING.get(stat_key, "none")
-        inc_str = constants.FOOD_STAT_INCREASES.get(increase_val, "")
-        if inc_str:
-            inc_str = inc_str.lower()
-        stat_inc_list.append(f"{stat_name}»({inc_str})")
-    return "; ".join(stat_inc_list)
+        stat_id = int(stat.get("stat", -1))
+        stat_name = constants.STAT_TYPE_MAPPING.get(stat_id, f"Stat{stat_id}")
+        increase_text = constants.FOOD_STAT_INCREASES.get(int(stat.get("increase")), f"+{stat.get('increase')}")
+        parts.append(f"{stat_name}»({increase_text})")
+
+    # Handle statBuff
+    for buff in item.get("statBuff", []):
+        stat_type = int(buff.get("statType", -1))
+        value = float(buff.get("value", 0))
+        duration = int(buff.get("duration", 0))
+        stat_name = constants.STAT_TYPE_MAPPING.get(stat_type, f"Stat{stat_type}")
+        display_value = f"{int(value * 100)}%" if value <= 1 else f"{int(value)}"
+        minutes = int(duration // 60)
+        parts.append(f"{stat_name}«{display_value}»({minutes}m)")
+
+    return "; ".join(parts)
 
 def compute_organic(item):
     isFruit = item.get("isFruit")

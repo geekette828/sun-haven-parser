@@ -83,10 +83,12 @@ def process_items(test_items=None):
     if test_items is None:
         # Use hard-coded test items if none are provided.
         test_items = [
-            "item name", 
-            "item name", 
-            "item name", 
-            "item name", 
+            "Iron Ring", 
+            "Candy Corn Fruit Pop", 
+            "Watery Protector's Potion", 
+            "Carrot Juice", 
+            "Apple Juice",
+            "Candied Yams"
         ]
     logger.info(f"Test items: {test_items}")
     
