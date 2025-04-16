@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import config.constants as constants
 import re
+import logging
 from utils import file_utils, json_utils
 from config import skip_items
 
@@ -12,6 +13,11 @@ input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 output_file = "items_data.json"
 en_display_name_file = os.path.join(constants.INPUT_DIRECTORY, "English.prefab")
+
+# Setup logging
+debug_log_path = os.path.join(".hidden", "debug_output", "json", "items_data_debug.txt")
+file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
+logging.basicConfig(filename=debug_log_path, level=logging.DEBUG, format="%(levelname)s: %(message)s")
 
 # Ensure the output directory exists
 file_utils.ensure_dir_exists(output_directory)
@@ -100,6 +106,7 @@ def extract_attributes(asset_file):
         "requiredLevel": None,
         "stats": [],
         "foodStat": [],
+        "statBuff": [],
         "cropStages": [],
         "seasons": None,
         "iconGUID": None
@@ -112,6 +119,9 @@ def extract_attributes(asset_file):
         capturing_food_stat = False
         capturing_seasons = False
         capturing_crop_stages = False
+        capturing_stat_buff = False
+        capturing_stat_buff_stats = False
+        stat_buff_duration = None
         description_lines = []
         seasons_list = []
         crop_stages = []
@@ -148,7 +158,7 @@ def extract_attributes(asset_file):
                     description_lines.append(line)
                     continue
 
-            if line.startswith("stats:"):
+            if line.startswith("stats:") and not capturing_stat_buff:
                 capturing_stats = True
                 continue
 
@@ -173,6 +183,32 @@ def extract_attributes(asset_file):
                         attributes["foodStat"][-1]["stat"] = int(match.group(1))
                 elif re.match(r'^\S', line):
                     capturing_food_stat = False
+
+            if line.startswith("statBuff:"):
+                capturing_stat_buff = True
+                capturing_stat_buff_stats = False
+                stat_buff_duration = None
+                continue
+
+            if capturing_stat_buff:
+                if line.strip() == "stats:":
+                    capturing_stat_buff_stats = True
+                    continue
+
+                if match := re.match(r'duration:\s*(\d+)', line):
+                    stat_buff_duration = int(match.group(1))
+
+                elif capturing_stat_buff_stats:
+                    if match := re.match(r'-\s*statType:\s*(\d+)', line):
+                        attributes["statBuff"].append({"statType": match.group(1), "value": None, "duration": stat_buff_duration})
+                    elif match := re.match(r'value:\s*([\d.]+)', line):
+                        if attributes["statBuff"]:
+                            attributes["statBuff"][-1]["value"] = float(match.group(1))
+                    elif re.match(r'^\S', line):
+                        capturing_stat_buff_stats = False
+
+                elif re.match(r'^\S', line):
+                    capturing_stat_buff = False
 
             if re.match(r'^\s*cropStages:\s*$', line):
                 capturing_crop_stages = True
@@ -211,40 +247,107 @@ def extract_attributes(asset_file):
 
     return attributes
 
+def extract_stat_buff(lines):
+    capturing_stat_buff = False
+    capturing_stats = False
+    duration = None
+    current_stat = None
+    buff_stats = []
+    inside_stat_buff = False
+
+    for line in lines:
+        line = line.strip()
+        logging.debug(f"[statBuff scan] Line: {line}")
+
+        if line.startswith("statBuff:"):
+            capturing_stat_buff = True
+            inside_stat_buff = True
+            logging.debug("--> Found statBuff block")
+            continue
+
+        if capturing_stat_buff:
+            if line.startswith("stats:"):
+                capturing_stats = True
+                logging.debug("--> Entering stats section inside statBuff")
+                continue
+
+            if match := re.match(r'duration:\s*(\d+)', line):
+                duration = int(match.group(1))
+                logging.debug(f"--> Captured duration: {duration}")
+                for entry in buff_stats:
+                    if entry.get("duration") is None:
+                        entry["duration"] = duration
+
+            if capturing_stats:
+                if match := re.match(r'-\s*statType:\s*(\d+)', line):
+                    current_stat = {"statType": match.group(1), "value": None, "duration": None}
+                    buff_stats.append(current_stat)
+                    logging.debug(f"--> New stat entry: {current_stat}")
+                elif match := re.match(r'value:\s*([\d.]+)', line):
+                    if current_stat:
+                        current_stat["value"] = float(match.group(1))
+                        logging.debug(f"--> Updated value for stat: {current_stat}")
+                elif re.match(r'^\S', line):
+                    capturing_stats = False
+                    capturing_stat_buff = False
+                    logging.debug("--> Leaving statBuff block")
+
+    logging.debug(f"Final statBuff collected: {buff_stats}")
+    return buff_stats
+
 def generate_item_data():
-    items_data = {}
-    display_name_map = get_display_names(en_display_name_file)
+    logging.info("Starting item data extraction...")
 
-    for file in os.listdir(input_directory):
-        if file.endswith(".asset.meta"):
-            asset_file = os.path.join(input_directory, file.replace(".meta", ""))
-            meta_file = os.path.join(input_directory, file)
+    display_names = get_display_names(en_display_name_file)
+    logging.info(f"Loaded {len(display_names)} display names.")
 
-            if os.path.exists(asset_file):
-                item_id, item_name = extract_item_info(asset_file)
-                if item_name is None or should_exclude_item(item_name):
-                    continue
+    all_items = {}
 
-                guid = extract_guid(meta_file)
-                icon_guid = extract_icon_guid(asset_file)
-                attributes = extract_attributes(asset_file)
-                attributes["ID"] = item_id
-                attributes["iconGUID"] = icon_guid
+    for filename in os.listdir(input_directory):
+        if not filename.endswith(".asset"):
+            continue
+        asset_path = os.path.join(input_directory, filename)
 
-                term_key = f"{item_name}.Name"
-                display_name = display_name_map.get(term_key, item_name)
+        item_id, item_name = extract_item_info(asset_path)
+        if not item_id or not item_name:
+            logging.debug(f"Skipping unrecognized filename format: {filename}")
+            continue
 
-                if item_name and guid:
-                    items_data[item_name] = {
-                        "assetName": item_name,
-                        "Name": display_name,
-                        "GUID": guid,
-                        **attributes
-                    }
+        if should_exclude_item(item_name):
+            logging.debug(f"Skipping excluded item: {item_name}")
+            continue
+
+        display_name = display_names.get(f"{item_name}.Name", item_name)
+        logging.debug(f"Processing: {display_name} (File: {filename})")
+
+        attributes = extract_attributes(asset_path)
+        icon_guid = extract_icon_guid(asset_path)
+        if icon_guid:
+            attributes["iconGUID"] = icon_guid
+
+        stat_buff = extract_stat_buff(file_utils.read_file_lines(asset_path))
+        if stat_buff:
+            attributes["statBuff"] = stat_buff
+            # remove duplicate statType entries from top-level stats that were actually for statBuff
+            original_stats = attributes.get("stats", [])
+            filtered_stats = [s for s in original_stats if not any(sb["statType"] == s["statType"] for sb in stat_buff)]
+            attributes["stats"] = filtered_stats
+
+        attributes = {
+            "assetName": item_name,
+            "Name": display_name,
+            "GUID": extract_guid(asset_path + ".meta"),
+            **attributes
+        }
+        attributes["ID"] = item_id
+
+        logging.debug(f"Extracted attributes for {display_name}: {attributes}")
+
+        all_items[display_name] = attributes
 
     output_path = os.path.join(output_directory, output_file)
-    json_utils.write_json(items_data, output_path, indent=4)
-    print(f"JSON data saved to {output_path}")
+    json_utils.write_json(all_items, output_path, indent=4)
+    logging.info(f"Successfully wrote {len(all_items)} items to {output_file}")
 
 if __name__ == "__main__":
     generate_item_data()
