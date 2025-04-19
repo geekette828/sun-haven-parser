@@ -10,8 +10,6 @@ from utils import file_utils, json_utils
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 file_utils.ensure_dir_exists(output_directory)
-
-# Define output JSON file path
 recipes_json_path = os.path.join(output_directory, "recipes_data.json")
 
 def extract_guid(meta_file_path):
@@ -123,6 +121,19 @@ for recipe_name, recipe in recipe_data_collection.items():
     recipe_guid = recipe.get("guid")
     if recipe_guid and recipe_guid in workbench_recipes:
         recipe["workbench"] = workbench_recipes[recipe_guid]
+
+# Duplicate Filtering Step
+all_keys = set(recipe_data_collection.keys())
+filtered_recipes = {}
+for name, info in recipe_data_collection.items():
+    # if it's a "_0" variant and there's a base, skip it
+    if name.endswith("_0.asset"):
+        base_name = name.replace("_0.asset", ".asset")
+        if base_name in all_keys:
+            continue
+    filtered_recipes[name] = info
+
+recipe_data_collection = filtered_recipes
 
 # Save all recipe data into one JSON file using json_utils
 json_utils.write_json(recipe_data_collection, recipes_json_path, indent=4)

@@ -55,7 +55,9 @@ Sun Haven Parser/
 ├── pywikibot_tools/
 │   ├── create/
 │   │   ├── missing_item_image.py       → Uploads missing item images.
-│   │   ├── missing_item_page.py        → Creates missing item pages using `formatter/item_page/create_page.py`.
+│   │   └── missing_item_page.py        → Creates missing item pages using `formatter/item_page/create_page.py`.
+│   ├── update/
+│   |   └── update_recipe_mismatches.py → Updates wiki recipe template to match recipe json.
 │   ├── validators/
 │   │   ├── missing_item_images.py      → Compares items.json to the wiki to find missing item images.
 │   │   ├── missing_item.py             → Lists missing item pages based on the item json file.
