@@ -37,33 +37,29 @@ def format_recipe(recipe):
         f"|yield        = {output_amount}}}}}"
     )
 
-def normalize_workbench(name):
-    name = name.strip().lower().replace(" ", "")
-    aliases = {
-        "craftingtable": "crafting table",
-        "basicfurnituretable1": "basic furniture table",
+def normalize_workbench(wb):
+    if not wb:
+        return ""
+    wb = wb.lower().strip().replace(" ", "")
+    wb = re.sub(r"(_0|1)$", "", wb)  # Remove trailing _0 or 1
+
+    aliases = { #json: wiki
+        "baker'sstation": "baker's station",
         "basicfurnituretable": "basic furniture table",
+        "basicfurnituretable1": "basic furniture table",
+        "constructiontable": "construction table",
         "cookingpot": "cooking pot",
-        "keg": "seltzer keg",
-        "seltzerkeg": "seltzer keg",
-        "ticketcounterfeiter": "ticket counterfeiter",
         "elvencraftingtable": "elven crafting table",
-        "elvencraftingtable_0": "elven crafting table",
-        "farmer'stable": "farmer's table",
-        "advancedfurnituretable": "advanced furniture table",
+        "elvenfurnace": "elven furnace",
+        "farmerstable": "farmer's table",
+        "manacomposter": "mana composter",
+        "monsterfurnace": "monster furnace",
+        "nurserycraftingtable": "nursery crafting table",
+        "keg": "seltzerkeg",
+        "ticketcounterfeiter": "ticket counterfeiter",
+        "tilemaker": "tile maker",
+        "withergateanvil": "withergate anvil",
     }
 
-    # Remove trailing _0
-    if name.endswith("_0"):
-        name = name[:-2]
+    return aliases.get(wb, wb)
 
-    return aliases.get(name, name)
-
-def normalize_time(value):
-    value = value.strip().lower().replace("hr", "").replace("h", "").replace("min", "").replace("m", "")
-    try:
-        if "." in value:
-            return str(round(float(value) * 60))  # Convert 0.25 to 15
-        return str(int(float(value)))  # Convert 15, 20, 30 etc.
-    except ValueError:
-        return value  # fallback to raw input

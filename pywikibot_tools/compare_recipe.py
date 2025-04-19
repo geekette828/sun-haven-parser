@@ -9,65 +9,40 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import config.constants as constants
 import pywikibot
-import json
 import mwparserfromhell
+import re
+import json
 from utils import file_utils
-from utils.recipe_utils import normalize_workbench, normalize_time
+from pywikibot.pagegenerators import PreloadingGenerator
+from utils.recipe_utils import normalize_workbench
 
-# Testing Config
+# Config
 test_mode = False
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
-import config.constants as constants
+json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
+output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "recipe_compare.txt")
+debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "recipe_compare_debug.txt")
+cached_titles_path = os.path.join(".hidden", "debug_output", "pywikibot", "cached_embedded_recipe_pages.txt")
+os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 
+sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
 pywikibot.config.throttle = constants.PWB_SETTINGS["throttle"]
 pywikibot.config.max_retries = constants.PWB_SETTINGS["max_retries"]
 pywikibot.config.retry_wait = constants.PWB_SETTINGS["retry_wait"]
 pywikibot.config.user_agent = constants.PWB_SETTINGS["user_agent"]
 site = pywikibot.Site("en", "sunhaven")
 
-# Paths
-json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
-output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "recipe_compare.txt")
-debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "recipe_compare_debug.txt")
-cached_titles_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "cached_embedded_recipe_pages.txt")
-os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
+# Normalization Helpers
+def normalize_time_json(value):
+    try:
+        num = float(value)
+        return str(int(num * 60)) if num < 1 else str(int(num))
+    except ValueError:
+        return str(value).strip()
 
-# Step 0: Optionally run the template presence validator
-if not test_mode:
-    import subprocess
-    script_path = os.path.join(constants.ROOT_DIRECTORY, "pywikibot_tools", "validators", "missing_recipe_template.py")
-    result = subprocess.run(["python", script_path])
-    if result.returncode != 0:
-        print("❌ Failed to run missing recipe script")
-    else:
-        print("✅ Missing recipe template check completed.")
+def normalize_time_wiki(value):
+    return re.sub(r"(min|m|hr|h)", "", str(value).lower()).strip()
 
-# Step 1: Load JSON
-with open(json_file_path, "r", encoding="utf-8") as f:
-    raw_recipe_data = json.load(f)
-
-json_recipes_by_output_name = {}
-for recipe_id, data in raw_recipe_data.items():
-    if not all(k in data for k in ["output", "inputs", "workbench", "hoursToCraft"]):
-        continue
-    output = data["output"]
-    if not output or "name" not in output:
-        continue
-    output_name = output["name"].strip()
-    entry = {
-        "workbench": data["workbench"],
-        "time": data["hoursToCraft"],
-        "yield": output.get("amount", "1") or "1",
-        "inputs": sorted(
-            [{"name": i["name"], "amount": str(i["amount"])} for i in data["inputs"]],
-            key=lambda x: x["name"].lower()
-        )
-    }
-    json_recipes_by_output_name.setdefault(output_name, []).append(entry)
-
-# Step 2: Comparison Helpers
 def parse_ingredients(raw):
     parts = [p.strip() for p in raw.split(";") if p.strip()]
     parsed = []
@@ -79,64 +54,72 @@ def parse_ingredients(raw):
             parsed.append({"name": part.strip(), "amount": "1"})
     return sorted(parsed, key=lambda x: x["name"].lower())
 
-def parse_recipe_template_block(template):
-    try:
-        workbench = normalize_workbench(template.get("workbench").value)
-        time = normalize_time(template.get("time").value)
-        yield_amt = template.get("yield").value.strip() or "1"
+def recipe_matches(expected, wiki, mismatch_info=None):
+    normalized_wiki = {
+        "workbench": normalize_workbench(wiki["workbench"]),
+        "time": normalize_time_wiki(wiki["time"]),
+        "yield": str(wiki["yield"]).strip(),
+        "ingredients": sorted(wiki["ingredients"], key=lambda x: x["name"].lower())
+    }
 
-        ingredients_raw = template.get("ingredients")
-        if ingredients_raw is None:
-            raise ValueError("Missing ingredients field")
-        ingredients = parse_ingredients(ingredients_raw.value.strip())
+    if mismatch_info is None:
+        mismatch_info = []
 
-        return {
-            "workbench": workbench,
-            "time": time,
-            "yield": yield_amt,
-            "ingredients": ingredients
-        }
-    except Exception as e:
-        raise ValueError(f"Template parsing failed: {e}")
+    if expected["workbench"] != normalized_wiki["workbench"]:
+        mismatch_info.append(f"workbench: {expected['workbench']} ≠ {normalized_wiki['workbench']}")
+    if expected["time"] != normalized_wiki["time"]:
+        mismatch_info.append(f"time: {expected['time']} ≠ {normalized_wiki['time']}")
+    if expected["yield"] != normalized_wiki["yield"]:
+        mismatch_info.append(f"yield: {expected['yield']} ≠ {normalized_wiki['yield']}")
+    if expected["ingredients"] != normalized_wiki["ingredients"]:
+        mismatch_info.append(f"ingredients: {expected['ingredients']} ≠ {normalized_wiki['ingredients']}")
 
-def recipe_matches(r1, r2):
-    return (
-        normalize_workbench(r1["workbench"]) == normalize_workbench(r2["workbench"]) and
-        normalize_time(r1["time"]) == normalize_time(r2["time"]) and
-        r1["yield"] == r2["yield"] and
-        r1["ingredients"] == r2["ingredients"]
-    )
+    return not mismatch_info
 
-# Step 3: Load pages
+# Load JSON
+with open(json_file_path, "r", encoding="utf-8") as f:
+    raw_recipe_data = json.load(f)
+
+json_recipes_by_output_name = {}
+for recipe_id, data in raw_recipe_data.items():
+    if not all(k in data for k in ["output", "inputs", "workbench", "hoursToCraft"]):
+        continue
+    output = data["output"]
+    if not output or "name" not in output:
+        continue
+    name = output["name"].strip()
+    entry = {
+        "workbench": normalize_workbench(data["workbench"]),
+        "time": normalize_time_json(data["hoursToCraft"]),
+        "yield": str(output.get("amount", "1") or "1").strip(),
+        "ingredients": sorted(
+            [{"name": i["name"], "amount": str(i["amount"]).strip()} for i in data["inputs"]],
+            key=lambda x: x["name"].lower()
+        )
+    }
+    json_recipes_by_output_name.setdefault(name, []).append(entry)
+
+# Load wiki
+if test_mode:
+    embedded_titles = {"Acai Bowl", "Basic Fish Bait", "Apple Pie", "Berry Cake", "Blueberry Pie"}
+    print(f"🧪 Test mode: comparing {len(embedded_titles)} test pages.")
+else:
+    if not os.path.exists(cached_titles_path):
+        print("❌ No cached embedded recipe list found.")
+        sys.exit(1)
+    embedded_titles = set(file_utils.read_file_lines(cached_titles_path))
+
+# Compare
 debug_lines = []
 recipe_mismatch_pages = []
 output_lines = []
 
-if test_mode:
-    embedded_titles = {
-        "Acai Bowl",
-        "Basic Fish Bait",
-        "Apple Pie",
-        "Berry Cake",
-        "Blueberry Pie"
-    }
-    print(f"🧪 Test mode: comparing {len(embedded_titles)} selected pages.")
-else:
-    if not os.path.exists(cached_titles_path):
-        print("❌ No cached embedded recipe list found. Run missing template check first.")
-        sys.exit(1)
-    embedded_titles = set(line.strip() for line in file_utils.read_file_lines(cached_titles_path))
-
-print("📤 Comparing recipe formatting...")
+pages = PreloadingGenerator([pywikibot.Page(site, title) for title in sorted(embedded_titles)])
+print(f"📦 Preloading {len(embedded_titles)} pages...")
 total = len(embedded_titles)
 processed = 0
 
-from pywikibot.pagegenerators import PreloadingGenerator
-preload_batch_size = constants.PWB_SETTINGS.get("preload_batch_size", 50)
-print(f"📦 Preloading {len(embedded_titles)} pages in batches of {preload_batch_size}...")
-pages = PreloadingGenerator([pywikibot.Page(site, title) for title in sorted(embedded_titles)], groupsize=preload_batch_size)
-
-# Step 4: Compare
+print("📤 Comparing recipe formatting...")
 for page in pages:
     page_title = page.title()
     if page_title not in json_recipes_by_output_name:
@@ -144,49 +127,46 @@ for page in pages:
 
     processed += 1
     if processed % 250 == 0:
-        percent = int((processed / total) * 100)
-        print(f"  🔄 Comparing recipes: {percent}% complete ({processed}/{total})")
+        print(f"  🔄 {processed}/{total} recipes compared")
 
     try:
-        actual_text = page.text
-        wikicode = mwparserfromhell.parse(actual_text)
-        wiki_recipes = []
+        wikicode = mwparserfromhell.parse(page.text)
+        wiki_templates = [tpl for tpl in wikicode.filter_templates() if tpl.name.matches("Recipe")]
 
-        for tpl in wikicode.filter_templates():
-            if tpl.name.strip().lower() == "recipe":
-                try:
-                    parsed = parse_recipe_template_block(tpl)
-                    wiki_recipes.append(parsed)
-                except Exception as e:
-                    debug_lines.append(f"[ERROR] {page_title} - {str(e)} - Template: {tpl}")
+        if len(wiki_templates) > 1:
+            debug_lines.append(f"[SKIPPED MULTI] {page_title} has {len(wiki_templates)} recipe blocks, skipping.\n")
+            continue
 
-        expected_recipes = json_recipes_by_output_name.get(page_title, [])
-        all_matched = True
+        tpl = wiki_templates[0]
+        raw_time = tpl.get("time").value.strip()
+        wiki_data = {
+            "workbench": tpl.get("workbench").value,
+            "time": raw_time,
+            "yield": tpl.get("yield").value.strip() or "1",
+            "ingredients": parse_ingredients(tpl.get("ingredients").value)
+        }
 
-        for expected in expected_recipes:
-            matched = False
-            for wiki in wiki_recipes:
-                if recipe_matches(expected, wiki):
-                    matched = True
-                    break
-
-            if not matched:
-                all_matched = False
-                recipe_mismatch_pages.append(page_title)
+        matched = False
+        for expected in json_recipes_by_output_name[page_title]:
+            mismatch_info = []
+            if recipe_matches(expected, wiki_data, mismatch_info):
+                debug_lines.append(f"[MATCH] {page_title}\n")
+                matched = True
+                break
+            else:
                 debug_lines.append(
-                    f"[MISMATCH] {page_title}\nExpected: {expected}\nWiki Options: {wiki_recipes}"
+                    f"[MISMATCH] {page_title}\nExpected: {expected}\nWiki: {wiki_data}\n"
+                    f"Mismatch Fields: {mismatch_info}\n"
                 )
-
-        if all_matched:
-            debug_lines.append(f"[MATCH] {page_title}")
+                recipe_mismatch_pages.append(page_title)
 
     except Exception as e:
         debug_lines.append(f"[ERROR] {page_title} - {str(e)}")
 
-# Step 5: Write output
+# Final Output
 if recipe_mismatch_pages:
     output_lines.append("=== Recipe Mismatches ===\n")
-    output_lines.extend(page + "\n" for page in sorted(recipe_mismatch_pages))
+    output_lines.extend(f"{page}\n" for page in sorted(set(recipe_mismatch_pages)))
     output_lines.append("\n")
 else:
     output_lines.append("No mismatched pages found.\n")
