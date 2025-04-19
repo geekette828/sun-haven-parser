@@ -82,6 +82,7 @@ with open(json_file_path, "r", encoding="utf-8") as f:
 
 json_recipes_by_output_name = {}
 for recipe_id, data in raw_recipe_data.items():
+    # skip incomplete entries
     if not all(k in data for k in ["output", "inputs", "workbench", "hoursToCraft"]):
         continue
     output = data["output"]
@@ -89,9 +90,10 @@ for recipe_id, data in raw_recipe_data.items():
         continue
     name = output["name"].strip()
     entry = {
-        "workbench": normalize_workbench(data["workbench"]),
-        "time": normalize_time_json(data["hoursToCraft"]),
-        "yield": str(output.get("amount", "1") or "1").strip(),
+        "jsonID":      recipe_id,
+        "workbench":   normalize_workbench(data["workbench"]),
+        "time":        normalize_time_json(data["hoursToCraft"]),
+        "yield":       str(output.get("amount", "1") or "1").strip(),
         "ingredients": sorted(
             [{"name": i["name"], "amount": str(i["amount"]).strip()} for i in data["inputs"]],
             key=lambda x: x["name"].lower()
@@ -99,7 +101,7 @@ for recipe_id, data in raw_recipe_data.items():
     }
     json_recipes_by_output_name.setdefault(name, []).append(entry)
 
-# Load wiki
+# Load wiki titles
 if test_mode:
     embedded_titles = {"Acai Bowl", "Basic Fish Bait", "Apple Pie", "Berry Cake", "Blueberry Pie"}
     print(f"🧪 Test mode: comparing {len(embedded_titles)} test pages.")
@@ -109,17 +111,22 @@ else:
         sys.exit(1)
     embedded_titles = set(file_utils.read_file_lines(cached_titles_path))
 
-# Compare
-debug_lines = []
-recipe_mismatch_pages = []
-output_lines = []
-
+# Preload pages
 pages = PreloadingGenerator([pywikibot.Page(site, title) for title in sorted(embedded_titles)])
 print(f"📦 Preloading {len(embedded_titles)} pages...")
-total = len(embedded_titles)
-processed = 0
-
 print("📤 Comparing recipe formatting...")
+
+# Prepare summary lists
+mismatch_list           = []  # for w == j mismatches
+remove_list             = []  # w > j extras
+add_list                = []  # j > w extras
+manual_missing_wiki     = []  # j > w fallback
+manual_missing_json     = []  # w > j fallback
+
+debug_lines = []
+processed   = 0
+total       = len(embedded_titles)
+
 for page in pages:
     page_title = page.title()
     if page_title not in json_recipes_by_output_name:
@@ -133,44 +140,177 @@ for page in pages:
         wikicode = mwparserfromhell.parse(page.text)
         wiki_templates = [tpl for tpl in wikicode.filter_templates() if tpl.name.matches("Recipe")]
 
-        if len(wiki_templates) > 1:
-            debug_lines.append(f"[SKIPPED MULTI] {page_title} has {len(wiki_templates)} recipe blocks, skipping.\n")
+        # parse every recipe block and capture its wikiID
+        wiki_datas = []
+        for idx, tpl in enumerate(wiki_templates, start=1):
+            raw_time = tpl.get("time").value.strip()
+            tpl_id   = tpl.get("id").value.strip() if tpl.has("id") else str(idx)
+            wiki_datas.append({
+                "wikiID":      tpl_id,
+                "workbench":   tpl.get("workbench").value,
+                "time":        raw_time,
+                "yield":       tpl.get("yield").value.strip() or "1",
+                "ingredients": parse_ingredients(tpl.get("ingredients").value)
+            })
+
+        expected_list = json_recipes_by_output_name.get(page_title, [])
+        w, j = len(wiki_datas), len(expected_list)
+
+        # Case 1: wiki has extra recipes
+        if w > j:
+            matched_expected = [False] * j
+            matched_wiki     = [False] * w
+
+            # exact‑match pass
+            for i, wiki_data in enumerate(wiki_datas):
+                for k, expected in enumerate(expected_list):
+                    if not matched_expected[k]:
+                        mismatch_info = []
+                        if recipe_matches(expected, wiki_data, mismatch_info):
+                            header = page_title
+                            if wiki_data.get("wikiID"):
+                                header += f" (wikiID {wiki_data['wikiID']})"
+                            debug_lines.append(f"[MATCH]    {header}\n")
+                            matched_expected[k] = True
+                            matched_wiki[i]     = True
+                            break
+
+            # all JSON recipes matched?
+            if all(matched_expected):
+                # flag leftover wiki recipes
+                for i, wiki_data in enumerate(wiki_datas):
+                    if not matched_wiki[i]:
+                        header = page_title
+                        if wiki_data.get("wikiID"):
+                            header += f" (wikiID {wiki_data['wikiID']})"
+                        remove_list.append({"page": page_title, "header": header})
+                        debug_lines.append(f"[INVALID - NO LONGER IN JSON] {header}\n")
+            else:
+                manual_missing_json.append(page_title)
+                debug_lines.append(f"[MANUAL REVIEW - MISSING IN JSON] {page_title}\n")
+
             continue
 
-        tpl = wiki_templates[0]
-        raw_time = tpl.get("time").value.strip()
-        wiki_data = {
-            "workbench": tpl.get("workbench").value,
-            "time": raw_time,
-            "yield": tpl.get("yield").value.strip() or "1",
-            "ingredients": parse_ingredients(tpl.get("ingredients").value)
-        }
+        # Case 2: JSON has extra recipes
+        elif j > w:
+            matched_expected = [False] * j
+            matched_wiki     = [False] * w
 
-        matched = False
-        for expected in json_recipes_by_output_name[page_title]:
-            mismatch_info = []
-            if recipe_matches(expected, wiki_data, mismatch_info):
-                debug_lines.append(f"[MATCH] {page_title}\n")
-                matched = True
-                break
+            # exact‑match pass
+            for i, wiki_data in enumerate(wiki_datas):
+                for k, expected in enumerate(expected_list):
+                    if not matched_expected[k]:
+                        mismatch_info = []
+                        if recipe_matches(expected, wiki_data, mismatch_info):
+                            header = page_title
+                            if wiki_data.get("wikiID"):
+                                header += f" (wikiID {wiki_data['wikiID']})"
+                            debug_lines.append(f"[MATCH]    {header}\n")
+                            matched_expected[k] = True
+                            matched_wiki[i]     = True
+                            break
+
+            # all wiki recipes matched?
+            if all(matched_wiki):
+                # flag leftover JSON recipes
+                for k, expected in enumerate(expected_list):
+                    if not matched_expected[k]:
+                        add_list.append({"page": page_title, "jsonID": expected["jsonID"]})
+                        debug_lines.append(
+                            f"[MISSING - ADD TO WIKI] {page_title} (jsonID {expected['jsonID']})\n"
+                        )
             else:
+                manual_missing_wiki.append(page_title)
+                debug_lines.append(f"[MANUAL REVIEW - MISSING IN WIKI] {page_title}\n")
+
+            continue
+
+        # Case 3: counts match → two‑pass match/mismatch
+        matched_expected = [False] * j
+        matched_wiki     = [False] * w
+
+        # Pass 1: exact matches
+        for i, wiki_data in enumerate(wiki_datas):
+            for k, expected in enumerate(expected_list):
+                if not matched_expected[k]:
+                    mismatch_info = []
+                    if recipe_matches(expected, wiki_data, mismatch_info):
+                        header = page_title
+                        if wiki_data.get("wikiID"):
+                            header += f" (wikiID {wiki_data['wikiID']})"
+                        debug_lines.append(f"[MATCH]    {header}\n")
+                        matched_expected[k] = True
+                        matched_wiki[i]     = True
+                        break
+
+        # Pass 2: mismatches
+        for k, expected in enumerate(expected_list):
+            if not matched_expected[k]:
+                idx2 = next((ii for ii, used in enumerate(matched_wiki) if not used), 0)
+                wiki_data = wiki_datas[idx2]
+                mismatch_info = []
+                recipe_matches(expected, wiki_data, mismatch_info)
+
+                header = page_title
+                if wiki_data.get("wikiID"):
+                    header += f" (wikiID {wiki_data['wikiID']})"
+
+                display_expected = expected.copy()
+                display_expected.pop("jsonID", None)
+
+                mismatch_list.append({
+                    "page":  page_title,
+                    "header": header,
+                    "fields": mismatch_info
+                })
                 debug_lines.append(
-                    f"[MISMATCH] {page_title}\nExpected: {expected}\nWiki: {wiki_data}\n"
-                    f"Mismatch Fields: {mismatch_info}\n"
+                    f"[MISMATCH] {header}\n"
+                    f"  Mismatch Fields: {mismatch_info}\n"
+                    f"  Expected: {display_expected}\n"
+                    f"  Wiki:     {wiki_data}\n"
                 )
-                recipe_mismatch_pages.append(page_title)
 
     except Exception as e:
-        debug_lines.append(f"[ERROR] {page_title} - {str(e)}")
+        debug_lines.append(f"[ERROR] {page_title} - {e}\n")
 
-# Final Output
-if recipe_mismatch_pages:
-    output_lines.append("=== Recipe Mismatches ===\n")
-    output_lines.extend(f"{page}\n" for page in sorted(set(recipe_mismatch_pages)))
+# Build summary output
+output_lines = []
+
+if mismatch_list:
+    output_lines.append("### RECIPE MISMATCHES ###\n")
+    for m in mismatch_list:
+        # main bullet is the header (page + wikiID, etc.)
+        output_lines.append(f"{m['header']}\n")
+        # under that, one • per mismatched field
+        for field in m['fields']:
+            output_lines.append(f"  • Mismatch: {field}\n")
+        output_lines.append("\n")
+
+if remove_list:
+    output_lines.append("### REMOVE FROM WIKI ###\n")
+    for r in remove_list:
+        output_lines.append(f"{r['header']}\n")
     output_lines.append("\n")
-else:
-    output_lines.append("No mismatched pages found.\n")
 
+if add_list:
+    output_lines.append("### ADD TO WIKI ###\n")
+    for a in add_list:
+        output_lines.append(f"{a['page']} --- (jsonID {a['jsonID']})\n")
+    output_lines.append("\n")
+
+if manual_missing_wiki:
+    output_lines.append("### MANUAL REVIEW: MISSING IN WIKI ###\n")
+    for page in manual_missing_wiki:
+        output_lines.append(f"{page}\n")
+    output_lines.append("\n")
+
+if manual_missing_json:
+    output_lines.append("### MANUAL REVIEW: MISSING IN JSON ###\n")
+    for page in manual_missing_json:
+        output_lines.append(f"{page}\n")
+    output_lines.append("\n")
+
+# Write out the summary and debug files
 file_utils.write_lines(output_file_path, output_lines)
 file_utils.write_lines(debug_log_path, debug_lines)
 
