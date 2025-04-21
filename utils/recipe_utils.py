@@ -1,18 +1,40 @@
 import re
 
+def normalize_workbench(name):
+    """Normalize raw workbench identifiers into human-readable names."""
+    if not name:
+        return "Unknown"
+    # Strip whitespace, lowercase and remove any trailing _0 suffix
+    key = name.strip().lower().replace(" ", "").rstrip("_0")
+    aliases = {
+        "advancedfurnituretable": "Advanced Furniture Table",
+        "basicfurnituretable1": "Basic Furniture Table",
+        "basicfurnituretable": "Basic Furniture Table",
+        "cookingpot": "Cooking Pot",
+        "craftingtable": "Crafting Table",
+        "elvencraftingtable": "Elven Crafting Table",
+        "farmer'stable": "Farmer's Table",
+        "seltzerkeg": "Seltzer Keg",
+        "keg": "Seltzer Keg",
+        "ticketcounterfeiter": "Ticket Counterfeiter",
+        "withergateanvil": "Withergate Anvil",
+        "withergatefurnace": "Withergate Furnace",
+    }
+    return aliases.get(key, name)
+
+
 def format_recipe(recipe):
+    """Format a recipe dict into the target wiki template string."""
     output = recipe.get("output", {})
     output_name = output.get("name", "")
     output_amount = output.get("amount", "1")
-    workbench = recipe.get("workbench", "Unknown")
+    workbench_raw = recipe.get("workbench", "")
+    workbench = normalize_workbench(workbench_raw)
     time = recipe.get("hoursToCraft", "0")
     inputs = recipe.get("inputs", [])
 
     if not output_name or not inputs:
         return ""
-
-    workbench = normalize_workbench_for_template(workbench)
-    formatted_time = format_time(time)
 
     ingredients = "; ".join(
         f"{ing.get('name', 'Unknown')}*{ing.get('amount', '1')}" for ing in inputs
@@ -20,42 +42,13 @@ def format_recipe(recipe):
 
     return (
         f"{{{{Recipe\n"
+        f"|recipesource = \n"
         f"|workbench    = {workbench}\n"
         f"|ingredients  = {ingredients}\n"
-        f"|time         = {formatted_time}\n"
+        f"|time         = {time}hr\n"
         f"|product      = {output_name}\n"
-        f"|yield        = {output_amount}\n"
-        f"|recipesource = \n"
-        f"}}}}"
+        f"|yield        = {output_amount}}}}}"
     )
-
-
-def normalize_workbench(wb):
-    if not wb:
-        return ""
-    wb = wb.lower().strip().replace(" ", "")
-    wb = re.sub(r"(_0|1)$", "", wb)  # Remove trailing _0 or 1
-
-    aliases = {  # JSON → wiki
-        "baker'sstation": "baker's station",
-        "basicfurnituretable": "basic furniture table",
-        "basicfurnituretable1": "basic furniture table",
-        "constructiontable": "construction table",
-        "cookingpot": "cooking pot",
-        "elvencraftingtable": "elven crafting table",
-        "elvenfurnace": "elven furnace",
-        "farmerstable": "farmer's table",
-        "manacomposter": "mana composter",
-        "monsterfurnace": "monster furnace",
-        "nurserycraftingtable": "nursery crafting table",
-        "keg": "seltzerkeg",
-        "ticketcounterfeiter": "ticket counterfeiter",
-        "tilemaker": "tile maker",
-        "withergateanvil": "withergate anvil",
-    }
-
-    return aliases.get(wb, wb)
-
 
 def normalize_workbench_for_template(wb):
     """

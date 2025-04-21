@@ -114,15 +114,19 @@ for filename in os.listdir(input_directory):
 # Process workbench recipe lists
 workbench_recipes = {}
 for workbench_file in os.listdir(input_directory):
-    if workbench_file.startswith("RecipeList_") and workbench_file.endswith(".asset"):
-        workbench_name = workbench_file.replace("RecipeList_", "").replace(".asset", "")
-        workbench_path = os.path.join(input_directory, workbench_file)
-        lines = file_utils.read_file_lines(workbench_path)
-        for line in lines:
-            match = re.search(r'guid: ([\w-]+)', line)
-            if match:
-                recipe_guid = match.group(1)
-                workbench_recipes[recipe_guid] = workbench_name
+    # match "RecipeList_<Name>.asset", "RecipeList _Name.asset", or any mix of underscores/spaces
+    m = re.match(r"^RecipeList[_ ]+(.+)\.asset$", workbench_file)
+    if not m:
+        continue
+    # group(1) now contains the clean name with no leading "_" or " "
+    workbench_name = m.group(1).strip()
+    workbench_path = os.path.join(input_directory, workbench_file)
+    lines = file_utils.read_file_lines(workbench_path)
+    for line in lines:
+        match = re.search(r'guid: ([\w-]+)', line)
+        if match:
+            recipe_guid = match.group(1)
+            workbench_recipes[recipe_guid] = workbench_name
 
 # Associate recipes with their workbenches
 for recipe_name, recipe in recipe_data_collection.items():
