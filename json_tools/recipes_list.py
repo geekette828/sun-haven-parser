@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import config.constants as constants
 import re
 from utils import file_utils, json_utils
+from utils.recipe_utils import normalize_workbench
 
 # Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
@@ -101,6 +102,13 @@ for filename in os.listdir(input_directory):
         if os.path.exists(meta_path):
             recipe_info["guid"] = extract_guid(meta_path)
         
+        # Extract numeric recipeID from filename e.g. "Recipe 27242 - Elven Compost.asset" → 27242
+        id_match = re.search(r"[Rr]ecipe\s+(\d+)", filename)
+        if id_match:
+           recipe_info["recipeID"] = int(id_match.group(1))
+        else:
+           recipe_info["recipeID"] = None
+
         recipe_data_collection[filename] = recipe_info
 
 # Process workbench recipe lists
@@ -121,6 +129,8 @@ for recipe_name, recipe in recipe_data_collection.items():
     recipe_guid = recipe.get("guid")
     if recipe_guid and recipe_guid in workbench_recipes:
         recipe["workbench"] = workbench_recipes[recipe_guid]
+        raw = workbench_recipes[recipe_guid]
+        recipe["workbench"] = normalize_workbench(raw)
 
 # Duplicate Filtering Step
 all_keys = set(recipe_data_collection.keys())
