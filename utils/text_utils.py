@@ -2,7 +2,16 @@
 This python utility pulls together functions around text clean up and parsing.
 """
 import re
+import unicodedata
 from html import unescape
+
+def normalize_apostrophe(s):
+    """
+    Replaces curly apostrophes (’) with straight ones (') for consistent key comparison.
+    """
+    if not s:
+        return ""
+    return s.replace("’", "'")
 
 def strip_html(text):
     """Remove HTML tags and unescape HTML entities."""
