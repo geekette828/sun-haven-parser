@@ -1,227 +1,134 @@
-import mwparserfromhell
-import time
-from typing import Any, Dict, List, Tuple
-from utils.text_utils import normalize_apostrophe, clean_whitespace
-from utils.wiki_utils import fetch_pages
+"""
+Generic comparison utilities for JSON↔Wiki template comparisons.
+"""
 
-
-def parse_all_wiki_templates(
-    wikitext: str,
-    template_name: str
-) -> List[Dict[str, str]]:
-    code = mwparserfromhell.parse(wikitext)
-    return [
-        {param.name.strip(): param.value.strip() for param in tpl.params}
-        for tpl in code.filter_templates()
-        if tpl.name.matches(template_name)
-    ]
+from typing import List, Tuple, Dict, Callable, Any
+from utils.text_utils import clean_whitespace, normalize_apostrophe
+from utils.wiki_utils import get_pages_with_template, fetch_pages, parse_template_params
 
 
 def normalize_title(s: str) -> str:
-    if not s:
-        return ""
-    t = normalize_apostrophe(s)
-    t = clean_whitespace(t)
-    return t.lower()
+    """
+    Normalize a string for lookups: replace curly apostrophes, collapse whitespace, lowercase.
+    """
+    t = normalize_apostrophe(s or "")
+    return clean_whitespace(t).lower()
 
 
-def normalize_ingredient_list(s: str) -> str:
-    raw = s.replace('Inputs:', '')
-    items = [item.strip().lower() for item in raw.split(';') if item.strip()]
-    items.sort()
-    return ';'.join(items)
-
-
-def format_json_ingredients(inputs: List[Dict[str, Any]]) -> str:
-    return ';'.join(f"{item['name']}*{item['amount']}" for item in inputs)
-
-
-def format_json_time(hours_str: str) -> str:
-    try:
-        h = float(hours_str)
-    except (ValueError, TypeError):
-        return ""
-    if h >= 1:
-        hours = int(h)
-        minutes = int(round((h - hours) * 60))
-        return f"{hours}h{minutes}m" if minutes else f"{hours}h"
-    return f"{int(round(h * 60))}m"
-
-
-def normalize_time_string(s: str) -> str:
-    val = s.strip().lower()
-    if val.endswith('hr'):
-        return val[:-2] + 'h'
-    if val.endswith('min'):
-        return val[:-3] + 'm'
-    return val
-
-
-def compare_instance(
-    page_title: str,
+def compare_instance_generic(
     tpl_params: Dict[str, str],
-    json_record: Dict[str, Any]
+    json_record: Dict[str, Any],
+    field_map: Dict[str, Tuple[str, Callable[[Any], str]]],
+    extra_fields: Dict[str, Callable[[Dict[str, Any], Dict[str, str], str], str]] = None,
+    page_title: str = "",
 ) -> List[Tuple[str, str, str]]:
+    """
+    Compare a single template instance against a JSON record. No template-specific logic here.
+
+    Args:
+        tpl_params: parameters from the wiki template (param_name -> value)
+        json_record: the corresponding JSON object
+        field_map: mapping of template param -> (json key, normalization function)
+        extra_fields: param -> function(json_record, tpl_params, page_title)
+        page_title: the title of the current page, for template-specific logic (like product fallback)
+
+    Returns:
+        List of (param_name, wiki_value, json_value) for any mismatches.
+    """
     diffs: List[Tuple[str, str, str]] = []
-    # Workbench
-    w = tpl_params.get('workbench', '').strip()
-    j = json_record.get('workbench', '').strip()
-    if w.lower() != j.lower():
-        diffs.append(('workbench', w, j))
-
-    # Ingredients
-    raw_w = tpl_params.get('ingredients', '')
-    w_norm = normalize_ingredient_list(raw_w)
-    j_norm = normalize_ingredient_list(format_json_ingredients(json_record.get('inputs', [])))
-    if w_norm != j_norm:
-        diffs.append(('ingredients', w_norm, j_norm))
-
-    # Time
-    raw_wt = tpl_params.get('time', '').strip()
-    raw_jt = format_json_time(json_record.get('hoursToCraft', ''))
-    if normalize_time_string(raw_wt) != normalize_time_string(raw_jt):
-        diffs.append(('time', raw_wt, raw_jt))
-
-    # Yield
-    w_val = tpl_params.get('yield', '').strip()
-    j_val = str(json_record.get('output', {}).get('amount', '')).strip()
-    if w_val != j_val:
-        diffs.append(('yield', w_val, j_val))
-
-    # Product
-    w_prod = tpl_params.get('product', '').strip() or page_title
-    j_prod = json_record.get('output', {}).get('name', 'unknown').strip()
-    if w_prod.lower() != j_prod.lower():
-        diffs.append(('product', w_prod, j_prod))
-
+    for tpl_key, (json_key, norm_fn) in field_map.items():
+        wiki_val = tpl_params.get(tpl_key, "").strip()
+        if tpl_key == "product" and not wiki_val:
+            wiki_val = page_title.strip()
+        if extra_fields and tpl_key in extra_fields:
+            json_val = extra_fields[tpl_key](json_record, tpl_params, page_title)
+        else:
+            raw_val = json_record.get(json_key)
+            json_val = norm_fn(raw_val)
+        if clean_whitespace(wiki_val) != clean_whitespace(json_val):
+            diffs.append((tpl_key, wiki_val, json_val))
     return diffs
 
 
-def compare_all_recipes(
-    recipe_pages: List[str],
-    json_records: List[dict],
-    template_name: str = "Recipe",
-    batch_size: int = 50
+def compare_all_generic(
+    template_name: str,
+    json_by_key: Dict[str, Dict[str, Any]],
+    field_map: Dict[str, Tuple[str, Callable[[Any], str]]],
+    extra_fields: Dict[str, Callable[[Dict[str, Any], Dict[str, str], str], str]] = None,
+    key_fn: Callable[[str], str] = normalize_title,
+    namespace: int = None,
+    batch_size: int = 50,
 ) -> Dict[str, Any]:
     """
-    Compare wiki recipe templates in paginated batches against JSON records.
+    Compare all wiki pages transcluding `template_name` against JSON records.
 
-    Returns a dict with:
-      - debug_lines: List[str]
-      - summary: {
-          'mismatches': Dict[str, List[Tuple[str, str, str]]],
-          'manual_review': List[Tuple[str, int, int]],
-          'json_only': List[Tuple[str, int]],
-          'wiki_only': List[str]
+    Emits periodic progress updates every 250 items.
+
+    Returns:
+        {
+          "debug_lines": [...],
+          "summary": { "mismatches", "wiki_only", "json_only" }
         }
     """
-    # Build JSON pools using recipeID for JSON and id for templates
-    json_by_product: Dict[str, List[dict]] = {}
-    json_by_id: Dict[int, List[dict]] = {}
-    for rec in json_records:
-        raw = rec.get('output', {}).get('name', '')
-        key = normalize_title(raw)
-        json_by_product.setdefault(key, []).append(rec)
-        try:
-            rid = int(rec.get('recipeID', 0) or 0)
-        except:
-            rid = 0
-        if rid > 100:
-            json_by_id.setdefault(rid, []).append(rec)
-
-    total = len(recipe_pages)
+    titles = get_pages_with_template(template_name, namespace)
+    total = len(titles)
     processed = 0
-    debug_lines: List[str] = []
-    mismatches: Dict[str, List[Tuple[str, str, str]]] = {}
-    manual_review: List[Tuple[str, int, int]] = []
-    wiki_only: List[str] = []
 
-    # Process in batches
+    mismatches: Dict[str, List[Tuple[str, str, str]]] = {}
+    wiki_only: List[str] = []
+    json_keys = set(json_by_key.keys())
+    debug_lines: List[str] = []
+
     for i in range(0, total, batch_size):
-        batch = recipe_pages[i:i+batch_size]
-        wikitexts = fetch_pages(batch, len(batch))
-        for page_title in batch:
+        batch = titles[i : i + batch_size]
+        wikitexts = fetch_pages(batch, batch_size)
+
+        for title in batch:
             processed += 1
             if processed % 250 == 0:
                 pct = int((processed / total) * 100)
-                print(f"  🔄 Matching recipes: {pct}% complete ({processed}/{total})")
+                print(f"  🔄 {template_name} compare: {pct}% complete ({processed}/{total})")
 
-            text = wikitexts.get(page_title, "")
-            tpl_list = parse_all_wiki_templates(text, template_name)
-            if not tpl_list:
+            tpl_params = parse_template_params(wikitexts.get(title, ""), template_name)
+            if not tpl_params:
+                wiki_only.append(title)
+                debug_lines.append(f"[WIKI ONLY] {title}\n")
                 continue
 
-            product_name = tpl_list[0].get('product', '').strip() or page_title
-            key = normalize_title(product_name)
-            json_list = list(json_by_product.get(key, []))
-            w_count = len(tpl_list)
-            j_count = len(json_list)
+            # Normalize fields if applicable
+            if template_name == "Recipe":
+                from mappings.recipe_mapping import (
+                    _normalize_ingredient_list,
+                    _normalize_time_string,
+                )
+                tpl_params['ingredients'] = _normalize_ingredient_list(tpl_params.get('ingredients', ''))
+                tpl_params['time'] = _normalize_time_string(tpl_params.get('time', ''))
 
-            # No JSON records
-            if j_count == 0:
-                wiki_only.append(product_name)
-                manual_review.append((product_name, w_count, j_count))
-                for tpl in tpl_list:
-                    tid = int(tpl.get('id', '').strip() or 0)
-                    debug_lines.append(f"[MANUAL REVIEW]   {product_name} (ID: {tid})\n")
+            record_key = key_fn(tpl_params.get("product") or title)
+            record = json_by_key.get(record_key)
+            if not record:
+                wiki_only.append(title)
+                debug_lines.append(f"[WIKI ONLY] {title}\n")
                 continue
 
-            # Single-recipe
-            if w_count == 1 and j_count == 1:
-                tpl = tpl_list[0]
-                tid = int(tpl.get('id', '').strip() or 0)
-                # Match by recipeID if valid, else by product name
-                if tid > 100 and json_by_id.get(tid):
-                    rec = json_by_id[tid].pop(0)
-                    json_by_product[key].remove(rec)
-                else:
-                    rec = json_by_product[key].pop(0)
-                    rid = int(rec.get('recipeID', 0) or 0)
-                    if rid > 100 and rec in json_by_id.get(rid, []):
-                        json_by_id[rid].remove(rec)
-                diffs = compare_instance(page_title, tpl, rec)
-                tag = "[MISMATCH]" if diffs else "[MATCH]"
-                debug_lines.append(f"{tag:<16}{product_name} (ID: {tid})\n")
-                if diffs:
-                    mismatches[f"{product_name} (ID {tid})"] = diffs
-                    for f, wv, jv in diffs:
-                        debug_lines.append(f"   - {f}: wiki='{wv}' vs json='{jv}'\n")
-                continue
+            diffs = compare_instance_generic(tpl_params, record, field_map, extra_fields, title)
+            tag = "[MISMATCH]" if diffs else "[MATCH]  "
+            debug_lines.append(f"{tag} {title}\n")
+            if diffs:
+                mismatches[title] = diffs
+                for field, wv, jv in diffs:
+                    debug_lines.append(f"  - {field}: wiki='{wv}' vs json='{jv}'\n")
 
-            # Multi-recipe
-            if j_count != w_count:
-                manual_review.append((product_name, w_count, j_count))
-            for tpl in tpl_list:
-                tid = int(tpl.get('id', '').strip() or 0)
-                # Only match if valid recipeID
-                if tid > 100 and json_by_id.get(tid):
-                    rec = json_by_id[tid].pop(0)
-                    if rec in json_by_product[key]:
-                        json_by_product[key].remove(rec)
-                    diffs = compare_instance(page_title, tpl, rec)
-                    tag = "[MISMATCH]" if diffs else "[MATCH]"
-                    debug_lines.append(f"{tag:<16}{product_name} (ID: {tid})\n")
-                    if diffs:
-                        mismatches[f"{product_name} (ID {tid})"] = diffs
-                        for f, wv, jv in diffs:
-                            debug_lines.append(f"   - {f}: wiki='{wv}' vs json='{jv}'\n")
-                else:
-                    debug_lines.append(f"[MANUAL REVIEW]   {product_name} (ID: {tid})\n")
-        time.sleep(2)
+            json_keys.discard(record_key)
 
-    # JSON-only leftovers
-    json_only: List[Tuple[str, int]] = []
-    for key, recs in json_by_product.items():
-        for rec in recs:
-            raw = rec.get('output', {}).get('name', '')
-            rid = int(rec.get('recipeID', 0) or 0)
-            debug_lines.append(f"[NOT IN WIKI]     {raw} (ID: {rid})\n")
-            json_only.append((raw, rid))
+    for key in sorted(json_keys):
+        debug_lines.append(f"[JSON ONLY] {key}\n")
 
-    summary = {
-        'mismatches': mismatches,
-        'manual_review': manual_review,
-        'json_only': json_only,
-        'wiki_only': wiki_only
+    return {
+        "debug_lines": debug_lines,
+        "summary": {
+            "mismatches": mismatches,
+            "wiki_only": wiki_only,
+            "json_only": list(json_keys),
+        },
     }
-    return {'debug_lines': debug_lines, 'summary': summary}

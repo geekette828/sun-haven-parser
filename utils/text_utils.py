@@ -41,3 +41,16 @@ def format_for_chat(text):
     text = replace_placeholders(text)
     return text.replace("\n", "<br>").replace("[]", "<br>").strip()
 
+def normalize_list_string(s: str, delimiter: str = ';') -> str:
+    """
+    Normalize and sort a delimited list of values.
+    - Lowercases each entry
+    - Strips whitespace
+    - Sorts the list
+    - Joins back with the original delimiter
+
+    Example: "Water Fruit*3; Mana*10" -> "mana*10;water fruit*3"
+    """
+    items = [item.strip().lower() for item in (s or "").split(delimiter) if item.strip()]
+    return delimiter.join(sorted(items))
+
