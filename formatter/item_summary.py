@@ -1,10 +1,10 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import config.constants as constants
 import re
-from formatter.item_page.infobox_classifications import classify_item
+from mappings.item_classification import classify_item
 
 # Dictionary mapping (Item Type, Subtype, Category) to summary text.
 # Replace '''ITEM NAME''' with the actual item name.
@@ -140,7 +140,7 @@ def create_item_summary(item, computed, display_name=None):
     The display name will be processed using custom_title() so that it is in title case,
     but preserves the correct casing after apostrophes.
     """
-    from formatter.item_page.infobox_classifications import classify_item
+    
     itemType, subtype, category = classify_item(item)
     key = normalize_classification(itemType, subtype, category)
     summary_template = SUMMARIES.get(key, "No summary available for this item. [[Category:Missing summary]]")

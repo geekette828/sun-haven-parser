@@ -1,10 +1,10 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import config.constants as constants
 from utils import json_utils, file_utils
-from formatter.item_page.infobox_classifications import classify_item
+from mappings.item_classification import classify_item
 
 def create_item_navbox(item):
     """

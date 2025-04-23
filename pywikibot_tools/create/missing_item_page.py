@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 import config.constants as constants
 import pywikibot
 import time
-from formatter.item_page.create_page import create_item_page
+from page_assembly.create_item_page import create_item_page
 from utils.file_utils import read_file_lines, write_debug_log
 from utils.json_utils import load_json
 from config.skip_items import SKIP_ITEMS, SKIP_PATTERNS

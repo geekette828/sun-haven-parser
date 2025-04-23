@@ -15,9 +15,7 @@ from utils.text_utils import normalize_list_string
 # Paths
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
 output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "recipe_compare_report.txt")
-debug_log_path = os.path.join(
-    ".hidden", "debug_output", "pywikibot", "recipe_compare_debug.txt"
-)
+debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "recipe_compare_debug.txt")
 
 # Ensure directories exist
 os.makedirs(os.path.dirname(output_file_path), exist_ok=True)

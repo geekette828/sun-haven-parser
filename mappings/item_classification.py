@@ -87,6 +87,7 @@ def classify_item(item):
     foodStat = item.get("foodStat", [])
     isForageable = item.get("isForageable", 0)
     isPotion = item.get("isPotion", 0)
+    isMeal = item.get("isMeal", 0)
     hasSetSeason = item.get("hasSetSeason")
 
     # 1. Animal classification.
@@ -97,7 +98,7 @@ def classify_item(item):
             return "Animal", "Barn Animal", ""
         else:
             return "Animal", "Wild Animal", ""
-    
+
     # 2. Weapon classification.
     if "sword" in name and use_desc == "(Left click to swing)":
         return "Equipment", "Weapon", "Sword"
@@ -105,7 +106,7 @@ def classify_item(item):
         return "Equipment", "Weapon", "Crossbow"
     if ("staff" in name or "staves" in name) and desc and "when selected on your toolbelt, this staff grants" in desc.lower():
         return "Equipment", "Weapon", "Staff"
-    
+
     # 3. Tool classification.
     if "axe" in name and use_desc == "(Left click on trees to use)":
         return "Equipment", "Tool", "Axe"
@@ -121,26 +122,28 @@ def classify_item(item):
         return "Equipment", "Tool", "Net"
     if "scythe" in name and use_desc == "(Left click to swing)":
         return "Equipment", "Tool", "Scythe"
-    
+
     # 4. Forageable classification.
     if isForageable == 1:
         if not foodStat:
             return "Forageables", "Resources", ""
         else:
             return "Forageables", "Food", ""
-    
+
     # 5. Fish classification.
     if hasSetSeason is not None and foodStat:
         return "Fish", "", ""
-    
-    # 6. Consumable Food classification.
-    if isPotion == 0 and isForageable == 0 and foodStat:
+
+    # 6. Consumable classification.
+    if isMeal == 1 or (isPotion == 0 and isForageable == 0 and foodStat):
         return "Consumable", "Food", ""
-    
+    if isPotion == 1:
+        return "Consumable", "Potion", ""
+
     # 7. Record classification.
     if use_desc == "(Use on record player to play)":
         return "Record", "", ""
-    
+
     # 8. Mount classification.
     if use_desc == "(Left click to summon/unsummon mount)":
         return "Mount", "", ""
@@ -152,10 +155,9 @@ def classify_item(item):
     # 10. Wallpaper
     if use_desc == "(Use on a wall to place)":
         return "Furniture", "Wallpaper", ""
-    
+
     # 11. Other Furniture classification.
     if use_desc == "(Left click to place)":
-        name = name.lower() 
         if "end table" in name or "nightstand" in name or "night stand" in name:
             return "Furniture", "Nightstand", ""
         if "bed" in name:
@@ -166,7 +168,7 @@ def classify_item(item):
             return "Furniture", "Bookcase", ""
         if "couch" in name:
             return "Furniture", "Couch", ""
-        if any(keyword in name for keyword in ["chair", "floor cushion", "stool"]):
+        if any(k in name for k in ["chair", "floor cushion", "stool"]):
             return "Furniture", "Chair", ""
         if "chest" in name:
             return "Furniture", "Chest", ""
@@ -174,26 +176,25 @@ def classify_item(item):
             return "Furniture", "Fireplace", ""
         if "painting" in name:
             return "Furniture", "Painting", ""
-        if any(keyword in name for keyword in ["statue", "sculpture", "model", "column"]):
+        if any(k in name for k in ["statue", "sculpture", "model", "column"]):
             return "Furniture", "Statue", ""
-        if any(keyword in name for keyword in ["plant", "tree", "vase", "cactus", "flower", "seaweed", "bush", "leaf", "ivy"]):
+        if any(k in name for k in ["plant", "tree", "vase", "cactus", "flower", "seaweed", "bush", "leaf", "ivy"]):
             return "Furniture", "Plant", ""
-        if any(keyword in name for keyword in ["light", "lamp", "lantern", "candle", "candelabra"]):
+        if any(k in name for k in ["light", "lamp", "lantern", "candle", "candelabra"]):
             return "Furniture", "Lighting", ""
-        if any(keyword in name for keyword in ["plushie", "plush"]):
+        if any(k in name for k in ["plushie", "plush"]):
             return "Furniture", "Plushie", ""
-        if any(keyword in name for keyword in ["rug", "mat", "doormat"]):
+        if any(k in name for k in ["rug", "mat", "doormat"]):
             return "Furniture", "Rug", ""
         if "table" in name:
             return "Furniture", "Table", ""
-        if any(keyword in name for keyword in ["wardrobe", "dresser"]):
+        if any(k in name for k in ["wardrobe", "dresser"]):
             return "Furniture", "Wardrobe", ""
-        if any(keyword in name for keyword in ["window", "windows"]):
+        if any(k in name for k in ["window", "windows"]):
             return "Furniture", "Window", ""
         return "Furniture", "Misc", ""
-    
-    # 10. Equipment fallback classification.
-    # First, if stats is non-empty, check for Accessory rules.
+
+    # 12. Equipment fallback classification.
     if stats:
         if "ring" in name:
             return "Equipment", "Accessory", "Ring"
@@ -201,36 +202,34 @@ def classify_item(item):
             return "Equipment", "Accessory", "Amulet"
         if "keepsake" in name:
             return "Equipment", "Accessory", "Keepsake"
-        # Then proceed with Armor rules.
         if "helmet" in name:
             return "Equipment", "Armor", "Helmet"
-        if any(keyword in name for keyword in ["robe", "chest", "chestplate", "chest plate"]):
+        if any(k in name for k in ["robe", "chest", "chestplate", "chest plate"]):
             return "Equipment", "Armor", "Chest"
-        if any(keyword in name for keyword in ["gloves", "gauntlets"]):
+        if any(k in name for k in ["gloves", "gauntlets"]):
             return "Equipment", "Armor", "Gloves"
-        if any(keyword in name for keyword in ["leg", "legs", "shoes", "pants"]):
+        if any(k in name for k in ["leg", "legs", "shoes", "pants"]):
             return "Equipment", "Armor", "Legs"
-        if any(keyword in name for keyword in ["cape", "wings", "back"]):
+        if any(k in name for k in ["cape", "wings", "back"]):
             return "Equipment", "Armor", "Cape"
     else:
-        # If stats is empty, apply Clothing rules.
-        if any(keyword in name for keyword in ["hat", "crown", "headband", "headphones", "hood", "goggles", "tiara", "helmet", "head scarf", "beanie", "halo", "helm"]):
+        if any(k in name for k in ["hat", "crown", "headband", "headphones", "hood", "goggles", "tiara", "helmet", "head scarf", "beanie", "halo", "helm"]):
             return "Equipment", "Clothing", "Hat"
         if "wig" in name:
             return "Equipment", "Clothing", "Wig"
         if "dress" in name or "robe" in name:
             return "Equipment", "Clothing", "Dress"
-        if any(keyword in name for keyword in ["chest", "kimono", "chestplate", "chest plate", "shirt", "tank top", "hoodie", "jacket", "crop top", "sweater", "torso", "costume", "outfit", "vest", "coat", "tee", "t-shirt", "blouse", "suit", "cover up"]):
+        if any(k in name for k in ["chest", "kimono", "chestplate", "chest plate", "shirt", "tank top", "hoodie", "jacket", "crop top", "sweater", "torso", "costume", "outfit", "vest", "coat", "tee", "t-shirt", "blouse", "suit", "cover up"]):
             return "Equipment", "Clothing", "Shirt"
-        if any(keyword in name for keyword in ["gloves", "gauntlets"]):
+        if any(k in name for k in ["gloves", "gauntlets"]):
             return "Equipment", "Clothing", "Gloves"
-        if any(keyword in name for keyword in ["cape", "wings", "tail"]):
+        if any(k in name for k in ["cape", "wings", "tail"]):
             return "Equipment", "Clothing", "Cape"
-        if any(keyword in name for keyword in ["pants", "slacks", "shoes", "boots", "greaves"]):
+        if any(k in name for k in ["pants", "slacks", "shoes", "boots", "greaves"]):
             return "Equipment", "Clothing", "Pants"
         if "shorts" in name:
             return "Equipment", "Clothing", "Shorts"
-        if any(keyword in name for keyword in ["skirt", "skirts"]):
+        if any(k in name for k in ["skirt", "skirts"]):
             return "Equipment", "Clothing", "Skirt"
-    
+
     return "", "", ""
