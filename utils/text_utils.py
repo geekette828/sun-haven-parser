@@ -54,3 +54,22 @@ def normalize_list_string(s: str, delimiter: str = ';') -> str:
     items = [item.strip().lower() for item in (s or "").split(delimiter) if item.strip()]
     return delimiter.join(sorted(items))
 
+def sanitize_text(value: str) -> str:
+    """
+    Remove Unity-specific color and sprite tags from game-exported text.
+
+    Examples removed:
+    <color=#FFC332>...</color>
+    <sprite="max_defense_icon" index=0>
+    """
+    if not isinstance(value, str):
+        return value
+
+    # Remove <color=...> and </color>
+    value = re.sub(r'<color=#[0-9A-Fa-f]{6}>', '', value)
+    value = value.replace('</color>', '')
+
+    # Remove <sprite=...> including optional index
+    value = re.sub(r'<sprite=.*?>', '', value)
+
+    return value.strip()
