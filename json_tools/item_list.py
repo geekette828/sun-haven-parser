@@ -95,6 +95,7 @@ def extract_attributes(asset_file):
         "isForageable": None,
         "isGem": None,
         "isAnimalProduct": None,
+        "isMeal": None,
         "isFruit": None,
         "isArtisanryItem": None,
         "isPotion": None,
@@ -133,7 +134,7 @@ def extract_attributes(asset_file):
                 key, value = match.groups()
                 attributes[key] = int(value)
 
-            for boolean_field in ["isDLCItem", "isForageable", "isGem", "isAnimalProduct", "isFruit", "isArtisanryItem", "isPotion"]:
+            for boolean_field in ["isDLCItem", "isForageable", "isGem", "isAnimalProduct", "isMeal", "isFruit", "isArtisanryItem", "isPotion"]:
                 if match := re.match(fr'{boolean_field}:\s*(\d+)', line):
                     attributes[boolean_field] = int(match.group(1))
 
