@@ -233,6 +233,9 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
         lines.append("|region = ")
         lines.append("|produces = ")
         lines.append("|capacity = ")
+    elif subtype == "Potion":
+        lines.append(f"|restores = {FIELD_COMPUTATIONS['restores'](item)}")
+        lines.append(f"|statInc = {FIELD_COMPUTATIONS['statInc'](item)}")
     elif subtype == "Food":
         lines.append(f"|restores = {FIELD_COMPUTATIONS['restores'](item)}")
         lines.append(f"|statInc = {FIELD_COMPUTATIONS['statInc'](item)}")
@@ -254,5 +257,5 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
 
     # Close the template
     if lines:
-        lines[-1] = lines[-1] + "}}"
+        lines[-1] = lines[-1] + "  }}"
     return "\n".join(lines)
