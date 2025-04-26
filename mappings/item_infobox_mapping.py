@@ -1,17 +1,18 @@
 """
 Field mapping and formatter for the Item Infobox from items_data.json.
 Exports:
-  INFOBOX_FIELD_MAP
-  INFOBOX_EXTRA_FIELDS
+  FIELD_MAP
   format_infobox(item, classification, title)
 """
 
 from typing import Dict, Tuple, Callable, Any
+from mappings.item_classification import classify_item
 from utils.text_utils import clean_whitespace, normalize_apostrophe
 import config.constants as constants
 
-
-# Normalization Helpers
+# ---------------------------
+# Normalization Helpers (shared)
+# ---------------------------
 def _text(v: Any) -> str:
     return clean_whitespace(normalize_apostrophe(str(v or "")))
 
@@ -24,22 +25,53 @@ def _float_str(v: Any) -> str:
     except:
         return ""
 
+# ---------------------------
+# Top-Level Field Mapping (Raw JSON → Normalized)
+# ---------------------------
+FIELD_MAP: Dict[str, Tuple[str, Callable[[Any], str]]] = {
+    "name": ("Name", _text),
+    "sell": ("sellPrice", _int_str),
+    "stack": ("stackSize", _int_str),
+    "rarity": ("rarity", _int_str),
+    "hearts": ("hearts", _int_str),
+    "dlc": ("isDLCItem", lambda v: "True" if str(v) in ["1", "True"] else "False"),
+    "requiredLevel": ("requiredLevel", _int_str),
+    "stats": ("stats", lambda v: v if v else []),
+    "foodStat": ("foodStat", lambda v: v if v else []),
+    "statBuff": ("statBuff", lambda v: v if v else []),
+    "health": ("health", _int_str),
+    "mana": ("mana", _int_str),
+    "setSeason": ("setSeason", _int_str),
+    "experience": ("experience", _int_str),
+    "isFruit": ("isFruit", lambda v: "True" if str(v) in ["1", "True"] else "False"),
+}
 
-# Item-Specific Utilities
+# ---------------------------
+# Computed Field Helpers
+# ---------------------------
+
 def get_sell_info(item: dict) -> Tuple[str, str]:
     """
-    Determine which sell value and currency to use for the infobox.
+    Determines correct sell value and currency.
     """
     if item.get("sellPrice", 0):
-        return str(item["sellPrice"]), "coins"
-    elif item.get("orbsSellPrice", 0):
-        return str(item["orbsSellPrice"]), "orbs"
-    elif item.get("ticketSellPrice", 0):
-        return str(item["ticketSellPrice"]), "tickets"
+        return str(item["sellPrice"]), "Coins"
+    if item.get("orbsSellPrice", 0):
+        return str(item["orbsSellPrice"]), "Orbs"
+    if item.get("ticketSellPrice", 0):
+        return str(item["ticketSellPrice"]), "Tickets"
     return "", ""
 
+def compute_sell(item: dict) -> str:
+    if item.get("sellPrice", 0):
+        return str(item.get("sellPrice"))
+    elif item.get("orbsSellPrice", 0):
+        return str(item.get("orbsSellPrice"))
+    elif item.get("ticketSellPrice", 0):
+        return str(item.get("ticketSellPrice"))
+    else:
+        return ""
 
-# Computed Field Helpers
 def compute_restores(item):
     health = item.get("health", 0)
     mana = item.get("mana", 0)
@@ -63,13 +95,13 @@ def compute_statInc(item):
 
     for buff in item.get("statBuff", []):
         stat_type = int(buff.get("statType", -1))
-        value = float(buff.get("value", 0))
-        duration = int(buff.get("duration", 0))
+        value = float(buff.get("value") or 0)
+        duration = int(buff.get("duration") or 0)
         stat_name = constants.STAT_TYPE_MAPPING.get(stat_type, f"Stat{stat_type}")
         value_text = f"{int(value * 100)}%" if value <= 1 else str(int(value))
         minutes = duration // 60
         parts.append(f"{stat_name}«{value_text}»({minutes}m)")
-    
+
     return "; ".join(parts)
 
 def compute_organic(item):
@@ -125,51 +157,61 @@ def compute_requirement(item, classification):
         return f"{{{{SkillLevel|{skill}|{required_level}}}}}"
     return ""
 
-# Field Map
-INFOBOX_FIELD_MAP: Dict[str, Tuple[str, Callable[[Any], str], Callable[[dict, Tuple[str, str, str]], bool]]] = {
-    "stack": ("stackSize", _int_str, lambda item, cls: True),
-    "rarity": ("rarity", _int_str, lambda item, cls: True),
-    "hearts": ("hearts", _int_str, lambda item, cls: True),
-    "itemType": (None, lambda i, c: c[0], lambda i, c: True),
-    "subtype":  (None, lambda i, c: c[1], lambda i, c: True),
-    "category": (None, lambda i, c: c[2], lambda i, c: True),
+# ---------------------------
+# Computed-only fields (not tied to a single JSON key)
+# ---------------------------
+FIELD_COMPUTATIONS: Dict[str, Callable[[dict], str]] = {
+    "sell": compute_sell,
+    "selltype": lambda item: (
+        "coins" if item.get("sellPrice", 0) else
+        "orbs" if item.get("orbsSellPrice", 0) else
+        "tickets" if item.get("ticketSellPrice", 0) else ""
+    ),
+    "restores": compute_restores,
+    "statInc": compute_statInc,
+    "season": compute_season,
+    "exp": compute_exp,
+    "organic": compute_organic,
+    "requirement": lambda item: compute_requirement(item, classify_item(item))
 }
 
-# Item Infobox Formatter
 def format_infobox(item: dict, classification: Tuple[str, str, str], title: str) -> str:
+    """
+    Generates the complete Item infobox wikitext based on FIELD_MAP and FIELD_COMPUTATIONS.
+    """
     itemType, subtype, category = classification
+
     if itemType == "Furniture" or subtype in ["Pet", "Wild Animal"]:
-        return ""  # skip entirely
+        return ""  # skip pages we don't format
 
     lines = ["{{Item infobox"]
 
     # Core Fields
-    name = item.get("Name", title)
+    name = FIELD_MAP["name"][1](item.get(FIELD_MAP["name"][0], title))
     lines.append(f"|name = {name}")
 
-    sell_val, sell_type = get_sell_info(item)
-    if sell_val:
-        lines.append(f"|sell = {sell_val}")
-    if sell_type:
-        lines.append(f"|selltype = {sell_type}")
+    sell = FIELD_MAP["sell"][1](item.get(FIELD_MAP["sell"][0]))
+    if sell:
+        lines.append(f"|sell = {sell}")
 
-    # Fields shown before classification
-    for field in ["stack", "rarity", "hearts"]:
-        json_key, norm_fn, condition_fn = INFOBOX_FIELD_MAP[field]
-        if condition_fn(item, classification):
-            value = norm_fn(item.get(json_key))
-            if value:
-                lines.append(f"|{field} = {value}")
+    selltype = FIELD_COMPUTATIONS["selltype"](item)
+    if selltype:
+        lines.append(f"|selltype = {selltype}")
 
-    # Classification section
+    for key in ["stack", "rarity", "hearts"]:
+        json_key, normalize = FIELD_MAP[key]
+        value = normalize(item.get(json_key))
+        if value:
+            lines.append(f"|{key} = {value}")
+
+    # Classification
     lines.append("<!-- Item Classification -->")
-    for field in ["itemType", "subtype", "category"]:
-        _, norm_fn, _ = INFOBOX_FIELD_MAP[field]
-        value = norm_fn(item, classification)
-        lines.append(f"|{field} = {value}")
+    lines.append(f"|itemType = {itemType}")
+    lines.append(f"|subtype = {subtype}")
+    lines.append(f"|category = {category}")
 
-    dlc = item.get("isDLCItem", 0)
-    lines.append(f"|dlc = {'True' if dlc == 1 else 'False'}")
+    dlc = FIELD_MAP["dlc"][1](item.get(FIELD_MAP["dlc"][0], 0))
+    lines.append(f"|dlc = {dlc}")
 
     # Data section
     lines.append("<!-- Item Data-->")
@@ -178,31 +220,26 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
         lines.append("|region = ")
         lines.append("|produces = ")
         lines.append("|capacity = ")
-
     elif subtype == "Food":
-        lines.append(f"|restores = {compute_restores(item)}")
-        lines.append(f"|statInc = {compute_statInc(item)}")
-        lines.append(f"|organic = {compute_organic(item)}")
-
+        lines.append(f"|restores = {FIELD_COMPUTATIONS['restores'](item)}")
+        lines.append(f"|statInc = {FIELD_COMPUTATIONS['statInc'](item)}")
+        lines.append(f"|organic = {FIELD_COMPUTATIONS['organic'](item)}")
     elif itemType == "Fish":
-        lines.append(f"|restores = {compute_restores(item)}")
-        lines.append(f"|statInc = {compute_statInc(item)}")
+        lines.append(f"|restores = {FIELD_COMPUTATIONS['restores'](item)}")
+        lines.append(f"|statInc = {FIELD_COMPUTATIONS['statInc'](item)}")
         lines.append("|region = ")
-        lines.append(f"|season = {compute_season(item)}")
-        lines.append(f"|exp = {compute_exp(item)}")
-
+        lines.append(f"|season = {FIELD_COMPUTATIONS['season'](item)}")
+        lines.append(f"|exp = {FIELD_COMPUTATIONS['exp'](item)}")
     elif subtype == "Clothing":
         lines.append("|armorset = ")
-
     elif subtype in ["Armor", "Accessory"]:
         lines.append("|armorset = ")
         lines.append(f"|effect = {compute_effect(item)}")
-        lines.append(f"|requirement = {compute_requirement(item, classification)}")
-
+        lines.append(f"|requirement = {FIELD_COMPUTATIONS['requirement'](item)}")
     elif subtype in ["Tool", "Weapon"]:
-        lines.append(f"|requirement = {compute_requirement(item, classification)}")
+        lines.append(f"|requirement = {FIELD_COMPUTATIONS['requirement'](item)}")
 
-    # Append closing braces to the last line
+    # Close the template
     if lines:
         lines[-1] = lines[-1] + "}}"
     return "\n".join(lines)

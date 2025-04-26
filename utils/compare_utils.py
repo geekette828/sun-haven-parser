@@ -2,8 +2,9 @@
 Generic comparison utilities for JSON↔Wiki template comparisons.
 """
 
+import re
 from typing import List, Tuple, Dict, Callable, Any
-from utils.text_utils import clean_whitespace, normalize_apostrophe
+from utils.text_utils import clean_whitespace, normalize_apostrophe, normalize_value, normalize_bool
 from utils.wiki_utils import get_pages_with_template, fetch_pages, parse_template_params
 
 
@@ -132,3 +133,44 @@ def compare_all_generic(
             "json_only": list(json_keys),
         },
     }
+
+def normalize_comparison_value(key, expected, actual):
+    expected = expected.strip() if expected else ""
+    actual = actual.strip() if actual else ""
+
+    # Special handling for requirement: only extract the level number
+    if key == "requirement":
+        expected = extract_required_level(expected)
+        actual = extract_required_level(actual)
+        return expected, actual
+
+    # Case-insensitive comparison for select fields
+    if key in {"selltype", "name"}:
+        return expected.lower(), actual.lower()
+
+    # Normalize statInc +/-
+    if key == "statInc":
+        expected = expected.replace("+", "")
+        actual = actual.replace("+", "")
+        return expected, actual
+
+    # Normalize boolean fields
+    if key in {"dlc", "organic"}:
+        expected = normalize_bool(expected)
+        actual = normalize_bool(actual)
+        return expected, actual
+
+    return expected, actual
+
+def extract_required_level(value: str) -> str:
+    """
+    Extract the level number from a requirement field like '{{SkillLevel|Combat|10}}'.
+    """
+    if not value:
+        return ""
+    match = re.search(r"\|\s*(\d+)\s*\}\}", value)
+    if match:
+        return match.group(1)
+    return value
+
+

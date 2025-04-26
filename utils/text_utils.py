@@ -5,14 +5,6 @@ import re
 import unicodedata
 from html import unescape
 
-def normalize_apostrophe(s):
-    """
-    Replaces curly apostrophes (’) with straight ones (') for consistent key comparison.
-    """
-    if not s:
-        return ""
-    return s.replace("’", "'")
-
 def strip_html(text):
     """Remove HTML tags and unescape HTML entities."""
     text = re.sub(r'<[^>]+>', '', text)
@@ -73,3 +65,30 @@ def sanitize_text(value: str) -> str:
     value = re.sub(r'<sprite=.*?>', '', value)
 
     return value.strip()
+
+def normalize_apostrophe(s):
+    """
+    Replaces curly apostrophes (’) with straight ones (') for consistent key comparison.
+    """
+    if not s:
+        return ""
+    return s.replace("’", "'")
+
+def normalize_value(val: str) -> str:
+    """
+    Basic normalization: strip, collapse spaces, remove redundant + in numbers.
+    """
+    if val is None:
+        return ""
+    return clean_whitespace(val).replace("+", "").strip()
+
+def normalize_bool(val: str) -> str:
+    """
+    Normalize a boolean field:
+    - Treat '', None, 'false', '0' as 'False'
+    - Treat anything else (including 'True', '1') as 'True'
+    """
+    if not val or str(val).strip().lower() in {"false", "0", "null", ""}:
+        return "False"
+    return "True"
+

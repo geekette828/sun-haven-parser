@@ -46,7 +46,6 @@ def get_pages_with_template(
     pages = tpl.embeddedin(namespaces=ns)
     return [p.title() for p in pages]
 
-
 def fetch_pages(
     titles: list[str],
     batch_size: int = 50
