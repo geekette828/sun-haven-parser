@@ -12,11 +12,13 @@ Sun Haven Parser/
 │   └── skip_items.py
 │
 ├── utils/
+│   ├── compre_utils.py       → Utility has functions around comparing wiki pages to the raw data.
 │   ├── file_utils.py         → Utility pulls together functions around read/write with logs or structured text files.
 │   ├── guid_utils.py         → Utility pulls together functions around guid extraction.
 │   ├── json_utils.py         → Utility pulls together functions around JSON parsing.
 │   ├── recipe_utils.py       → Utility pulls together functions around recipe formatting.
-│   └── text_utils.py         → Utility pulls together functions around general string clean up.
+│   ├── text_utils.py         → Utility pulls together functions around general string clean up.
+│   └── wiki_utils.py         → Utility has functions around pywikibot and getting items from the wiki.
 │
 ├── pwb/                      → Pywikibot engine
 │   ├── pwb.py
@@ -26,31 +28,28 @@ Sun Haven Parser/
 │   │   └── sunhaven_family.py
 │   └── user-config.py        → Your wiki credentials
 │
-├── formatter/            → Scripts in this directory will format data for wiki consumption.
-│   ├── item_page/        → Creates item pages, in their entirety. 
-│   │   ├── create_page.py
-│   │   ├── infobox_classifications.py
-│   │   ├── infobox_item_data.py
-│   │   ├── infobox.py
-│   │   ├── navbox.py
-│   │   ├── recipe.py
-│   │   └── summary.py
-│   ├── quest_page/           → Creates quest pages, some minor manual formatting will need to be done after. 
-│   |   ├── create_page.py
-│   |   ├── infobox.py
-│   |   └── layout.py        
-│   ├── all_recipes.py        → A list of all recipies, formatted in the `Template:Recipie` format. 
-│   ├── dialogue.py           → All dialogue; Cycles, One Liners, etc. 
-│   ├── item_descriptions.py  → Creates the format for `Module:Description`
-│   ├── quests.py             → Formats quest infoboxes [may be able to depreciate with the updates above.]
-│   └── shops.py              → Formats shop inventory sections.
+├── formatter/                    → Scripts in this directory will format data for wiki consumption.
+│   ├── page_assembly
+│   │   ├── create_item_page.py   → Uses item_infobox, item_recipe, item_summary, navbox scripts to build item pages.
+│   │   └── create_quest_page.py   
+│   ├── all_dialogue.py           → Creates a directory of all dialgoue for all NPCs.
+│   ├── all_item_descriptions.py  → Creates the format for `Module:Description`.
+│   ├── all_recipes.py            → A list of all recipies, in the `Template:Recipie` format in one output.
+│   ├── all_shops.py              → Formats all shop inventory sections.
+│   ├── item_infobox.py           → Creates a formatted item infobox from the json data.
+│   ├── item_recipe.py            → Creates a formatted recipe template from the json data.
+│   ├── item_summary.py           → Creates a formatted summary from category data.
+│   ├── navbox.py                 → Assigns a navbox type based on category data.
+│   ├── quest_infobox.py          → Creates a formatted quest infobox from the json data.
+│   ├── quest_sections.py         → Assigns certain quest page sections to different quest types.
+│   └── quest_summary.py          → Creates a formatted summary from quest type data.
 │       
-├── json_tools/               → These scripts create json objects that most other scripts use to pull their data from.
-│   ├── image_list.py         → Creates list of image file names and their GUID mapping. 
-│   ├── item_list.py          → Creates list of item details from monobehaviour files. 
-│   ├── quest_details.py      → Creates list of quest details.
-│   ├── recipes_list.py       → Creates list of recipe details.
-│   └── shop_inventory.py     → Creates list of shop inventory details.
+├── json_tools/                   → These scripts create json objects that most other scripts use to pull their data from.
+│   ├── image_list.py             → Creates list of image file names and their GUID mapping. 
+│   ├── item_list.py              → Creates list of item details from monobehaviour files. 
+│   ├── quest_list.py             → Creates list of quest details.
+│   ├── recipes_list.py           → Creates list of recipe details.
+│   └── shop_inventory.py         → Creates list of shop inventory details.
 |
 ├── pywikibot_tools/
 │   ├── create/
@@ -63,7 +62,8 @@ Sun Haven Parser/
 │   │   ├── missing_item.py             → Lists missing item pages based on the item json file.
 │   │   ├── missing_quests.py           → Lists missing quest pages based on the quest json files.
 │   |   └── missing_recipe_template.py  → Lists pages missing the recipe template, based on the recipe json file.
-│   ├── compare_recipe.py     → (WIP) Compares the `{{recipe}}` page data, to the recipe json data to find recipes that need to be updated.
+│   ├── compare_recipe.py               → (WIP) Compares the `{{recipe}}` page data, to the recipe json data to find recipes that need to be updated.
+│   ├── compare_item_infobox.py         → Compares the `{{item infobox}}` page data, to the item json data to find items that need to be updated.
 │   ├── formatting_recipe_template.py   → Standardizes the recipe template, so the compare script can run.
 │   ├── images_dlc_pet.py               → Puts specific categories on pet image files.
 │   ├── images_dlc_mount.py             → Puts specific categories on mount image files.
