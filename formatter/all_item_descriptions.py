@@ -12,7 +12,7 @@ output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted")
 file_utils.ensure_dir_exists(output_directory)
 
 input_file_path = os.path.join(input_directory, "items_data.json")
-output_file_path = os.path.join(output_directory, "item_descriptions.txt")
+output_file_path = os.path.join(output_directory, "Module:Description.txt")
 
 # Read JSON data using json_utils
 data = json_utils.load_json(input_file_path)

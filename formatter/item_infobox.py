@@ -21,7 +21,7 @@ def setup_logger(debug_log_path):
 
 def process_items(test_items=None):
     json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
-    output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "itemInfobox.txt")
+    output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "item_infobox.txt")
     debug_log_path = os.path.join(".hidden", "debug_output", "create_item_infobox_debug.txt")
 
     file_utils.ensure_dir_exists(os.path.dirname(output_file_path))
