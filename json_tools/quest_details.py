@@ -1,9 +1,9 @@
 import os
 import sys
+import re
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import config.constants as constants
-import re
 from utils import file_utils, json_utils
 
 # Construct full paths
@@ -44,6 +44,7 @@ def parse_quest_asset(file_path, guid_lookup):
         "worldProgressRequirements": [],
         "guaranteeRewards2": [],
         "choiceRewards2": [],
+        "giveItemsOnComplete2": [],  # Added new field
         "endTex": None,
         "questDescription": None,
         "bulletinBoardDescription": None,
@@ -52,8 +53,8 @@ def parse_quest_asset(file_path, guid_lookup):
 
     try:
         lines = file_utils.read_file_lines(file_path)
-        current_section = None  
-        pending_id = None  
+        current_section = None
+        pending_id = None
 
         for index, line in enumerate(lines):
             line = line.strip()
@@ -75,27 +76,32 @@ def parse_quest_asset(file_path, guid_lookup):
             elif "nextQuest:" in line:
                 match = re.search(r"{fileID: (\d+), guid: ([a-f0-9]+), type: (\d+)}", line)
                 if match:
-                    quest_data["nextQuest"] = {"fileID": int(match.group(1)),
-                                               "guid": match.group(2),
-                                               "type": int(match.group(3))}
+                    quest_data["nextQuest"] = {
+                        "fileID": int(match.group(1)),
+                        "guid": match.group(2),
+                        "type": int(match.group(3))
+                    }
             elif "items2:" in line:
                 current_section = "itemRequirements"
-                pending_id = None  
+                pending_id = None
             elif "guaranteeRewards2:" in line:
                 current_section = "guaranteeRewards2"
                 pending_id = None
             elif "choiceRewards2:" in line:
                 current_section = "choiceRewards2"
                 pending_id = None
+            elif "giveItemsOnComplete2:" in line:
+                current_section = "giveItemsOnComplete2"
+                pending_id = None
             elif "---" in line:
-                current_section = None  
-                pending_id = None  
+                current_section = None
+                pending_id = None
             elif current_section and "id:" in line:
                 pending_id = line.split(":")[-1].strip()
             elif current_section and "amount:" in line and pending_id is not None:
                 amount = line.split(":")[-1].strip()
                 quest_data[current_section].append({"id": pending_id, "amount": amount})
-                pending_id = None  
+                pending_id = None
 
     except Exception as e:
         log_debug("quest_parsing.txt", f"Error parsing {file_path}: {e}")
@@ -120,15 +126,30 @@ quest_categories = {
 }
 
 all_quests = []
-for filename in os.listdir(input_directory):
-    if filename.endswith(".asset"):
-        asset_path = os.path.join(input_directory, filename)
-        quest_info = parse_quest_asset(asset_path, guid_lookup)
 
-        if quest_info["guid"] and quest_info["questName"]:
-            guid_to_name[quest_info["guid"]] = quest_info["questName"]
+# Progress Tracking
+asset_files = [f for f in os.listdir(input_directory) if f.endswith(".asset")]
+total_files = len(asset_files)
 
-        all_quests.append(quest_info)
+print("Starting quest processing...")
+
+for idx, filename in enumerate(asset_files, start=1):
+    asset_path = os.path.join(input_directory, filename)
+    quest_info = parse_quest_asset(asset_path, guid_lookup)
+
+    if quest_info["guid"] and quest_info["questName"]:
+        guid_to_name[quest_info["guid"]] = quest_info["questName"]
+
+    all_quests.append(quest_info)
+
+    # Progress print every 20%
+    percent_complete = (idx / total_files) * 100
+    previous_percent = ((idx - 1) / total_files) * 100
+
+    if (percent_complete // 20) > (previous_percent // 20):
+        print(f"  🔄 {int(percent_complete // 20) * 20}% complete...")
+
+print("✅ Quest processing complete.")
 
 # Resolve nextQuest fields using guid_to_name
 for quest in all_quests:
@@ -145,7 +166,7 @@ for quest in all_quests:
 
     if quest["questType"] not in quest_categories[category]:
         quest_categories[category][quest["questType"]] = []
-    
+
     quest_categories[category][quest["questType"]].append(quest)
 
 # Write JSON output for each quest category
