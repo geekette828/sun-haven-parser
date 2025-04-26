@@ -142,13 +142,25 @@ for i in range(0, total, batch_size):
             else:
                 actual = wiki_params.get(key, "").strip()
 
-            # Special handling for "sell" if canSell = 0
             if key == "sell":
                 can_sell = item.get("canSell", 1)
                 if not can_sell:
                     expected = "no"
                 else:
                     expected = expected_values.get(key, "")
+            elif key == "selltype":
+                can_sell = item.get("canSell", 1)
+                if not can_sell:
+                    continue  # skip selltype if cannot sell
+                expected = expected_values.get(key, "")
+            elif key == "requirement":
+                # If requiredLevel is missing, skip comparing requirement
+                required_level = item.get("requiredLevel")
+                if required_level in (None, "", "null"):
+                    continue  # skip requirement check
+                expected = expected_values.get(key, "")
+                if not expected:
+                    expected = str(required_level)
             else:
                 expected = expected_values.get(key, "")
 

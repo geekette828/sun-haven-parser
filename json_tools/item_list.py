@@ -106,6 +106,7 @@ def extract_attributes(asset_file):
         "mana": None,
         "requiredLevel": None,
         "stats": [],
+        "maxStats": [],
         "foodStat": [],
         "statBuff": [],
         "cropStages": [],
@@ -117,6 +118,7 @@ def extract_attributes(asset_file):
         lines = file_utils.read_file_lines(asset_file)
         capturing_description = False
         capturing_stats = False
+        capturing_max_stats = False
         capturing_food_stat = False
         capturing_seasons = False
         capturing_crop_stages = False
@@ -175,6 +177,19 @@ def extract_attributes(asset_file):
             if line.startswith("foodStat:"):
                 capturing_food_stat = True
                 continue
+
+            if line.startswith("maxStats:"):
+                capturing_max_stats = True
+                continue
+
+            if capturing_max_stats:
+                if match := re.match(r'-\s*statType:\s*(\d+)', line):
+                    attributes["maxStats"].append({"statType": match.group(1), "value": None})
+                elif match := re.match(r'value:\s*(\d+)', line):
+                    if attributes["maxStats"]:
+                        attributes["maxStats"][-1]["value"] = int(match.group(1))
+                elif re.match(r'^\S', line):  # Line that starts without space (new section)
+                    capturing_max_stats = False
 
             if capturing_food_stat:
                 if match := re.match(r'increase:\s*(\d+)', line):

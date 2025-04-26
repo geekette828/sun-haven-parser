@@ -50,27 +50,33 @@ FIELD_MAP: Dict[str, Tuple[str, Callable[[Any], str]]] = {
 # Computed Field Helpers
 # ---------------------------
 
-def get_sell_info(item: dict) -> Tuple[str, str]:
-    """
-    Determines correct sell value and currency.
-    """
-    if item.get("sellPrice", 0):
-        return str(item["sellPrice"]), "Coins"
-    if item.get("orbsSellPrice", 0):
-        return str(item["orbsSellPrice"]), "Orbs"
-    if item.get("ticketSellPrice", 0):
-        return str(item["ticketSellPrice"]), "Tickets"
-    return "", ""
-
 def compute_sell(item: dict) -> str:
+    """
+    Returns semicolon-separated sell prices based on all nonzero sell fields.
+    """
+    sell_values = []
     if item.get("sellPrice", 0):
-        return str(item.get("sellPrice"))
-    elif item.get("orbsSellPrice", 0):
-        return str(item.get("orbsSellPrice"))
-    elif item.get("ticketSellPrice", 0):
-        return str(item.get("ticketSellPrice"))
-    else:
-        return ""
+        sell_values.append(str(item.get("sellPrice")))
+    if item.get("orbsSellPrice", 0):
+        sell_values.append(str(item.get("orbsSellPrice")))
+    if item.get("ticketSellPrice", 0):
+        sell_values.append(str(item.get("ticketSellPrice")))
+
+    return "; ".join(sell_values)
+
+def compute_selltype(item: dict) -> str:
+    """
+    Returns semicolon-separated sell types based on which sell fields are nonzero.
+    """
+    sell_types = []
+    if item.get("sellPrice", 0):
+        sell_types.append("coins")
+    if item.get("orbsSellPrice", 0):
+        sell_types.append("orbs")
+    if item.get("ticketSellPrice", 0):
+        sell_types.append("tickets")
+
+    return "; ".join(sell_types)
 
 def compute_restores(item):
     health = item.get("health", 0)
@@ -84,6 +90,8 @@ def compute_restores(item):
 
 def compute_statInc(item):
     parts = []
+
+    # Handle foodStat
     for stat in item.get("foodStat", []):
         if stat.get("increase") == "999":
             continue
@@ -93,6 +101,7 @@ def compute_statInc(item):
         inc_text = constants.FOOD_STAT_INCREASES.get(increase, f"+{increase}")
         parts.append(f"{stat_name}»({inc_text})")
 
+    # Handle statBuff
     for buff in item.get("statBuff", []):
         stat_type = int(buff.get("statType", -1))
         value = float(buff.get("value") or 0)
@@ -101,6 +110,13 @@ def compute_statInc(item):
         value_text = f"{int(value * 100)}%" if value <= 1 else str(int(value))
         minutes = duration // 60
         parts.append(f"{stat_name}«{value_text}»({minutes}m)")
+
+    # Handle maxStats
+    for max_stat in item.get("maxStats", []):
+        stat_type = int(max_stat.get("statType", -1))
+        value = int(max_stat.get("value", 0))
+        stat_name = constants.STAT_TYPE_MAPPING.get(stat_type, f"Stat{stat_type}")
+        parts.append(f"{stat_name}»(+{value})")
 
     return "; ".join(parts)
 
@@ -155,18 +171,15 @@ def compute_requirement(item, classification):
         skill = "Fishing"
     if skill:
         return f"{{{{SkillLevel|{skill}|{required_level}}}}}"
-    return ""
+    else:  # <-- Fallback: even if skill not found, still return the number
+        return str(required_level)
 
 # ---------------------------
 # Computed-only fields (not tied to a single JSON key)
 # ---------------------------
 FIELD_COMPUTATIONS: Dict[str, Callable[[dict], str]] = {
     "sell": compute_sell,
-    "selltype": lambda item: (
-        "coins" if item.get("sellPrice", 0) else
-        "orbs" if item.get("orbsSellPrice", 0) else
-        "tickets" if item.get("ticketSellPrice", 0) else ""
-    ),
+    "selltype": compute_selltype,
     "restores": compute_restores,
     "statInc": compute_statInc,
     "season": compute_season,
