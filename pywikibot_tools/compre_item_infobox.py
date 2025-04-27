@@ -156,7 +156,7 @@ for i in range(0, total, batch_size):
             elif key == "requirement":
                 # If requiredLevel is missing, skip comparing requirement
                 required_level = item.get("requiredLevel")
-                if required_level in (None, "", "null"):
+                if required_level in (None, 0, "", "null"):
                     continue  # skip requirement check
                 expected = expected_values.get(key, "")
                 if not expected:
