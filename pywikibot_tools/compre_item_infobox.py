@@ -1,10 +1,11 @@
 import os
 import sys
-import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import pywikibot
 import mwparserfromhell
+import time
+import re
 from config import constants
 from utils import file_utils, json_utils, text_utils
 from utils.wiki_utils import get_pages_with_template, get_site, fetch_pages
@@ -45,12 +46,15 @@ wikionly = []
 jsononly = list(data.keys())
 debug_lines = []
 
+def strip_html_comments(value):
+    return re.sub(r'<!--.*?-->', '', value).strip()
+
 def extract_template_params(wikitext):
     parsed = mwparserfromhell.parse(wikitext)
     for template in parsed.filter_templates():
         if template.name.strip().lower() == "item infobox":
             return {
-                p.name.strip(): text_utils.clean_text(str(p.value)).strip()
+                p.name.strip(): strip_html_comments(str(p.value)).strip()
                 for p in template.params
             }
     return {}
@@ -67,7 +71,7 @@ def normalize_comparison_value(key, expected, actual):
     if key in {"selltype", "name", "sell"}:
         return expected.lower(), actual.lower()
 
-    if key == "statInc":
+    if key in {"statInc", "restores"}:
         expected = expected.replace("+", "").lower()
         actual = actual.replace("+", "").lower()
         return expected, actual
