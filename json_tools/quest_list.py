@@ -2,6 +2,7 @@ import os
 import sys
 import re
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.stdout.reconfigure(encoding='utf-8')
 
 import config.constants as constants
 from utils import file_utils, json_utils
