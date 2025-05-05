@@ -6,6 +6,7 @@ that do not have `Template:Recipe` based on `recipes_data.json`
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.stdout.reconfigure(encoding='utf-8')
 
 import config.constants as constants
 import pywikibot
@@ -23,7 +24,7 @@ site = pywikibot.Site("en", "sunhaven")
 # Paths
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
 output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "missing_recipe_templates.txt")
-debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "missing_recipe_templates_debug.txt")
+debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "missing_recipe_templates_debug.txt")
 page_list_path = os.path.join(".hidden", "debug_output", "pywikibot", "cached_embedded_recipe_pages.txt")
 os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 

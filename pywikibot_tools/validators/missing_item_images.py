@@ -6,11 +6,13 @@ For items missing their image in the wiki, it will map the file name of the item
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.stdout.reconfigure(encoding='utf-8')
 
 import config.constants as constants
 import pywikibot
 import json
 import time
+from utils.text_utils import normalize_apostrophe
 
 # Set up necessary configurations before other imports
 sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
@@ -25,7 +27,7 @@ images_data_file = os.path.join(json_data_directory, "images_data.json")
 missing_names_txt = os.path.join(output_directory, "MissingImages_nonexistentImages.txt")
 missing_files_txt = os.path.join(output_directory, "MissingImages_filenameConversion.txt")
 
-debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_missingImageCheck_skipped.txt")
+debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "pywikibot_missingImageCheck_skipped.txt")
 
 # Constants
 CHUNK_SIZE = 750
@@ -66,7 +68,10 @@ def step1_combined_check_and_map():
     print(f"🔄 Preloading {total} pages in chunks of {CHUNK_SIZE}...")
 
     for i, chunk in enumerate(chunk_list(item_names, CHUNK_SIZE), start=1):
-        file_pages = [pywikibot.FilePage(site, f"{name}.png") for name in chunk]
+        file_pages = [
+            pywikibot.FilePage(site, f"{normalize_apostrophe(name)}.png")
+            for name in chunk
+        ]
         preloaded_pages = list(site.preloadpages(file_pages))
 
         for page in preloaded_pages:
