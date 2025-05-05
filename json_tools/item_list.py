@@ -56,9 +56,8 @@ def should_exclude_item(item_name):
         if name == pattern:
             return True
     for pattern in skip_items.SKIP_PATTERNS:
-        if pattern.startswith("*") and name.endswith(pattern[1:]):
-            return True
-        if pattern.endswith("*") and name.startswith(pattern[:-1]):
+        cleaned = pattern.strip("*").lower()
+        if cleaned in name:
             return True
     return False
 
