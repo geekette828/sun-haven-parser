@@ -2,7 +2,6 @@
 This python utility pulls together functions around text clean up and parsing.
 """
 import re
-import unicodedata
 from html import unescape
 
 def strip_html(text):
@@ -18,77 +17,93 @@ def remove_tags(text, tag):
     """Remove specific HTML-style tags from text (e.g., <i>...</i>)."""
     return re.sub(rf'</?{tag}[^>]*>', '', text)
 
-def clean_text(text):
-    """Apply multiple cleaning steps: strip HTML, clean whitespace."""
-    return clean_whitespace(strip_html(text))
-
-def replace_placeholders(text):
-    """Replace known tokens like XX with template-friendly values."""
-    return text.replace("XX", "{{PLAYER}}") if text else ""
-
-def format_for_chat(text):
-    """Replace placeholders and format line breaks for chat display."""
-    if not text:
-        return ""
-    text = replace_placeholders(text)
-    return text.replace("\n", "<br>").replace("[]", "<br>").strip()
-
-def normalize_list_string(s: str, delimiter: str = ';') -> str:
-    """
-    Normalize and sort a delimited list of values.
-    - Lowercases each entry
-    - Strips whitespace
-    - Sorts the list
-    - Joins back with the original delimiter
-
-    Example: "Water Fruit*3; Mana*10" -> "mana*10;water fruit*3"
-    """
-    items = [item.strip().lower() for item in (s or "").split(delimiter) if item.strip()]
-    return delimiter.join(sorted(items))
-
-def sanitize_text(value: str) -> str:
-    """
-    Remove Unity-specific color and sprite tags from game-exported text.
-
-    Examples removed:
-    <color=#FFC332>...</color>
-    <sprite="max_defense_icon" index=0>
-    """
-    if not isinstance(value, str):
-        return value
-
-    # Remove <color=...> and </color>
-    value = re.sub(r'<color=#[0-9A-Fa-f]{6}>', '', value)
-    value = value.replace('</color>', '')
-
-    # Remove <sprite=...> including optional index
-    value = re.sub(r'<sprite=.*?>', '', value)
-
-    return value.strip()
-
 def normalize_apostrophe(s):
-    """
-    Replaces curly apostrophes (’) with straight ones (') for consistent key comparison.
-    """
+    """Replace curly apostrophes (’) with straight ones (') for consistency."""
     if not s:
         return ""
     return s.replace("’", "'")
 
 def normalize_value(val: str) -> str:
-    """
-    Basic normalization: strip, collapse spaces, remove redundant + in numbers.
-    """
+    """Basic normalization: strip, collapse spaces, remove redundant + in numbers."""
     if val is None:
         return ""
     return clean_whitespace(val).replace("+", "").strip()
 
 def normalize_bool(val: str) -> str:
-    """
-    Normalize a boolean field:
-    - Treat '', None, 'false', '0' as 'False'
-    - Treat anything else (including 'True', '1') as 'True'
-    """
+    """Normalize boolean-ish string to 'True' or 'False'."""
     if not val or str(val).strip().lower() in {"false", "0", "null", ""}:
         return "False"
     return "True"
 
+def normalize_list_string(s: str, delimiter: str = ';') -> str:
+    """
+    Normalize and sort a delimited list of values.
+    Lowercases, trims, sorts, and rejoins with the original delimiter.
+    """
+    items = [item.strip().lower() for item in (s or "").split(delimiter) if item.strip()]
+    return delimiter.join(sorted(items))
+
+# ---------------------------
+# Modular text replacement utils
+# ---------------------------
+
+def replace_placeholders(text):
+    """Replace known tokens like XX with {{PLAYER}}."""
+    return text.replace("XX", "{{PLAYER}}") if text else ""
+
+def replace_item_token(text):
+    """Replace ITEM with wiki bolded item template."""
+    return text.replace("ITEM", "[''item'']") if text else ""
+
+def replace_linebreak_tokens(text):
+    """Replace special linebreak tokens like [] or newlines with <br>."""
+    if not text:
+        return ""
+    return text.replace("[]", "<br>").replace("\n", "<br>").strip()
+
+def sanitize_text(text: str) -> str:
+    """
+    Remove Unity-specific tags from text:
+    - <color=...> and </color>
+    - <sprite=...>
+    """
+    if not isinstance(text, str):
+        return text
+
+    text = re.sub(r'<color=#[0-9A-Fa-f]{6}>', '', text)
+    text = re.sub(r'<color=.*?>', '', text)
+    text = text.replace('</color>', '')
+    text = re.sub(r'<sprite=.*?>', '', text)
+
+    return text.strip()
+
+# ---------------------------
+# Composed full cleaners
+# ---------------------------
+
+def format_for_chat(text):
+    """
+    Format generic text for chat-style output:
+    - Replace XX
+    - Handle [] and newline as <br>
+    """
+    if not text:
+        return ""
+    text = replace_placeholders(text)
+    return replace_linebreak_tokens(text)
+
+def clean_dialogue(text: str) -> str:
+    """
+    Full cleaning pipeline for in-game dialogue:
+    - Removes color/sprite tags
+    - Replaces ITEM, XX, []
+    - Strips HTML
+    Leaves formatting like ''' and [[ intact
+    """
+    if not text:
+        return ""
+    text = sanitize_text(text)
+    text = replace_placeholders(text)
+    text = replace_item_token(text)
+    text = replace_linebreak_tokens(text)
+    return strip_html(text).strip()
