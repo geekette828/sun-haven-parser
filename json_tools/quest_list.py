@@ -7,12 +7,11 @@ sys.stdout.reconfigure(encoding='utf-8')
 import config.constants as constants
 from utils import file_utils, json_utils
 
-# Construct full paths
+# Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 debug_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Debug")
 
-# Ensure output and debug directories exist
 file_utils.ensure_dir_exists(output_directory)
 file_utils.ensure_dir_exists(debug_directory)
 

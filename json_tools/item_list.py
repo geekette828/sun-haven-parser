@@ -7,20 +7,20 @@ import re
 import logging
 from utils import file_utils, json_utils
 from config import skip_items
+from math import floor
 
-# Construct full paths
+# Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 output_file = "items_data.json"
 en_display_name_file = os.path.join(constants.INPUT_DIRECTORY, "English.prefab")
 
+file_utils.ensure_dir_exists(output_directory)
+
 # Setup logging
 debug_log_path = os.path.join(".hidden", "debug_output", "json", "items_data_debug.txt")
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 logging.basicConfig(filename=debug_log_path, level=logging.DEBUG, format="%(levelname)s: %(message)s")
-
-# Ensure the output directory exists
-file_utils.ensure_dir_exists(output_directory)
 
 def extract_guid(meta_file):
     try:
@@ -50,6 +50,16 @@ def extract_item_info(asset_file):
         return int(match.group(1)), match.group(2)
     return None, None
 
+def extract_key_display_name(asset_file):
+    try:
+        lines = file_utils.read_file_lines(asset_file)
+        for line in lines:
+            if "keyDisplayName:" in line:
+                return line.split("keyDisplayName:")[1].strip()
+    except Exception as e:
+        logging.warning(f"Failed to extract keyDisplayName from {asset_file}: {e}")
+    return None
+
 def should_exclude_item(item_name):
     name = item_name.lower()
     for pattern in skip_items.SKIP_ITEMS:
@@ -66,13 +76,24 @@ def get_display_names(prefab_file):
     try:
         lines = file_utils.read_file_lines(prefab_file)
         current_term = None
+        capturing_language = False
+
         for line in lines:
             line = line.strip()
+
             if line.startswith("- Term:"):
                 current_term = line.split(":", 1)[1].strip()
-            elif current_term and line.startswith("- ") and not line.startswith("- Term"):
+                capturing_language = False
+
+            elif line.startswith("Languages:") and current_term:
+                capturing_language = True  # Start watching for language content
+
+            elif capturing_language and line.startswith("- "):
+                # Capture the first language entry only
                 display_names[current_term] = line[2:].strip()
+                capturing_language = False
                 current_term = None
+
     except Exception as e:
         print(f"Error reading display names: {e}")
     return display_names
@@ -312,28 +333,29 @@ def extract_stat_buff(lines):
 
 def generate_item_data():
     logging.info("Starting item data extraction...")
-
     display_names = get_display_names(en_display_name_file)
     logging.info(f"Loaded {len(display_names)} display names.")
-
     all_items = {}
 
-    for filename in os.listdir(input_directory):
-        if not filename.endswith(".asset"):
-            continue
-        asset_path = os.path.join(input_directory, filename)
+    files = [f for f in os.listdir(input_directory) if f.endswith(".asset")]
+    total = len(files)
+    step = max(1, total // 5)
 
+    from item_list import extract_attributes, extract_stat_buff
+
+    for idx, filename in enumerate(files):
+        if idx % step == 0:
+            print(f"  🔄 {floor((idx / total) * 100)}% complete...")
+
+        asset_path = os.path.join(input_directory, filename)
         item_id, item_name = extract_item_info(asset_path)
         if not item_id or not item_name:
-            logging.debug(f"Skipping unrecognized filename format: {filename}")
             continue
-
         if should_exclude_item(item_name):
-            logging.debug(f"Skipping excluded item: {item_name}")
             continue
 
-        display_name = display_names.get(f"{item_name}.Name", item_name)
-        logging.debug(f"Processing: {display_name} (File: {filename})")
+        key_display = extract_key_display_name(asset_path)
+        display_name = display_names.get(key_display, item_name)
 
         attributes = extract_attributes(asset_path)
         icon_guid = extract_icon_guid(asset_path)
@@ -343,7 +365,6 @@ def generate_item_data():
         stat_buff = extract_stat_buff(file_utils.read_file_lines(asset_path))
         if stat_buff:
             attributes["statBuff"] = stat_buff
-            # remove duplicate statType entries from top-level stats that were actually for statBuff
             original_stats = attributes.get("stats", [])
             filtered_stats = [s for s in original_stats if not any(sb["statType"] == s["statType"] for sb in stat_buff)]
             attributes["stats"] = filtered_stats
@@ -355,14 +376,10 @@ def generate_item_data():
             **attributes
         }
         attributes["ID"] = item_id
-
-        logging.debug(f"Extracted attributes for {display_name}: {attributes}")
-
         all_items[display_name] = attributes
 
-    output_path = os.path.join(output_directory, output_file)
-    json_utils.write_json(all_items, output_path, indent=4)
-    logging.info(f"Successfully wrote {len(all_items)} items to {output_file}")
+    json_utils.write_json(all_items, os.path.join(output_directory, output_file), indent=4)
+    logging.info(f"✅ Successfully wrote {len(all_items)} items to {output_file}")
 
 if __name__ == "__main__":
     generate_item_data()

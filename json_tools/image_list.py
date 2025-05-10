@@ -10,7 +10,6 @@ input_directory = os.path.join(constants.INPUT_DIRECTORY, "Sprite")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 output_file = os.path.join(output_directory, "images_data.json")
 
-# Ensure output directory exists
 file_utils.ensure_dir_exists(output_directory)
 
 # Get all .meta files in the input directory

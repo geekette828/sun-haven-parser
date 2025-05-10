@@ -10,8 +10,9 @@ from utils.recipe_utils import normalize_workbench
 # Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
-file_utils.ensure_dir_exists(output_directory)
 recipes_json_path = os.path.join(output_directory, "recipes_data.json")
+
+file_utils.ensure_dir_exists(output_directory)
 
 def extract_guid(meta_file_path):
     """Extract GUID from a meta file."""
