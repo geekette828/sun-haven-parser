@@ -9,10 +9,9 @@ import re
 # Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
-os.makedirs(output_directory, exist_ok=True)
-
-# Define output file
 shops_json_path = os.path.join(output_directory, "shop_data.json")
+
+os.makedirs(output_directory, exist_ok=True)
 
 # Function to extract GUID from .meta file
 def extract_guid(meta_file_path):
