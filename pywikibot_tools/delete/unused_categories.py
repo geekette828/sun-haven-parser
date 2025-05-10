@@ -8,7 +8,8 @@ import sys
 import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from pywikibot.pagegenerators import SpecialPageGenerator
+import pywikibot
+from config import constants
 from utils import file_utils, wiki_utils
 
 # Define paths
@@ -22,7 +23,6 @@ MATCH_START = True
 MATCH_END = True
 
 site = wiki_utils.get_site()
-cat_namespace = site.namespaces.CATEGORY
 
 def log_debug(msg):
     file_utils.append_line(debug_log_path, msg)
@@ -37,14 +37,11 @@ def should_match(title):
     return False
 
 def main():
-    log_debug("🔍 Starting unused category cleanup via Special:UnusedCategories")
+    log_debug("🔍 Starting unused category cleanup via site.querypage('Unusedcategories')")
     count_deleted = 0
     count_skipped = 0
 
-    # Generate unused categories
-    unused_categories = SpecialPageGenerator("Unusedcategories", site=site)
-
-    for page in unused_categories:
+    for page in site.querypage('Unusedcategories'):
         cat_title = page.title(with_ns=False)  # Strip "Category:"
         if not should_match(cat_title):
             continue
@@ -59,7 +56,6 @@ def main():
             count_skipped += 1
 
     log_debug(f"✅ Complete. Deleted: {count_deleted}, Skipped: {count_skipped}")
-
 
 if __name__ == "__main__":
     main()
