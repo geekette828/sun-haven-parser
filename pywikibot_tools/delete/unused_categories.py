@@ -18,9 +18,9 @@ debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "delete_un
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 
 # Configurations
-PHRASE = "Foo"  # Change this to the desired phrase
+PHRASE = "Drops "  # Change this to the desired phrase
 MATCH_START = True
-MATCH_END = True
+MATCH_END = False
 
 site = wiki_utils.get_site()
 
