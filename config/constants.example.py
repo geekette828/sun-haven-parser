@@ -2,6 +2,7 @@ ROOT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser"
 INPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_input/x.x"
 IMAGE_INPUT_DIRECTORY = r"YOUR PATH/TO/IMAGES/"
 OUTPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_output/x.x"
+DEBUG_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/.hidden/debug_output"
 
 PWB_SETTINGS = {
     "throttle": 5,
@@ -22,7 +23,7 @@ STAT_TYPE_MAPPING = {
     4: "Health Regen",
     5: "Mana Regen",
     6: "Movespeed",
-    7: "Jump",
+    7: "Jump Height",
     8: "Spell Damage",
     9: "Melee Lifesteal",
     10: "Ranged LifeSteal",

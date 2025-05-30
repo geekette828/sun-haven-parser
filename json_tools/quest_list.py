@@ -10,7 +10,7 @@ from utils import file_utils, json_utils
 # Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
-debug_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Debug")
+debug_directory = os.path.join(constants.DEBUG_DIRECTORY, "json")
 
 file_utils.ensure_dir_exists(output_directory)
 file_utils.ensure_dir_exists(debug_directory)
