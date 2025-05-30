@@ -173,4 +173,98 @@ def extract_required_level(value: str) -> str:
         return match.group(1)
     return value
 
+def strip_html_comments(value):
+    return re.sub(r'<!--.*?-->', '', value).strip()
 
+def extract_required_level(value: str) -> str:
+    if not value:
+        return ""
+    match = re.search(r"\|\s*(\d+)\s*\}\}", value)
+    if match:
+        return match.group(1)
+    return value
+
+def normalize_comparison_value(key, expected, actual, normalize_bool):
+    expected = expected.strip() if expected else ""
+    actual = actual.strip() if actual else ""
+
+    if key == "requirement":
+        expected = extract_required_level(expected)
+        actual = extract_required_level(actual)
+        return expected, actual
+
+    if key in {"selltype", "name", "sell"}:
+        return expected.lower(), actual.lower()
+
+    if key in {"statInc", "restores"}:
+        expected = expected.replace("+", "").lower()
+        actual = actual.replace("+", "").lower()
+        return expected, actual
+
+    if key in {"dlc", "organic"}:
+        expected = normalize_bool(expected)
+        actual = normalize_bool(actual)
+        return expected, actual
+
+    return expected, actual
+
+def compare_instance_generic(json_obj, wiki_params, keys_to_check, field_map, compute_map, normalize_bool):
+    differences = []
+    expected_values = {}
+
+    for field, (json_key, normalize) in field_map.items():
+        raw_val = json_obj.get(json_key)
+        expected_values[field] = normalize(raw_val)
+
+    for comp_field, compute_fn in compute_map.items():
+        expected_values[comp_field] = compute_fn(json_obj)
+
+    for key in keys_to_check:
+        if key == "sell":
+            can_sell = json_obj.get("canSell", 1)
+            expected = "no" if not can_sell else expected_values.get(key, "")
+        elif key == "selltype":
+            if not json_obj.get("canSell", 1):
+                continue
+            expected = expected_values.get(key, "")
+        elif key == "requirement":
+            rl = json_obj.get("requiredLevel")
+            if rl in (None, 0, "", "null"):
+                continue
+            expected = expected_values.get(key, "") or str(rl)
+        else:
+            expected = expected_values.get(key, "")
+
+        actual = wiki_params.get(key, "").strip()
+        expected, actual = normalize_comparison_value(key, expected, actual, normalize_bool)
+
+        if expected != actual:
+            differences.append((key, expected, actual))
+
+    return differences
+
+def compare_grouped_variants(wiki_title, wiki_params, json_data, keys_to_check, field_map, compute_map, normalize_bool):
+    variant_keys = [k for k in json_data if k.startswith(wiki_title.lower() + " (")]
+    mismatches = []
+    full_matches = []
+
+    # Create a modified copy of keys_to_check without "name"
+    variant_keys_to_check = [k for k in keys_to_check if k != "name"]
+
+    for key in variant_keys:
+        json_obj = json_data[key]
+        diffs = compare_instance_generic(
+            json_obj,
+            wiki_params,
+            variant_keys_to_check,
+            field_map,
+            compute_map,
+            normalize_bool
+        )
+        variant_label = key.split("(", 1)[-1].rstrip(")")
+        if diffs:
+            for field, expected, actual in diffs:
+                mismatches.append(f"    - ({variant_label}) {field}: expected '{expected}' but found '{actual}'")
+        else:
+            full_matches.append(f"    - ({variant_label}) full match")
+    return variant_keys, mismatches, full_matches
