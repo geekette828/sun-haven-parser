@@ -99,6 +99,9 @@ def get_display_names(prefab_file):
     return display_names
 
 def extract_attributes(asset_file):
+    def parse_number(val):
+        return float(val) if '.' in val else int(val)
+
     attributes = {
         "ID": None,
         "description": None,
@@ -152,9 +155,9 @@ def extract_attributes(asset_file):
         for line in lines:
             line = line.strip()
 
-            if match := re.match(r'^(health|mana|requiredLevel|stackSize|sellPrice|orbsSellPrice|ticketSellPrice|rarity|hearts|decorationType|hasSetSeason|setSeason|experience):\s*(\d+)', line):
+            if match := re.match(r'^(health|mana|requiredLevel|stackSize|sellPrice|orbsSellPrice|ticketSellPrice|rarity|hearts|decorationType|hasSetSeason|setSeason|experience):\s*([\d.]+)', line):
                 key, value = match.groups()
-                attributes[key] = int(value)
+                attributes[key] = parse_number(value)
 
             for boolean_field in ["isDLCItem", "isForageable", "isGem", "isAnimalProduct", "isMeal", "isFruit", "isArtisanryItem", "isPotion"]:
                 if match := re.match(fr'{boolean_field}:\s*(\d+)', line):
@@ -188,9 +191,10 @@ def extract_attributes(asset_file):
             if capturing_stats:
                 if match := re.match(r'-\s*statType:\s*(\d+)', line):
                     attributes["stats"].append({"statType": match.group(1), "value": None})
-                elif match := re.match(r'value:\s*(\d+)', line):
+                elif match := re.match(r'value:\s*([\d.]+)', line):
                     if attributes["stats"]:
-                        attributes["stats"][-1]["value"] = int(match.group(1))
+                        val = match.group(1)
+                        attributes["stats"][-1]["value"] = parse_number(val)
                 elif re.match(r'^\S', line):
                     capturing_stats = False
 
@@ -205,15 +209,17 @@ def extract_attributes(asset_file):
             if capturing_max_stats:
                 if match := re.match(r'-\s*statType:\s*(\d+)', line):
                     attributes["maxStats"].append({"statType": match.group(1), "value": None})
-                elif match := re.match(r'value:\s*(\d+)', line):
+                elif match := re.match(r'value:\s*([\d.]+)', line):
                     if attributes["maxStats"]:
-                        attributes["maxStats"][-1]["value"] = int(match.group(1))
-                elif re.match(r'^\S', line):  # Line that starts without space (new section)
+                        val = match.group(1)
+                        attributes["maxStats"][-1]["value"] = parse_number(val)
+                elif re.match(r'^\S', line):
                     capturing_max_stats = False
 
             if capturing_food_stat:
-                if match := re.match(r'increase:\s*(\d+)', line):
-                    attributes["foodStat"].append({"increase": match.group(1), "stat": None})
+                if match := re.match(r'increase:\s*([\d.]+)', line):
+                    val = match.group(1)
+                    attributes["foodStat"].append({"increase": parse_number(val), "stat": None})
                 elif match := re.match(r'stat:\s*(\d+)', line):
                     if attributes["foodStat"]:
                         attributes["foodStat"][-1]["stat"] = int(match.group(1))
@@ -231,15 +237,17 @@ def extract_attributes(asset_file):
                     capturing_stat_buff_stats = True
                     continue
 
-                if match := re.match(r'duration:\s*(\d+)', line):
-                    stat_buff_duration = int(match.group(1))
+                if match := re.match(r'duration:\s*([\d.]+)', line):
+                    val = match.group(1)
+                    stat_buff_duration = parse_number(val)
 
                 elif capturing_stat_buff_stats:
                     if match := re.match(r'-\s*statType:\s*(\d+)', line):
                         attributes["statBuff"].append({"statType": match.group(1), "value": None, "duration": stat_buff_duration})
                     elif match := re.match(r'value:\s*([\d.]+)', line):
                         if attributes["statBuff"]:
-                            attributes["statBuff"][-1]["value"] = float(match.group(1))
+                            val = match.group(1)
+                            attributes["statBuff"][-1]["value"] = parse_number(val)
                     elif re.match(r'^\S', line):
                         capturing_stat_buff_stats = False
 
@@ -252,8 +260,9 @@ def extract_attributes(asset_file):
                 continue
 
             if capturing_crop_stages:
-                if match := re.match(r'^\s*-\s*daysToGrow:\s*(\d+)', line):
-                    crop_stages.append({"daysToGrow": int(match.group(1)), "guid": None})
+                if match := re.match(r'^\s*-\s*daysToGrow:\s*([\d.]+)', line):
+                    val = match.group(1)
+                    crop_stages.append({"daysToGrow": parse_number(val), "guid": None})
                 elif match := re.match(r'sprite:.*guid:\s*([\da-f]+)', line):
                     if crop_stages:
                         crop_stages[-1]["guid"] = match.group(1)
@@ -284,6 +293,9 @@ def extract_attributes(asset_file):
     return attributes
 
 def extract_stat_buff(lines):
+    def parse_number(val):
+        return float(val) if '.' in val else int(val)
+
     capturing_stat_buff = False
     capturing_stats = False
     duration = None
@@ -307,8 +319,8 @@ def extract_stat_buff(lines):
                 logging.debug("--> Entering stats section inside statBuff")
                 continue
 
-            if match := re.match(r'duration:\s*(\d+)', line):
-                duration = int(match.group(1))
+            if match := re.match(r'duration:\s*([\d.]+)', line):
+                duration = parse_number(match.group(1))
                 logging.debug(f"--> Captured duration: {duration}")
                 for entry in buff_stats:
                     if entry.get("duration") is None:
@@ -321,7 +333,7 @@ def extract_stat_buff(lines):
                     logging.debug(f"--> New stat entry: {current_stat}")
                 elif match := re.match(r'value:\s*([\d.]+)', line):
                     if current_stat:
-                        current_stat["value"] = float(match.group(1))
+                        current_stat["value"] = parse_number(match.group(1))
                         logging.debug(f"--> Updated value for stat: {current_stat}")
                 elif re.match(r'^\S', line):
                     capturing_stats = False
