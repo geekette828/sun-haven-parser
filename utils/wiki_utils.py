@@ -7,11 +7,10 @@ import config.constants as constants
 
 # Pywikibot initialization (path & settings)
 sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
-pywikibot.config.throttle    = constants.PWB_SETTINGS["throttle"]
-pywikibot.config.max_retries = constants.PWB_SETTINGS["max_retries"]
-pywikibot.config.retry_wait  = constants.PWB_SETTINGS["retry_wait"]
-pywikibot.config.user_agent  = constants.PWB_SETTINGS["user_agent"]
-
+pywikibot.config.throttle    = constants.PWB_SETTINGS["THROTTLE"]
+pywikibot.config.max_retries = constants.PWB_SETTINGS["MAX_RETRIES"]
+pywikibot.config.retry_wait  = constants.PWB_SETTINGS["SLEEP_INTERVAL"]
+pywikibot.config.user_agent  = constants.PWB_SETTINGS["USER_AGENT"]
 
 def get_site(
     code: str = "en",

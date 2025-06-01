@@ -5,10 +5,12 @@ OUTPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_output/x.x"
 DEBUG_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/.hidden/debug_output"
 
 PWB_SETTINGS = {
-    "throttle": 5,
-    "max_retries": 5,
-    "retry_wait": 10,
-    "user_agent": "SH Wiki User (https://sunhaven.wiki.gg/wiki/User:YOURUSERNAMEHERE)",
+    "BATCH_SIZE": 50,
+    "SLEEP_INTERVAL": 8,
+    "NULL_EDIT_SLEEP_INTERVAL": 10,
+    "MAX_RETRIES": 5,
+    "THROTTLE": 5,
+    "USER_AGENT": "SH Wiki User (https://sunhaven.wiki.gg/wiki/User:YOURUSERNAMEHERE)",
 }
 
 ADDITIONAL_PATHS = {
