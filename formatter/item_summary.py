@@ -179,8 +179,8 @@ def create_item_summary(item, computed, display_name=None):
         exp_value = computed.get("exp", "EXPERIENCE")
         summary = summary.replace("EXPERIENCE", str(exp_value))
         
-        selltype = computed.get("selltype", "SELLTYPE")
-        summary = summary.replace("SELLTYPE", selltype.lower())
+        currency = computed.get("currency", "CURRENCY")
+        summary = summary.replace("CURRENCY", currency.lower())
         sell = computed.get("sell", "SELL")
         summary = summary.replace("SELL", sell)
     

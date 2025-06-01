@@ -64,7 +64,7 @@ def compute_sell(item: dict) -> str:
 
     return "; ".join(sell_values)
 
-def compute_selltype(item: dict) -> str:
+def compute_currency(item: dict) -> str:
     """
     Returns semicolon-separated sell types based on which sell fields are nonzero.
     """
@@ -179,7 +179,7 @@ def compute_requirement(item, classification):
 # ---------------------------
 FIELD_COMPUTATIONS: Dict[str, Callable[[dict], str]] = {
     "sell": compute_sell,
-    "selltype": compute_selltype,
+    "currency": compute_currency,
     "restores": compute_restores,
     "statInc": compute_statInc,
     "season": compute_season,
@@ -207,9 +207,9 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
     if sell:
         lines.append(f"|sell = {sell}")
 
-    selltype = FIELD_COMPUTATIONS["selltype"](item)
-    if selltype:
-        lines.append(f"|selltype = {selltype}")
+    currency = FIELD_COMPUTATIONS["currency"](item)
+    if currency:
+        lines.append(f"|currency = {currency}")
 
     for key in ["stack", "rarity", "hearts"]:
         json_key, normalize = FIELD_MAP[key]
