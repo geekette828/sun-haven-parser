@@ -134,31 +134,26 @@ def compare_all_generic(
         },
     }
 
-def normalize_comparison_value(key, expected, actual):
-    expected = expected.strip() if expected else ""
-    actual = actual.strip() if actual else ""
+def normalize_comparison_value(key, expected, actual, normalize_bool):
+    expected = str(expected).strip().lower()
+    actual = str(actual).strip().lower()
 
-    # Special handling for requirement: only extract the level number
+    # Normalize common separators and whitespace
+    expected = expected.replace("; ", ";").replace("(", "").replace(")", "")
+    actual = actual.replace("; ", ";").replace("(", "").replace(")", "")
+
+    # Special handling
     if key == "requirement":
         expected = extract_required_level(expected)
         actual = extract_required_level(actual)
-        return expected, actual
 
-    # Case-insensitive comparison for select fields
-    if key in {"selltype", "name"}:
-        return expected.lower(), actual.lower()
-
-    # Normalize statInc +/-
-    if key == "statInc":
+    elif key in {"statInc", "restores"}:
         expected = expected.replace("+", "")
         actual = actual.replace("+", "")
-        return expected, actual
 
-    # Normalize boolean fields
-    if key in {"dlc", "organic"}:
+    elif key in {"dlc", "organic"}:
         expected = normalize_bool(expected)
         actual = normalize_bool(actual)
-        return expected, actual
 
     return expected, actual
 
@@ -176,38 +171,6 @@ def extract_required_level(value: str) -> str:
 def strip_html_comments(value):
     return re.sub(r'<!--.*?-->', '', value).strip()
 
-def extract_required_level(value: str) -> str:
-    if not value:
-        return ""
-    match = re.search(r"\|\s*(\d+)\s*\}\}", value)
-    if match:
-        return match.group(1)
-    return value
-
-def normalize_comparison_value(key, expected, actual, normalize_bool):
-    expected = expected.strip() if expected else ""
-    actual = actual.strip() if actual else ""
-
-    if key == "requirement":
-        expected = extract_required_level(expected)
-        actual = extract_required_level(actual)
-        return expected, actual
-
-    if key in {"selltype", "name", "sell"}:
-        return expected.lower(), actual.lower()
-
-    if key in {"statInc", "restores"}:
-        expected = expected.replace("+", "").lower()
-        actual = actual.replace("+", "").lower()
-        return expected, actual
-
-    if key in {"dlc", "organic"}:
-        expected = normalize_bool(expected)
-        actual = normalize_bool(actual)
-        return expected, actual
-
-    return expected, actual
-
 def compare_instance_generic(json_obj, wiki_params, keys_to_check, field_map, compute_map, normalize_bool):
     differences = []
     expected_values = {}
@@ -223,7 +186,7 @@ def compare_instance_generic(json_obj, wiki_params, keys_to_check, field_map, co
         if key == "sell":
             can_sell = json_obj.get("canSell", 1)
             expected = "no" if not can_sell else expected_values.get(key, "")
-        elif key == "selltype":
+        elif key == "currency":
             if not json_obj.get("canSell", 1):
                 continue
             expected = expected_values.get(key, "")
