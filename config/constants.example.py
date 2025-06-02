@@ -4,6 +4,8 @@ IMAGE_INPUT_DIRECTORY = r"YOUR PATH/TO/IMAGES/"
 OUTPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_output/x.x"
 DEBUG_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/.hidden/debug_output"
 
+PATCH_VERSION = "x.x.x"  # Whatever is current
+
 PWB_SETTINGS = {
     "BATCH_SIZE": 50,
     "SLEEP_INTERVAL": 8,
@@ -24,7 +26,7 @@ STAT_TYPE_MAPPING = {
     3: "Attack Speed",
     4: "Health Regen",
     5: "Mana Regen",
-    6: "Movespeed",
+    6: "Movement Speed",
     7: "Jump Height",
     8: "Spell Damage",
     9: "Melee Lifesteal",
