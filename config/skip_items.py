@@ -6,10 +6,19 @@ that are not present in the JSON source data.
 SKIP_FIELDS = {
     "Sugar": ["restores"], # Sugar has a hidden -10hp that isn't in the data files.
     "Sandy Ice Cream": ["restores"], # Sandy Ice Cream has a hidden -5hp that isn't in the data files.
-    "Fire Sprite": ["sell"],
-    "Fire Sprite": ["currency"],
-    "Water Sprite": ["sell"],
-    "Water Sprite": ["currency"],
+    "Sandstone Sashimi": ["restores"], # Has a hidden -10hp that isn't in the data files.
+    "The Prehistoric Special": ["restores"], # Has a hidden -10hp that isn't in the data files.
+
+    "Elven Health Book": ["statInc"], # The hp increase isn't in the data files but hardcoded somewhere.
+    "Small Mana Tome": ["statInc"], # The mp increase isn't in the data files but hardcoded somewhere.
+    
+    "Fire Sprite": ["sell", "currency"],        # These aren't real items
+    "Water Sprite": ["sell", "currency"],       # These aren't real items
+    "Rock Sprite": ["sell", "currency"],        # These aren't real items
+    "Wind Sprite": ["sell", "currency"],        # These aren't real items
+    "White Baby Dragon": ["sell", "currency"],  # These aren't real items
+    "Squirrel": ["sell", "currency"],           # These aren't real items
+
     "Tier 1 Sewer Barn Permit": ["hearts"],
     "Tier 2 Sewer Barn Permit": ["hearts"],
     "Tier 3 Sewer Barn Permit": ["hearts"],
@@ -21,12 +30,17 @@ SKIP_FIELDS = {
     "Summer Token": ["hearts"],
     "Fall Token": ["hearts"],
     "Winter Token": ["hearts"],
+
+    "Coins": ["sell", "stack"],                 # Bad data
+    "Tickets": ["sell", "stack"],               # Bad data
+    "Mana Orbs": ["sell", "stack"],             # Bad data
 }
 
 '''
 SKIP_ITEMS are pages we want to ignore.
 '''
 SKIP_ITEMS = [
+    "Ocean Treasure Chest",
     "aegis",
     "adamant ore node",
     "alchemy bundle",

@@ -14,9 +14,9 @@ from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 
 SKIP_VARIANTS_BASE = True       # Skip pages that are base names of variant groups
 DRY_RUN = False                  # No actual edits
-ADD_HISTORY = True              # Add a history bullet if changes were made
+ADD_HISTORY = False              # Add a history bullet if changes were made
 
-TEST_RUN = True                # Only process test pages
+TEST_RUN = False                # Only process test pages
 TEST_PAGES = ["Leaf Wrapped Tiger Trout"]
 
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
