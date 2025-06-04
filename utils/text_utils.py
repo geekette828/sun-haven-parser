@@ -43,6 +43,17 @@ def normalize_list_string(s: str, delimiter: str = ';') -> str:
     items = [item.strip().lower() for item in (s or "").split(delimiter) if item.strip()]
     return delimiter.join(sorted(items))
 
+def normalize_for_compare(value):
+    """
+    Normalize a string for case-insensitive, whitespace-insensitive comparison.
+    Replaces curly apostrophes, strips and collapses whitespace, and lowercases.
+    """
+    if not isinstance(value, str):
+        return value
+    value = normalize_apostrophe(value)
+    value = re.sub(r'\s+', '', value.strip())
+    return value.lower()
+
 # ---------------------------
 # Modular text replacement utils
 # ---------------------------
