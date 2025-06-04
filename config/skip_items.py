@@ -1,3 +1,17 @@
+'''
+SKIP_FIELDS maps item names to specific infobox fields that should be excluded from comparison.
+This is used to suppress false mismatches caused by hidden or hardcoded in-game values
+that are not present in the JSON source data.
+'''
+SKIP_FIELDS = {
+    "Sugar": ["restores"], # Sugar has a hidden -10hp that isn't in the data files.
+    "Sandy Ice Cream": ["restores"], # Sandy Ice Cream has a hidden -5hp that isn't in the data files.
+}
+
+
+'''
+SKIP_ITEMS are pages we want to ignore.
+'''
 SKIP_ITEMS = [
     "aegis",
     "adamant ore node",
