@@ -6,8 +6,22 @@ that are not present in the JSON source data.
 SKIP_FIELDS = {
     "Sugar": ["restores"], # Sugar has a hidden -10hp that isn't in the data files.
     "Sandy Ice Cream": ["restores"], # Sandy Ice Cream has a hidden -5hp that isn't in the data files.
+    "Fire Sprite": ["sell"],
+    "Fire Sprite": ["currency"],
+    "Water Sprite": ["sell"],
+    "Water Sprite": ["currency"],
+    "Tier 1 Sewer Barn Permit": ["hearts"],
+    "Tier 2 Sewer Barn Permit": ["hearts"],
+    "Tier 3 Sewer Barn Permit": ["hearts"],
+    "Sewer Barn Access Key": ["hearts"],
+    "Kingly Ticket": ["hearts"],
+    "Economy Ticket": ["hearts"],
+    "First Class Ticket": ["hearts"],
+    "Spring Token": ["hearts"],
+    "Summer Token": ["hearts"],
+    "Fall Token": ["hearts"],
+    "Winter Token": ["hearts"],
 }
-
 
 '''
 SKIP_ITEMS are pages we want to ignore.
