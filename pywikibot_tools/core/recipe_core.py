@@ -1,0 +1,106 @@
+import os
+import re
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+import mwparserfromhell
+from utils import text_utils, recipe_utils
+from mappings.recipe_mapping import RECIPE_FIELD_MAP, RECIPE_COMPUTE_MAP, RECIPE_EXTRA_FIELDS
+from utils.compare_utils import compare_instance_generic
+from utils.wiki_utils import get_pages_with_template, fetch_pages, parse_template_params
+
+
+def load_normalized_json(json_file_path):  # Load and normalize the recipe JSON data.
+    from utils import json_utils
+    data = json_utils.load_json(json_file_path)
+    return {k.strip().lower(): v for k, v in data.items()}
+
+
+def get_recipe_param_map(wikitext, page_title):  # Extract template parameters and inject fallback for product if missing.
+    params = parse_template_params(wikitext, "Recipe")
+    if "product" not in params or not params["product"].strip():
+        params["product"] = page_title.strip()
+
+    for key, val in params.items():
+        params[key] = re.sub(r"<!--.*?-->", "", val).strip()
+
+    return params
+
+
+def compare_page_to_json(title, text, json_data, keys_to_check, skip_fields_map=None):
+    wiki_params = get_recipe_param_map(text, title)
+
+    # Inject derived values so that compare_instance_generic receives final formatted strings
+    if "time" in keys_to_check:
+        json_data["time"] = recipe_utils.format_time(json_data.get("hoursToCraft", 0))
+
+    if "ingredients" in keys_to_check:
+        json_data["ingredients"] = "; ".join(
+            f"{i.get('name', '').strip()}*{i.get('amount', 1)}" for i in json_data.get("inputs", [])
+        )
+
+    diffs = compare_instance_generic(
+        json_data,
+        wiki_params,
+        keys_to_check,
+        RECIPE_FIELD_MAP,
+        RECIPE_COMPUTE_MAP,
+        text_utils.normalize_bool,
+        skip_fields_map=skip_fields_map or {}
+    )
+
+    diffs.extend(compare_extra_fields(json_data, wiki_params, keys_to_check, title))
+    return diffs, wiki_params
+
+
+def compare_extra_fields(json_entry, tpl_params, keys_to_check, title):
+    diffs = []
+    for field in keys_to_check:
+        if field not in RECIPE_EXTRA_FIELDS:
+            continue
+        expected = RECIPE_EXTRA_FIELDS[field](json_entry, tpl_params, title)
+        actual = tpl_params.get(field, "").strip()
+        if expected != actual:
+            diffs.append((field, expected, actual))
+    return diffs
+
+
+def update_template_fields(template, diffs):
+    for field, expected, _ in diffs:
+        expected = f" {expected}"
+        if template.has(field):
+            param = template.get(field)
+            param.value = expected
+            if not str(param.value).endswith("\n"):
+                param.value = str(param.value) + "\n"
+        elif field == "product":
+            continue
+        else:
+            template.add(field, expected + "\n")
+
+
+def update_template_text(text, diffs):
+    parsed = mwparserfromhell.parse(text)
+    for template in parsed.filter_templates():
+        if template.name.strip().lower() == "recipe":
+            update_template_fields(template, diffs)
+            result = str(parsed)
+            result = re.sub(r"\n+\}\}$", "\n}}", result)
+            result = re.sub(r"(?<!\n)([^\n\S]*)(\n}})$", r"  }}", result)
+            return result
+    return text
+
+
+def get_recipe_pages(TEST_RUN=False, test_list=None):
+    return test_list if TEST_RUN and test_list else get_pages_with_template("Recipe", namespace=0)
+
+
+def find_json_by_product_name(data, page_title):
+    title_lc = page_title.lower()
+    for key, record in data.items():
+        output = record.get("output", {})
+        name = output.get("name", "").lower()
+        if name == title_lc:
+            return key, record
+    return None, None

@@ -10,22 +10,17 @@ from utils.text_utils import normalize_list_string
 from typing import Dict, Tuple, Any, Callable
 
 # JSON‑side helpers
-def _format_json_ingredients(inputs: Any) -> str:
-    return ';'.join(f"{item['name']}*{item['amount']}" for item in inputs or [])
-
 def _normalize_ingredient_list(s: str) -> str:
     return normalize_list_string(s.replace('Inputs:', ''))
 
-def _format_json_time(hours: Any) -> str:
-    try:
-        h = float(hours)
-    except (ValueError, TypeError):
-        return ''
-    if h >= 1:
-        hours_i = int(h)
-        minutes = int(round((h - hours_i) * 60))
-        return f"{hours_i}h{minutes}m" if minutes else f"{hours_i}h"
-    return f"{int(round(h * 60))}m"
+def _format_json_ingredients(inputs):
+    return "; ".join(f"{item['name']}*{item['amount']}" for item in inputs if item.get("name") and item.get("amount"))
+
+def _format_json_time(hours):
+    if not hours:
+        return ""
+    minutes = int(round(float(hours) * 60))
+    return f"{minutes}min"
 
 def _normalize_time_string(s: str) -> str:
     val = (s or '').strip().lower()
@@ -42,13 +37,15 @@ def _normalize_wiki_product(s: str, title: str) -> str:
 
 # Mapping of template parameters to JSON fields and normalization functions
 RECIPE_FIELD_MAP: Dict[str, Tuple[str, Callable[[Any], str]]] = {
-    'workbench': ('workbench', lambda v: (v or '').strip()),
-    'ingredients': (None, lambda rec: _normalize_ingredient_list(
-        _format_json_ingredients(rec.get('inputs'))
-    )),
-    'time': (None, lambda rec: _format_json_time(rec.get('hoursToCraft'))),
-    'yield': (None, lambda rec: str(rec.get('output', {}).get('amount', '')).strip()),
-    'product': (None, lambda rec: (rec.get('output', {}).get('name') or '').strip()),
+    "workbench": ("workbench", lambda v: (v or "").strip()),
+    "ingredients": ("inputs", _format_json_ingredients),
+    "time": ("hoursToCraft", _format_json_time),
+    "yield": ("output", lambda out: str(out.get("amount", "")).strip() if isinstance(out, dict) else ""),
+    "product": ("output", lambda out: (out.get("name") or "").strip() if isinstance(out, dict) else ""),
+}
+
+RECIPE_COMPUTE_MAP: Dict[str, Callable[[Any], str]] = {
+    "id": lambda rec: str(rec.get("recipeID", "")).strip() if rec else ""
 }
 
 # For fields with json_key=None, values come from these computed functions

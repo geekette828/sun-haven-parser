@@ -100,3 +100,20 @@ def normalize_time_wiki(value):
         except ValueError:
             total = 0
     return str(total)
+
+def parse_time(s):
+    s = s.strip().lower().replace(" ", "")
+    if "h" in s or "m" in s:
+        hours = 0
+        minutes = 0
+        h_match = re.search(r"(\\d+(\\.\\d+)?)h", s)
+        m_match = re.search(r"(\\d+(\\.\\d+)?)m", s)
+        if h_match:
+            hours = float(h_match.group(1))
+        if m_match:
+            minutes = float(m_match.group(1))
+        return hours + (minutes / 60)
+    try:
+        return float(s)
+    except ValueError:
+        return 0
