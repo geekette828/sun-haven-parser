@@ -5,7 +5,6 @@ import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import pywikibot
 from pywikibot_tools.core import item_infobox_core
 from utils import file_utils, text_utils
 from config import constants
