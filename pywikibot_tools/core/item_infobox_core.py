@@ -4,7 +4,6 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import pywikibot
 import mwparserfromhell
 from utils import text_utils
 from mappings.item_infobox_mapping import FIELD_MAP, FIELD_COMPUTATIONS
