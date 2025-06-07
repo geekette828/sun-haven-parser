@@ -15,7 +15,7 @@ from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 SKIP_WORKBENCH = True           # Skip updating the workbench
 SKIP_SKILL_TOMES = True         # Skip items that have the words "Skill Tome" in them.
 
-DRY_RUN = False                  # No actual edits
+DRY_RUN = True                 # No actual edits
 ADD_HISTORY = False             # Add a history bullet if changes were made
 
 TEST_RUN = False                # Only process test pages
@@ -57,19 +57,8 @@ def title_case_ingredients(value):
     parts = [x.strip().title() for x in value.split(";") if x.strip()]
     return "; ".join(parts)
 
-def apply_diffs_with_regex(text, diffs):
-    parsed = mwparserfromhell.parse(text)
-    infobox = None
-
-    for template in parsed.filter_templates():
-        if template.name.strip().lower() == "recipe":
-            infobox = template
-            break
-
-    if not infobox:
-        return text
-
-    template_str = str(infobox)
+def apply_diffs_with_regex(text, diffs, template):
+    template_str = str(template)
     lines = template_str.strip().splitlines()
 
     closing_line_index = -1
@@ -83,7 +72,7 @@ def apply_diffs_with_regex(text, diffs):
             closing_inline = True
             break
 
-    existing_fields = {param.name.strip(): i for i, param in enumerate(infobox.params)}
+    existing_fields = {param.name.strip(): i for i, param in enumerate(template.params)}
 
     for field, expected, _ in diffs:
         if field == "product":
@@ -128,66 +117,77 @@ for i in range(0, len(pages), BATCH_SIZE):
         if title in SKIP_ITEMS or (SKIP_SKILL_TOMES and "skill tome" in title.lower()):
             continue
 
-        json_key, json_entry = recipe_core.find_json_by_product_name(data, title)
-        if not json_entry:
-            skipped.append(title)
-            debug_lines.append(f"[NO JSON] {title}")
-            continue
+        parsed = mwparserfromhell.parse(text)
+        templates = [tpl for tpl in parsed.filter_templates() if tpl.name.strip().lower() == "recipe"]
+        found_any = False
 
-        diffs, wiki_params = recipe_core.compare_page_to_json(
-            title, text, json_entry, KEYS_TO_CHECK, skip_fields_map=SKIP_FIELDS
-        )
+        for template in templates:
+            template_id = template.get("id").value.strip() if template.has("id") else None
 
-        seen = set()
-        clean_diffs = []
-        recipe_id = json_entry.get("recipeID")
-        for field, expected, actual in diffs:
-            key = field.lower()
-            if key in seen:
-                continue
-            seen.add(key)
-
-            # Skip ID if recipeID is null
-            if field == "id" and not recipe_id:
-                continue
-
-            norm_expected = normalize_field(field, expected)
-            norm_actual = normalize_field(field, actual)
-            if norm_expected != norm_actual:
-                clean_diffs.append((field, expected, actual))
-
-        if not clean_diffs:
-            debug_lines.append(f"[NO CHANGE] {title}")
-            continue
-
-        new_text = apply_diffs_with_regex(text, clean_diffs)
-        page = pywikibot.Page(site, title)
-
-        try:
-            if not DRY_RUN:
-                if ADD_HISTORY:
-                    from utils.history_utils import append_history_entry
-                    changed_fields = [field for field, _, _ in clean_diffs if not (SKIP_WORKBENCH and field == "workbench")]
-                    summary = f"Updated recipe fields: {', '.join(changed_fields)}"
-                    patch = constants.PATCH_VERSION
-                    new_text = append_history_entry(new_text, summary, patch)
-
-                page.text = new_text
-                page.save(summary="Updating recipe template from JSON data")
-
-                if not TEST_RUN:
-                    time.sleep(SLEEP_INTERVAL)
-
-            updated.append(title)
-            status = "DRY RUN" if DRY_RUN else "UPDATED"
-            debug_lines.append(f"[{status}] {title}")
-            for field, expected, actual in clean_diffs:
-                if field == "workbench" and SKIP_WORKBENCH:
+            if len(templates) == 1:
+                product = template.get("product").value.strip() if template.has("product") else title
+                json_key, matched_json = recipe_core.find_json_by_product_name(data, product)
+                if matched_json and not template_id and matched_json.get("recipeID"):
+                    template.add("id", str(matched_json["recipeID"]))
+            else:
+                if not template_id:
+                    debug_lines.append(f"[MISSING ID] {title} - Skipping template with no ID")
                     continue
-                debug_lines.append(f"    - {field} expected: '{expected}' but found: '{actual}'")
-        except Exception as e:
-            skipped.append(title)
-            debug_lines.append(f"[FAILED] {title} - {str(e)}")
+                matched_json = next((v for v in data.values() if str(v.get("recipeID")) == template_id), None)
+
+            if not matched_json:
+                debug_lines.append(f"[UNKNOWN ID] {title} - Could not match template")
+                continue
+
+            diffs, wiki_params = recipe_core.compare_page_to_json(
+                title, str(template), matched_json, KEYS_TO_CHECK, skip_fields_map=SKIP_FIELDS
+            )
+
+            seen = set()
+            clean_diffs = []
+            for field, expected, actual in diffs:
+                if field.lower() in seen:
+                    continue
+                seen.add(field.lower())
+
+                if field == "id" and not matched_json.get("recipeID"):
+                    continue
+
+                norm_expected = normalize_field(field, expected)
+                norm_actual = normalize_field(field, actual)
+                if norm_expected != norm_actual:
+                    clean_diffs.append((field, expected, actual))
+
+            if not clean_diffs:
+                debug_lines.append(f"[NO CHANGE] {title} - ID {matched_json.get('recipeID')}")
+                continue
+
+            new_text = apply_diffs_with_regex(text, clean_diffs, template)
+            page = pywikibot.Page(site, title)
+
+            try:
+                if not DRY_RUN:
+                    if ADD_HISTORY:
+                        from utils.history_utils import append_history_entry
+                        changed_fields = [f for f, _, _ in clean_diffs if not (SKIP_WORKBENCH and f == "workbench")]
+                        summary = f"Updated recipe fields: {', '.join(changed_fields)}"
+                        patch = constants.PATCH_VERSION
+                        new_text = append_history_entry(new_text, summary, patch)
+                    page.text = new_text
+                    page.save(summary="Updating recipe template from JSON data")
+                    if not TEST_RUN:
+                        time.sleep(SLEEP_INTERVAL)
+
+                updated.append(title)
+                status = "DRY RUN" if DRY_RUN else "UPDATED"
+                debug_lines.append(f"[{status}] {title} - ID {matched_json.get('recipeID')}")
+                for field, expected, actual in clean_diffs:
+                    if field == "workbench" and SKIP_WORKBENCH:
+                        continue
+                    debug_lines.append(f"    - {field} expected: '{expected}' but found: '{actual}'")
+            except Exception as e:
+                skipped.append(title)
+                debug_lines.append(f"[FAILED] {title} - {str(e)}")
 
     if i // BATCH_SIZE % 10 == 0:
         percent = round(((i + BATCH_SIZE) / len(pages)) * 100, 1)
