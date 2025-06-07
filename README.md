@@ -34,6 +34,7 @@ Sun Haven Parser/
 │   │   └── create_quest_page.py   
 │   ├── all_dialogue.py           → Creates a directory of all dialgoue for all NPCs.
 │   ├── all_item_descriptions.py  → Creates the format for `Module:Description`.
+│   ├── all_npc_names.py          → A list of all NPCs that have speaking lines.
 │   ├── all_recipes.py            → A list of all recipies, in the `Template:Recipie` format in one output.
 │   ├── all_shops.py              → Formats all shop inventory sections.
 │   ├── item_infobox.py           → Creates a formatted item infobox from the json data.
@@ -52,23 +53,29 @@ Sun Haven Parser/
 │   └── shop_inventory.py         → Creates list of shop inventory details.
 |
 ├── pywikibot_tools/
+│   ├── compare/
+│   │   ├── compare_item_infobox.py       → Compares wiki item infobox template to the items json, logs diffs.
+│   │   ├── compare_recipe.py             → Compares wiki recipe template to the recipe json, logs diffs.
+│   ├── core/
+│   │   ├── item_infobox_core.py          → Core item infobox scripts for compare/update/create.
+│   │   ├── recipe_core.py                → Core recipe scripts for compare/update/create.
 │   ├── create/
-│   │   ├── missing_item_image.py       → Uploads missing item images.
-│   │   └── missing_item_page.py        → Creates missing item pages using `formatter/item_page/create_page.py`.
+│   │   ├── missing_item_image.py         → Uploads missing item images.
+│   │   └── missing_item_page.py          → Creates missing item pages using `formatter/item_page/create_page.py`.
 │   ├── update/
-│   |   └── update_recipe_mismatches.py → Updates wiki recipe template to match recipe json.
+│   │   ├── update_item_infobox.py        → Updates wiki item infobox template to match items json.
+│   │   ├── update_recipe.py              → Updates wiki recipe template to match recipe json.
+│   |   └── update_uncategorized_files.py → Categorizes files from Special:UncategorizedFiles to clean up file metadata.
 │   ├── validators/
-│   │   ├── missing_item_images.py      → Compares items.json to the wiki to find missing item images.
-│   │   ├── missing_item.py             → Lists missing item pages based on the item json file.
-│   │   ├── missing_quests.py           → Lists missing quest pages based on the quest json files.
-│   |   └── missing_recipe_template.py  → Lists pages missing the recipe template, based on the recipe json file.
-│   ├── compare_recipe.py               → (WIP) Compares the `{{recipe}}` page data, to the recipe json data to find recipes that need to be updated.
-│   ├── compare_item_infobox.py         → Compares the `{{item infobox}}` page data, to the item json data to find items that need to be updated.
-│   ├── formatting_recipe_template.py   → Standardizes the recipe template, so the compare script can run.
-│   ├── images_dlc_pet.py               → Puts specific categories on pet image files.
-│   ├── images_dlc_mount.py             → Puts specific categories on mount image files.
-│   ├── images_dlc_mount_display.py     → (WIP) 
-│   └── redirect_creation.py            → Creates redirect pages to specific base pages.
+│   │   ├── missing_item_images.py        → Compares items.json to the wiki to find missing item images.
+│   │   ├── missing_item.py               → Lists missing item pages based on the item json file.
+│   │   ├── missing_quests.py             → Lists missing quest pages based on the quest json files.
+│   |   └── missing_recipe_template.py    → Lists pages missing the recipe template, based on the recipe json file.
+│   ├── formatting_recipe_template.py     → Standardizes the recipe template, so the compare script can run.
+│   ├── images_dlc_pet.py                 → Puts specific categories on pet image files.
+│   ├── images_dlc_mount.py               → Puts specific categories on mount image files.
+│   ├── images_dlc_mount_display.py       → (WIP) 
+│   └── redirect_creation.py              → Creates redirect pages to specific base pages.
 |
 ├── _run_for_new_patch.py               → Runs JSON and Formatter scripts in correct order for new patch.
 ├── pwb.ps1                             → Recommended launcher script for pywikibot stuff
@@ -97,6 +104,7 @@ Sun Haven Parser/
     │   ├── EditorSettings
     │   ├── Font
     │   ├── GraphicsSettings
+    │   ├── GameObject              # Entity information [Monster/NPC/Resource stats and deop info] 
     │   ├── InputManager
     │   ├── LightingSettings
     │   ├── Mesh
@@ -120,6 +128,7 @@ Sun Haven Parser/
     │   ├── SpriteAtlas
     │   ├── StreamingManager
     │   ├── SunHaven
+    │   │     └── Scenes            # This is fishing chance data        
     │   ├── TagManager
     │   ├── TextAsset               # This is where the files for the conversations and dialogues are.
     │   ├── Texture2D               # This is where many of the images are.
