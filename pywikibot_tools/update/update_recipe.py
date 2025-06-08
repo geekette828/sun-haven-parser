@@ -15,7 +15,7 @@ from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 SKIP_WORKBENCH = True           # Skip updating the workbench
 SKIP_SKILL_TOMES = True         # Skip items that have the words "Skill Tome" in them.
 
-DRY_RUN = True                 # No actual edits
+DRY_RUN = False                 # No actual edits
 ADD_HISTORY = False             # Add a history bullet if changes were made
 
 TEST_RUN = False                # Only process test pages
@@ -124,13 +124,13 @@ for i in range(0, len(pages), BATCH_SIZE):
 
         for template in templates:
             matched_json, match_logs = recipe_core.match_json_recipe(template, title, data, len(templates))
+            debug_lines.extend(match_logs)
+
             if not matched_json:
-                debug_lines.extend(match_logs)
                 continue
-            json_entry = matched_json
 
             diffs, wiki_params = recipe_core.compare_page_to_json(
-                title, str(template), json_entry, KEYS_TO_CHECK, skip_fields_map=SKIP_FIELDS
+                title, str(template), matched_json, KEYS_TO_CHECK, skip_fields_map=SKIP_FIELDS
             )
 
             seen = set()
@@ -140,7 +140,7 @@ for i in range(0, len(pages), BATCH_SIZE):
                     continue
                 seen.add(field.lower())
 
-                if field == "id" and not json_entry.get("recipeID"):
+                if field == "id" and not matched_json.get("recipeID"):
                     continue
 
                 norm_expected = normalize_field(field, expected)
@@ -148,8 +148,14 @@ for i in range(0, len(pages), BATCH_SIZE):
                 if norm_expected != norm_actual:
                     clean_diffs.append((field, expected, actual))
 
-            if not clean_diffs:
-                debug_lines.append(f"[NO CHANGE] {title} - ID {json_entry.get('recipeID')}")
+            # Skip save if all diffs are workbench and we're skipping workbench
+            non_skipped_diffs = [
+                (f, e, a) for f, e, a in clean_diffs
+                if not (SKIP_WORKBENCH and f == "workbench")
+            ]
+
+            if not non_skipped_diffs:
+                debug_lines.append(f"[NO CHANGE] {title}")
                 continue
 
             new_text = apply_diffs_with_regex(text, clean_diffs, template)
@@ -159,7 +165,7 @@ for i in range(0, len(pages), BATCH_SIZE):
                 if not DRY_RUN:
                     if ADD_HISTORY:
                         from utils.history_utils import append_history_entry
-                        changed_fields = [field for field, _, _ in clean_diffs if not (SKIP_WORKBENCH and field == "workbench")]
+                        changed_fields = [field for field, _, _ in non_skipped_diffs]
                         summary = f"Updated recipe fields: {', '.join(changed_fields)}"
                         patch = constants.PATCH_VERSION
                         new_text = append_history_entry(new_text, summary, patch)
@@ -172,7 +178,7 @@ for i in range(0, len(pages), BATCH_SIZE):
 
                 updated.append(title)
                 status = "DRY RUN" if DRY_RUN else "UPDATED"
-                debug_lines.append(f"[{status}] {title} - ID {json_entry.get('recipeID')}")
+                debug_lines.append(f"[{status}] {title}")
                 for field, expected, actual in clean_diffs:
                     if field == "workbench" and SKIP_WORKBENCH:
                         continue
