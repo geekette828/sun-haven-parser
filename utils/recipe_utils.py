@@ -31,6 +31,7 @@ def format_recipe(recipe):
     workbench_raw = recipe.get("workbench", "")
     workbench = normalize_workbench(workbench_raw)
     time = recipe.get("hoursToCraft", "0")
+    recipe_id = recipe.get("recipeID", "")
     inputs = recipe.get("inputs", [])
 
     if not output_name or not inputs:
@@ -43,11 +44,12 @@ def format_recipe(recipe):
     return (
         f"{{{{Recipe\n"
         f"|recipesource = \n"
-        f"|workbench    = {workbench}\n"
-        f"|ingredients  = {ingredients}\n"
-        f"|time         = {time}hr\n"
-        f"|product      = {output_name}\n"
-        f"|yield        = {output_amount}}}}}"
+        f"|workbench = {workbench}\n"
+        f"|ingredients = {ingredients}\n"
+        f"|time = {time}hr\n"
+        f"|product = {output_name}\n"
+        f"|yield = {output_amount}\n"
+        f"|id = {recipe_id}  }}}}"
     )
 
 def normalize_workbench_for_template(wb):
