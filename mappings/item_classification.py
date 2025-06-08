@@ -100,8 +100,12 @@ def classify_item(item):
             return "Animal", "Wild Animal", ""
 
     # 2. Weapon classification.
+    if "great sword" in name and use_desc == "(Left click to swing)":
+        return "Equipment", "Weapon", "Great Sword"
     if "sword" in name and use_desc == "(Left click to swing)":
         return "Equipment", "Weapon", "Sword"
+    if "hammer" in name and use_desc == "(Left click to swing)":
+        return "Equipment", "Weapon", "Hammer"
     if "crossbow" in name and use_desc == "(Left click to fire)":
         return "Equipment", "Weapon", "Crossbow"
     if ("staff" in name or "staves" in name) and desc and "when selected on your toolbelt, this staff grants" in desc.lower():
