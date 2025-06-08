@@ -10,16 +10,13 @@ from utils.compare_utils import compare_instance_generic
 from utils import text_utils, recipe_utils
 from utils.wiki_utils import get_pages_with_template, fetch_pages, parse_template_params
 
-
 def load_normalized_json(json_file_path):
     from utils import json_utils
     data = json_utils.load_json(json_file_path)
     return {k.strip().lower(): v for k, v in data.items()}
 
-
 def get_recipe_pages(TEST_RUN=False, test_list=None):
     return test_list if TEST_RUN and test_list else get_pages_with_template("Recipe", namespace=0)
-
 
 def get_recipe_param_map(wikitext, page_title):
     params = parse_template_params(wikitext, "Recipe")
@@ -31,7 +28,6 @@ def get_recipe_param_map(wikitext, page_title):
 
     return params
 
-
 def compare_extra_fields(json_entry, tpl_params, keys_to_check, title):
     diffs = []
     for field in keys_to_check:
@@ -42,7 +38,6 @@ def compare_extra_fields(json_entry, tpl_params, keys_to_check, title):
         if expected != actual:
             diffs.append((field, expected, actual))
     return diffs
-
 
 def compare_page_to_json(title, text, json_entry, keys_to_check, skip_fields_map=None):
     wiki_params = get_recipe_param_map(text, title)
@@ -69,7 +64,6 @@ def compare_page_to_json(title, text, json_entry, keys_to_check, skip_fields_map
     diffs.extend(compare_extra_fields(json_entry, wiki_params, keys_to_check, title))
     return diffs, wiki_params
 
-
 def find_json_by_product_name(data, page_title):
     title_lc = page_title.lower()
     for key, record in data.items():
@@ -79,30 +73,29 @@ def find_json_by_product_name(data, page_title):
             return key, record
     return None, None
 
-
-def match_templates_by_id(page_title, wikitext, json_data):
-    parsed = mwparserfromhell.parse(wikitext)
-    matches = []
+def match_json_recipe(template, page_title, data, num_templates_on_page):
     logs = []
+    product = template.get("product").value.strip() if template.has("product") else page_title
+    recipe_id = template.get("id").value.strip() if template.has("id") else None
 
-    for template in parsed.filter_templates():
-        if template.name.strip().lower() != "recipe":
-            continue
+    name_matches = [k for k, v in data.items()
+                    if isinstance(v.get("output"), dict) and v["output"].get("name", "").strip().lower() == product.lower()]
 
-        template_id = template.get("id").value.strip() if template.has("id") else None
-        if not template_id:
-            logs.append(f"[MISSING ID] {page_title} - Skipping template with no ID")
-            continue
+    if len(name_matches) == 1 and num_templates_on_page == 1:
+        return data[name_matches[0]], logs
 
-        matched_json = next(
-            (v for v in json_data.values() if str(v.get("recipeID")) == template_id),
-            None
-        )
+    if not recipe_id:
+        logs.append(f"[MISSING ID] {page_title} - Skipping template with no ID")
+        return None, logs
 
-        if not matched_json:
-            logs.append(f"[UNKNOWN ID] {page_title} - ID {template_id} not found in JSON")
-            continue
+    if not name_matches:
+        logs.append(f"[UNKNOWN ID] {page_title} - No JSON recipes found for product '{product}'")
+        return None, logs
 
-        matches.append((template, matched_json, template_id))
+    id_matches = [k for k in name_matches if str(data[k].get("recipeID")) == recipe_id]
 
-    return matches, logs
+    if len(id_matches) == 1:
+        return data[id_matches[0]], logs
+
+    logs.append(f"[ID MISMATCH] {page_title} - Recipe ID {recipe_id} for product '{product}' not uniquely matched")
+    return None, logs
