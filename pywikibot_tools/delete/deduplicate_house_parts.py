@@ -29,7 +29,7 @@ from utils import file_utils, wiki_utils
 from PIL import Image
 
 # Config
-debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "normalize_house_variants.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "normalize_house_variants.txt")
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 
 site = wiki_utils.get_site()

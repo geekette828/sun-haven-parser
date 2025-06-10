@@ -26,7 +26,7 @@ site = pywikibot.Site()
 
 # Paths
 output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "pywikibot_updatePetImage.txt")
-debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_updatePetImage_debug.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "pywikibot_updatePetImage_debug.txt")
 os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 
 # Constants

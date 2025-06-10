@@ -17,7 +17,7 @@ input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "NPC Schedules")
 file_utils.ensure_dir_exists(output_directory)
 
-debug_log_path = os.path.join(".hidden", "debug_output", "npc_path_debug.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "npc_path_debug.txt")
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 
 def format_hour_to_time(hour_str):

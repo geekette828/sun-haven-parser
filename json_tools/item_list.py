@@ -18,7 +18,7 @@ en_display_name_file = os.path.join(constants.INPUT_DIRECTORY, "English.prefab")
 file_utils.ensure_dir_exists(output_directory)
 
 # Setup logging
-debug_log_path = os.path.join(".hidden", "debug_output", "json", "items_data_debug.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "json", "items_data_debug.txt")
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 logging.basicConfig(filename=debug_log_path, level=logging.DEBUG, format="%(levelname)s: %(message)s")
 

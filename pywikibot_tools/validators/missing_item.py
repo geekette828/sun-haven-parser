@@ -29,7 +29,7 @@ infobox_txt_path = os.path.join(output_directory, "infobox_pages.txt")
 comparison_wiki_json_path = os.path.join(output_directory, "Item_Comparison_WikiJSON.txt")
 comparison_wiki_only_path = os.path.join(output_directory, "Item_Comparison_WikiOnly.txt")
 comparison_json_only_path = os.path.join(output_directory, "Item_Comparison_JSONOnly.txt")
-debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot")
 
 def should_skip(name):
     name = name.lower()

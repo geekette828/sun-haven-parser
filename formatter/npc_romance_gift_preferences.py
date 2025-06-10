@@ -8,16 +8,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import config.constants as constants
 from utils import file_utils
 
-# === Setup paths ===
+# Setup paths 
 input_dir = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
 output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "npc_gift_preferences.txt")
-debug_log_path = os.path.join(".hidden", "debug_output", "create_npc_gift_debug.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "create_npc_gift_debug.txt")
 
 file_utils.ensure_dir_exists(os.path.dirname(output_file_path))
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 
-# === Load item ID to name map ===
+# Load item ID to name map 
 with open(json_file_path, encoding="utf-8") as f:
     json_data = json.load(f)
 
@@ -28,10 +28,10 @@ for name, data in json_data.items():
     if item_id is not None and item_name:
         id_to_name[str(item_id)] = item_name
 
-# === Items to skip from output ===
+# Items to skip from output 
 SKIP_ITEMS = {"red rose bouquet", "blue rose bouquet"}
 
-# === Utility: extract IDs from section ===
+# Utility: extract IDs from section
 def extract_ids_between_sections(lines, section_header):
     ids = []
     in_section = False
@@ -48,7 +48,7 @@ def extract_ids_between_sections(lines, section_header):
                 ids.append(match.group(1))
     return ids
 
-# === Utility: extract response texts from section ===
+# Utility: extract response texts from section
 def extract_response_block(lines, section_header):
     responses = []
     in_section = False
@@ -71,7 +71,7 @@ def extract_response_block(lines, section_header):
                 responses.append(response_text)
     return " / ".join(responses)
 
-# === Utility: convert ID list to name list ===
+# Utility: convert ID list to name list
 def convert_ids_to_names(id_list):
     names = []
     for item_id in id_list:
@@ -83,7 +83,7 @@ def convert_ids_to_names(id_list):
             names.append(f"[Unknown {item_id}]")
     return "; ".join(names)
 
-# === Process each GiftTable.asset file ===
+# Process each GiftTable.asset file
 results = []
 
 for filename in os.listdir(input_dir):

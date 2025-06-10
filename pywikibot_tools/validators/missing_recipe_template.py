@@ -24,8 +24,8 @@ site = pywikibot.Site("en", "sunhaven")
 # Paths
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
 output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "missing_recipe_templates.txt")
-debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "missing_recipe_templates_debug.txt")
-page_list_path = os.path.join(".hidden", "debug_output", "pywikibot", "cached_embedded_recipe_pages.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "missing_recipe_templates_debug.txt")
+page_list_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "cached_embedded_recipe_pages.txt")
 os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 
 # Load JSON recipes

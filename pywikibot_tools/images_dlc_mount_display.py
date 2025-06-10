@@ -26,8 +26,8 @@ site = pywikibot.Site()
 # Paths
 INPUT_FILE_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "pywikibot_updateMountImage.txt")
 INPUT_IMAGE_PATH = r"N:\\Images\\Sprite"
-DEBUG_LOG_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_uploadMountImage_debug.txt")
-os.makedirs(os.path.dirname(DEBUG_LOG_PATH), exist_ok=True)
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "pywikibot_uploadMountImage_debug.txt")
+os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 
 # Settings
 TARGET_SCALE = 4
@@ -36,7 +36,7 @@ CHUNK_SIZE = 5
 CHUNK_SLEEP_SECONDS = 10
 
 def log_debug(message):
-    with open(DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+    with open(debug_log_path, "a", encoding="utf-8") as f:
         f.write(message + "\n")
 
 def trim_transparency(im):

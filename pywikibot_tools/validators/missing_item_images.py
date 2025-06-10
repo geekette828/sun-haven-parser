@@ -27,7 +27,7 @@ images_data_file = os.path.join(json_data_directory, "images_data.json")
 missing_names_txt = os.path.join(output_directory, "MissingImages_nonexistentImages.txt")
 missing_files_txt = os.path.join(output_directory, "MissingImages_filenameConversion.txt")
 
-debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "pywikibot_missingImageCheck_skipped.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "pywikibot_missingImageCheck_skipped.txt")
 
 # Constants
 CHUNK_SIZE = 750

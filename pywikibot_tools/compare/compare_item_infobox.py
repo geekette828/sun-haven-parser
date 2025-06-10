@@ -16,7 +16,7 @@ TEST_PAGES = ["Golden Peach", "Iron Ring", "Candy Corn Fruit Pop", "Watery Prote
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot")
 output_file = os.path.join(output_directory, "item_infobox_compare.txt")
-debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "item_infobox_compare_debug.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "item_infobox_compare_debug.txt")
 
 file_utils.ensure_dir_exists(output_directory)
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))

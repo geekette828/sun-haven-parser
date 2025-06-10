@@ -24,18 +24,18 @@ pywikibot.config.noisy_output = False
 
 # Paths
 input_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "imagesTEST.txt")
-image_input_directory = os.path.join(constants.IMAGE_INPUT_DIRECTORY) #os.path.join(constants.INPUT_DIRECTORY, "Texture2D")
+image_input_directory = os.path.join(constants.IMAGE_INPUT_DIRECTORY)
 output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot")
-debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_imageUploader_debug.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "pywikibot_imageUploader_debug.txt")
 os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 
 missing_file_output_path = os.path.join(output_file_path, "MissingImages_missingTextureFile.txt")
 missing_files = []
 
 # Settings
-target_scale = 4  # Scale image dimensions
+target_scale = 5  # Scale image dimensions
 summary_text = "Uploading upscaled version of image"
-upload_template = "{{Games}}"  # Change if needed
+upload_template = "{{License|game}}"  
 CHUNK_SIZE = 5
 CHUNK_SLEEP_SECONDS = 10
 

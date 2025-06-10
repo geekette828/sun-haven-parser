@@ -13,7 +13,7 @@ from config import constants
 from utils import file_utils, wiki_utils
 
 # Define paths
-debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "delete_unused_categories_debug.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "delete_unused_categories_debug.txt")
 
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 

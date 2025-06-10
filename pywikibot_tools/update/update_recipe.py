@@ -22,7 +22,7 @@ TEST_RUN = False                # Only process test pages
 TEST_PAGES = ["Magical Water", "Sugar Plum Jam", "Fish Grill", "Sushi Table"]
 
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
-debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "recipe_update_debug.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "recipe_update_debug.txt")
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 
 KEYS_TO_CHECK = ["product", "workbench", "ingredients", "time", "yield", "id"]

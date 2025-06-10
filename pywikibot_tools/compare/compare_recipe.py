@@ -12,7 +12,7 @@ from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
 output_file = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "recipe_compare.txt")
-debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "recipe_compare_debug.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "recipe_compare_debug.txt")
 
 file_utils.ensure_dir_exists(os.path.dirname(output_file))
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))

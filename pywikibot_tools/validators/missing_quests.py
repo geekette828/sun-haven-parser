@@ -23,15 +23,12 @@ json_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 quest_files = ["quest_data_BB_SQ.json", "quest_data_MainQuests.json"]
 
 output_dir = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot")
-debug_dir = os.path.join(".hidden", "debug_output", "pywikibot")
 os.makedirs(output_dir, exist_ok=True)
-os.makedirs(debug_dir, exist_ok=True)
 
 output_both_path = os.path.join(output_dir, "Quest_Comparison_Both.txt")
 output_json_only_path = os.path.join(output_dir, "Quest_Comparison_JSONOnly.txt")
-recovered_log_path = os.path.join(debug_dir, "QuestCheck_recoveredRedirects.txt")
-load_debug_log = os.path.join(debug_dir, "QuestLoadDebug.txt")
-
+recovered_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "QuestCheck_recoveredRedirects.txt")
+load_debug_log = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "QuestLoadDebug.txt")
 
 def load_quest_names() -> set[str]:
     """Load quest names from configured JSON files."""

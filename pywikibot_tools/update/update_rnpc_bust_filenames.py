@@ -5,11 +5,12 @@ import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+from config import constants
 from utils import file_utils, wiki_utils
 import pywikibot
 
 site = wiki_utils.get_site()
-debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "media_rename_log.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "media_rename_log.txt")
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 
 def log_debug(msg):

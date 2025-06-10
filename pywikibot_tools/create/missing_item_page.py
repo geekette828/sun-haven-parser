@@ -25,12 +25,12 @@ site = pywikibot.Site()
 # Paths
 input_file = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "NEWITEMS.txt")
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
-debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_create_item_page.txt")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "pywikibot_create_item_page.txt")
 
 # Constants
 CHUNK_SIZE = 750
 CHUNK_SLEEP_SECONDS = 3
-SUMMARY_TEXT = "New item from most recent patch page creation."
+SUMMARY_TEXT = "Page creation for a new item from most recent patch."
 
 # Load items data
 items_data = load_json(json_file_path)

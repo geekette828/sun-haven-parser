@@ -7,13 +7,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from utils import file_utils, text_utils
 import config.constants as constants
 
-# === Paths ===
+# Paths
 input_dir = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
 output_dir = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "Dialogues_Gifting_Lines")
 file_utils.ensure_dir_exists(output_dir)
 
-# === Load item ID to name map ===
+# Load item ID to name map
 with open(json_file_path, encoding="utf-8") as f:
     json_data = json.load(f)
 
@@ -23,7 +23,7 @@ id_to_name = {
     if "ID" in data and "Name" in data
 }
 
-# === Helpers ===
+# Helpers
 def ordinal(n):
     if 10 <= n % 100 <= 20:
         suffix = 'th'
