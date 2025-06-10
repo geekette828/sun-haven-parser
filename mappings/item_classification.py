@@ -198,6 +198,8 @@ def classify_item(item):
             return "Furniture", "Wardrobe", ""
         if any(k in name for k in ["window", "windows"]):
             return "Furniture", "Window", ""
+        if "selling portal" in name:
+            return "Furniture", "Selling Portal", ""
         return "Furniture", "Misc", ""
 
     # 12. Equipment fallback classification.
