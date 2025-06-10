@@ -23,14 +23,14 @@ sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
 site = pywikibot.Site()
 
 # Paths
-input_file = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "Item_Comparison_JSONOnly.txt")
+input_file = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "NEWITEMS.txt")
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
 debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_create_item_page.txt")
 
 # Constants
 CHUNK_SIZE = 750
 CHUNK_SLEEP_SECONDS = 3
-SUMMARY_TEXT = "New item for most recent patch page creation."
+SUMMARY_TEXT = "New item from most recent patch page creation."
 
 # Load items data
 items_data = load_json(json_file_path)

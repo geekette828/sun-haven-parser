@@ -159,7 +159,7 @@ def compute_requirement(item, classification):
         return ""
     itemType, subtype, category = classification
     skill = ""
-    if subtype in ["Armor", "Accessory"]:
+    if subtype in ["Armor", "Accessory", "Weapon"]:
         skill = "Combat"
     elif category in ["Hoe", "Watering Can"]:
         skill = "Farming"
@@ -194,16 +194,10 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
     """
     itemType, subtype, category = classification
 
-    if itemType == "Furniture" or subtype in ["Pet", "Wild Animal"]:
-        return ""  # skip pages we don't format
-
     lines = ["{{Item infobox"]
 
     # Core Fields
-    name = FIELD_MAP["name"][1](item.get(FIELD_MAP["name"][0], title))
-    lines.append(f"|name = {name}")
-
-    sell = FIELD_MAP["sell"][1](item.get(FIELD_MAP["sell"][0]))
+    sell = FIELD_COMPUTATIONS["sell"](item)
     if sell:
         lines.append(f"|sell = {sell}")
 
@@ -225,6 +219,11 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
 
     dlc = FIELD_MAP["dlc"][1](item.get(FIELD_MAP["dlc"][0], 0))
     lines.append(f"|dlc = {dlc}")
+
+    # Close infobox for pages that dont use the item data section.
+    if itemType == "Furniture" or subtype in ["Pet", "Wild Animal"]: 
+        lines[-1] = lines[-1] + "  }}"
+        return "\n".join(lines)  
 
     # Data section
     lines.append("<!-- Item Data-->")

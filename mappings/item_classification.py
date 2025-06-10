@@ -155,6 +155,8 @@ def classify_item(item):
     # 9. Flooring
     if use_desc == "(Left click to place path on farm)":
         return "Furniture", "Tile", ""
+    if use_desc == "(Use on floor to place)":
+        return "Furniture", "Flooring", ""
 
     # 10. Wallpaper
     if use_desc == "(Use on a wall to place)":

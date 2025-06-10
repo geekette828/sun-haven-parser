@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import config.constants as constants
 from utils import json_utils
 from utils.text_utils import clean_whitespace
-from utils.recipe_utils import format_recipe
+from mappings.recipe_mapping import format_recipe
 
 # Load recipe data once using constants
 RECIPE_JSON_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")

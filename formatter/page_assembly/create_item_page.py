@@ -12,6 +12,7 @@ from formatter.item_recipe import get_recipe_markup_for_item
 from mappings.item_classification import classify_item
 
 INCLUDE_HISTORY_SECTION = True  # Toggle for showing ==History== section
+INCLUDE_UPCOMING_BANNER = True
 
 def normalize_name(name):
     return clean_whitespace(name).lower()
@@ -59,8 +60,13 @@ def create_item_page(item, display_name=None):
     recipe_markup = get_recipe_markup_for_item(item)
     navbox = create_item_navbox(item)
 
+    banner = (
+    f"{{{{upcoming|First appeared in the game files in PBE patch {constants.PATCH_VERSION}.}}}}\n"
+    if INCLUDE_UPCOMING_BANNER else ""
+    )
+       
     # Build core page content
-    page_template = f"""{infobox}
+    page_template = f"""{banner}{infobox}
 
 {summary}
 {mount_section}
@@ -82,7 +88,7 @@ def create_item_page(item, display_name=None):
 {{{{Gifted item}}}}
 
 ===Gifted From===
-* The player does not currently get this item from any NPC.
+{{{{Gift sources}}}}
 
 ==Quests==
 ===Requires===
@@ -119,7 +125,7 @@ def main():
 
     items_data_lower = { key.lower(): value for key, value in items_data.items() }
     test_items = [
-        "Simple Adamant Hammer"
+        "Simple Adamant Hammer", "Alien Bed", "Alien Couch"
     ]
 
     for item_name in test_items:
