@@ -30,7 +30,7 @@ debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_cr
 # Constants
 CHUNK_SIZE = 750
 CHUNK_SLEEP_SECONDS = 3
-SUMMARY_TEXT = "Creating missing page through pywikibot."
+SUMMARY_TEXT = "New item for most recent patch page creation."
 
 # Load items data
 items_data = load_json(json_file_path)
