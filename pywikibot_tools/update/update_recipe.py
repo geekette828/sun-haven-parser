@@ -15,7 +15,7 @@ from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 SKIP_WORKBENCH = True           # Skip updating the workbench
 SKIP_SKILL_TOMES = True         # Skip items that have the words "Skill Tome" in them.
 
-DRY_RUN = False                 # No actual edits
+DRY_RUN = True          # No actual edits
 ADD_HISTORY = False             # Add a history bullet if changes were made
 
 TEST_RUN = False                # Only process test pages
@@ -171,7 +171,7 @@ for i in range(0, len(pages), BATCH_SIZE):
                         new_text = append_history_entry(new_text, summary, patch)
 
                     page.text = new_text
-                    page.save(summary="Updating recipe template from JSON data")
+                    page.save(summary="Updating recipe ID to a unique stable ID for future automation.")
 
                     if not TEST_RUN:
                         time.sleep(SLEEP_INTERVAL)

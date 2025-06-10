@@ -92,10 +92,9 @@ def match_json_recipe(template, page_title, data, num_templates_on_page):
         logs.append(f"[UNKNOWN ID] {page_title} - No JSON recipes found for product '{product}'")
         return None, logs
 
-    id_matches = [k for k in name_matches if str(data[k].get("recipeID")) == recipe_id]
+    recipe_id_lc = recipe_id.lower()
+    if recipe_id_lc in data:
+        return data[recipe_id_lc], logs
 
-    if len(id_matches) == 1:
-        return data[id_matches[0]], logs
-
-    logs.append(f"[ID MISMATCH] {page_title} - Recipe ID {recipe_id} for product '{product}' not uniquely matched")
+    logs.append(f"[ID NOT FOUND] {page_title} - Recipe ID {recipe_id} not found in JSON data")
     return None, logs

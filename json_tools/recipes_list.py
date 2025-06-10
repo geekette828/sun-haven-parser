@@ -1,9 +1,11 @@
 import os
+import re
 import sys
+from collections import defaultdict
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import config.constants as constants
-import re
 from utils import file_utils, json_utils
 from utils.recipe_utils import normalize_workbench
 
@@ -11,11 +13,10 @@ from utils.recipe_utils import normalize_workbench
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 recipes_json_path = os.path.join(output_directory, "recipes_data.json")
+debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "json", "recipe_list_debug.txt")
 
 file_utils.ensure_dir_exists(output_directory)
-
 def extract_guid(meta_file_path):
-    """Extract GUID from a meta file."""
     try:
         lines = file_utils.read_file_lines(meta_file_path)
         for line in lines:
@@ -27,7 +28,6 @@ def extract_guid(meta_file_path):
     return None
 
 def parse_recipe_asset(file_path):
-    """Parse a recipe asset file to extract recipe data."""
     recipe_data = {
         "inputs": [],
         "output": {},
@@ -43,7 +43,7 @@ def parse_recipe_asset(file_path):
 
     for i, line in enumerate(lines):
         line = line.strip()
-        
+
         if line.startswith("input2:"):
             input_section = True
             output_section = False
@@ -53,7 +53,7 @@ def parse_recipe_asset(file_path):
             output_section = True
             continue
 
-        elif "hoursToCraft:" in line:
+        if "hoursToCraft:" in line:
             recipe_data["hoursToCraft"] = line.split(":")[-1].strip()
         elif "characterProgressTokens:" in line:
             match = re.search(r'guid: ([\w-]+)', line)
@@ -67,13 +67,13 @@ def parse_recipe_asset(file_path):
             match = re.search(r'guid: ([\w-]+)', line)
             if match:
                 recipe_data["questProgressTokens"] = match.group(1)
-        
+
         elif input_section:
             if i + 1 < len(lines) and "id:" in line and "amount:" in lines[i + 1]:
                 item_id = line.split(":")[-1].strip()
                 amount = lines[i + 1].split(":")[-1].strip()
-                name = (lines[i + 2].split(":")[-1].strip() 
-                        if (i + 2 < len(lines) and "name:" in lines[i + 2]) 
+                name = (lines[i + 2].split(":")[-1].strip()
+                        if (i + 2 < len(lines) and "name:" in lines[i + 2])
                         else "Unknown")
                 recipe_data["inputs"].append({"id": item_id, "amount": amount, "name": name})
             if "---" in line:
@@ -83,8 +83,8 @@ def parse_recipe_asset(file_path):
             if i + 1 < len(lines) and "id:" in line and "amount:" in lines[i + 1]:
                 item_id = line.split(":")[-1].strip()
                 amount = lines[i + 1].split(":")[-1].strip()
-                name = (lines[i + 2].split(":")[-1].strip() 
-                        if (i + 2 < len(lines) and "name:" in lines[i + 2]) 
+                name = (lines[i + 2].split(":")[-1].strip()
+                        if (i + 2 < len(lines) and "name:" in lines[i + 2])
                         else "Unknown")
                 recipe_data["output"] = {"id": item_id, "amount": amount, "name": name}
             if "---" in line:
@@ -92,65 +92,99 @@ def parse_recipe_asset(file_path):
 
     return recipe_data
 
-# Collect all recipe data
-recipe_data_collection = {}
+def normalize_workbench_camel_case(wb):
+    wb = re.sub(r"[^a-zA-Z0-9 ]", "", wb)
+    parts = wb.strip().split()
+    return parts[0].lower() + ''.join(p.capitalize() for p in parts[1:]) if parts else "unknownWorkbench"
+
+def camel_case(text):
+    parts = re.sub(r"[^a-zA-Z0-9 ]", "", text).strip().split()
+    return parts[0].lower() + ''.join(p.capitalize() for p in parts[1:]) if parts else "unknown"
+
+def extract_disambiguation(filename):
+    match = re.search(r"\(([^)]+)\)\.asset$", filename)
+    return camel_case(match.group(1)) if match else None
+
+def generate_base_recipe_id(parsed_id, workbench_name, output_id):
+    return f"{parsed_id}_{normalize_workbench_camel_case(workbench_name)}_{output_id}"
+
+# Build recipe data
+raw_recipes = {}
 for filename in os.listdir(input_directory):
     if filename.lower().startswith("recipe") and filename.endswith(".asset"):
         asset_path = os.path.join(input_directory, filename)
         meta_path = asset_path + ".meta"
-        
+
         recipe_info = parse_recipe_asset(asset_path)
         if os.path.exists(meta_path):
             recipe_info["guid"] = extract_guid(meta_path)
-        
-        # Extract numeric recipeID from filename e.g. "Recipe 27242 - Elven Compost.asset" → 27242
+
         id_match = re.search(r"[Rr]ecipe\s+(\d+)", filename)
-        if id_match:
-           recipe_info["recipeID"] = int(id_match.group(1))
-        else:
-           recipe_info["recipeID"] = None
+        parsed_id = int(id_match.group(1)) if id_match else 0
+        recipe_info["parsedRecipeID"] = parsed_id
+        raw_recipes[filename] = recipe_info
 
-        recipe_data_collection[filename] = recipe_info
-
-# Process workbench recipe lists
-workbench_recipes = {}
-for workbench_file in os.listdir(input_directory):
-    # match "RecipeList_<Name>.asset", "RecipeList _Name.asset", or any mix of underscores/spaces
-    m = re.match(r"^RecipeList[_ ]+(.+)\.asset$", workbench_file)
+# Map multiple workbenches to GUIDs
+guid_to_workbenches = defaultdict(set)
+for filename in os.listdir(input_directory):
+    m = re.match(r"^RecipeList[_ ]+(.+)\.asset$", filename)
     if not m:
         continue
-    # group(1) now contains the clean name with no leading "_" or " "
-    workbench_name = m.group(1).strip()
-    workbench_path = os.path.join(input_directory, workbench_file)
-    lines = file_utils.read_file_lines(workbench_path)
-    for line in lines:
+    workbench = normalize_workbench(m.group(1))
+    path = os.path.join(input_directory, filename)
+    for line in file_utils.read_file_lines(path):
         match = re.search(r'guid: ([\w-]+)', line)
         if match:
-            recipe_guid = match.group(1)
-            workbench_recipes[recipe_guid] = workbench_name
+            guid_to_workbenches[match.group(1)].add(workbench)
 
-# Associate recipes with their workbenches
-for recipe_name, recipe in recipe_data_collection.items():
-    recipe_guid = recipe.get("guid")
-    if recipe_guid and recipe_guid in workbench_recipes:
-        recipe["workbench"] = workbench_recipes[recipe_guid]
-        raw = workbench_recipes[recipe_guid]
-        recipe["workbench"] = normalize_workbench(raw)
+# Assign recipes per workbench
+final_recipes = {}
+recipe_id_tracker = defaultdict(list)
 
-# Duplicate Filtering Step
-all_keys = set(recipe_data_collection.keys())
-filtered_recipes = {}
-for name, info in recipe_data_collection.items():
-    # if it's a "_0" variant and there's a base, skip it
-    if name.endswith("_0.asset"):
-        base_name = name.replace("_0.asset", ".asset")
-        if base_name in all_keys:
-            continue
-    filtered_recipes[name] = info
+for name, data in raw_recipes.items():
+    guid = data.get("guid")
+    workbenches = guid_to_workbenches.get(guid, set())
 
-recipe_data_collection = filtered_recipes
+    if not workbenches:
+        output_name = data.get("output", {}).get("name", "")
+        if " Jam" in output_name:
+            debug_lines = []
+            debug_lines.append(f"[INFERRED] {name} Assigned workbench: Jam Maker")
+            with open(debug_log_path, "a", encoding="utf-8") as log:
+                log.write("\n".join(debug_lines) + "\n")
+            workbenches.add("Jam Maker")
+        else:
+            workbenches.add("Unknown Workbench")
 
-# Save all recipe data into one JSON file using json_utils
-json_utils.write_json(recipe_data_collection, recipes_json_path, indent=4)
+    for wb in workbenches:
+        data_copy = dict(data)
+        data_copy["workbench"] = wb
+        output_id = data.get("output", {}).get("id", "unknown")
+        base_id = generate_base_recipe_id(data["parsedRecipeID"], wb, output_id)
 
-print("Recipe data extraction completed.")
+        inputs_signature = tuple((i["id"], i["amount"]) for i in data.get("inputs", []))
+        existing_signatures = recipe_id_tracker[base_id]
+
+        if inputs_signature in existing_signatures:
+            recipe_id = base_id
+        else:
+            if existing_signatures:
+                dis = extract_disambiguation(name)
+                if dis:
+                    recipe_id = f"{base_id}_{dis}"
+                else:
+                    recipe_id = f"{base_id}_{len(existing_signatures)+1}"
+            else:
+                recipe_id = base_id
+
+            recipe_id_tracker[base_id].append(inputs_signature)
+
+        data_copy["recipeID"] = recipe_id
+        key = recipe_id
+        data_copy["sourceFile"] = name
+        final_recipes[recipe_id] = data_copy
+
+
+# Write to JSON
+json_utils.write_json(final_recipes, recipes_json_path, indent=4)
+print("✅ Recipe data extraction completed with unique, stable recipeIDs.")
