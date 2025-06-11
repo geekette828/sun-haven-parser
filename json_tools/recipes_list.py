@@ -6,8 +6,8 @@ from collections import defaultdict
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import config.constants as constants
-from utils import file_utils, json_utils
-from utils.recipe_utils import normalize_workbench
+from utils import file_utils, json_utils, text_utils
+from mappings.recipe_mapping import normalize_workbench
 
 # Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
@@ -16,6 +16,34 @@ recipes_json_path = os.path.join(output_directory, "recipes_data.json")
 debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "json", "recipe_list_debug.txt")
 
 file_utils.ensure_dir_exists(output_directory)
+# Load item data and build ID-to-name lookup
+item_json_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
+if not os.path.exists(item_json_path):
+    raise FileNotFoundError("❌ Missing items_data.json. Please run json_tools/item_list.py first.")
+
+items_data = json_utils.load_json(item_json_path)
+id_to_names = defaultdict(list)
+for name, entry in items_data.items():
+    item_id = str(entry.get("ID", "")).strip()
+    canonical_name = entry.get("Name", "").strip()
+    if item_id:
+        id_to_names[item_id].append(canonical_name)
+
+def get_canonical_name(item_id, fallback_name, recipe_name):
+    id_str = str(item_id).strip()
+    names = id_to_names.get(id_str)
+
+    if not names:
+        file_utils.append_line(debug_log_path, f"[MISSING] ID {item_id} not found for '{fallback_name}' in {recipe_name}")
+        return fallback_name
+
+    norm_names = set(text_utils.normalize_for_compare(n) for n in names)
+    if len(norm_names) > 1:
+        file_utils.append_line(debug_log_path, f"[CONFLICT] ID {item_id} has conflicting names {names} in {recipe_name}")
+        return fallback_name
+
+    return names[0]
+
 def extract_guid(meta_file_path):
     try:
         lines = file_utils.read_file_lines(meta_file_path)
@@ -75,7 +103,7 @@ def parse_recipe_asset(file_path):
                 name = (lines[i + 2].split(":")[-1].strip()
                         if (i + 2 < len(lines) and "name:" in lines[i + 2])
                         else "Unknown")
-                recipe_data["inputs"].append({"id": item_id, "amount": amount, "name": name})
+                recipe_data["inputs"].append({"id": item_id, "amount": amount, "name": get_canonical_name(item_id, name, file_path)})
             if "---" in line:
                 input_section = False
 
@@ -86,7 +114,7 @@ def parse_recipe_asset(file_path):
                 name = (lines[i + 2].split(":")[-1].strip()
                         if (i + 2 < len(lines) and "name:" in lines[i + 2])
                         else "Unknown")
-                recipe_data["output"] = {"id": item_id, "amount": amount, "name": name}
+                recipe_data["output"] = {"id": item_id, "amount": amount, "name": get_canonical_name(item_id, name, file_path)}
             if "---" in line:
                 output_section = False
 
