@@ -150,7 +150,7 @@ def classify_item(item):
 
     # 8. Mount classification.
     if use_desc == "(Left click to summon/unsummon mount)":
-        return "Mount", "", ""
+        return "Item", "Mount", ""
 
     # 9. Flooring
     if use_desc == "(Left click to place path on farm)":

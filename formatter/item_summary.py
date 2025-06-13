@@ -78,7 +78,7 @@ SUMMARIES = {
     ("Fish", "", ""): "'''ITEM NAME''' is an ''RARITY'' type of fish which can be caught SEASONAL LINE. {{Bonding experience|EXPERIENCE}}\n\n{{Fishing skill price calculations|SELL|SELLTYPE}}",
 
     # MOUNT
-    ("Mount", "", ""): "'''ITEM NAME''' is an item that when used calls a mount for the player to ride upon. There are various [[skills]] the player can earn to increase the speed of the mount, and actions available while on the mount. All mounts benefit from these skills, which means all mounts will move at the same speed, and the skin of the mount is purely cosmetic.\n\n==Mount Display==\nMount image needed [[Category:Mount image needed]]",
+    ("Item", "Mount", ""): "'''ITEM NAME''' is an item that when used calls a mount for the player to ride upon. There are various [[skills]] the player can earn to increase the speed of the mount, and actions available while on the mount. All mounts benefit from these skills, which means all mounts will move at the same speed, and the skin of the mount is purely cosmetic.",
 
     # RECORD
     ("Record", "", ""): "The '''ITEM NAME''' is a purchasable [[records|record]] that can be played on a [[Record Player|record player]]. To activate the music, the player must interact with the record player while holding a record in their hand. The music will then begin to play throughout the area. When the track ends, it will start over in a loop. The record will '''not''' be consumed if the player changes the music and can be used again an infinite number of times.\n\n'''Music Sample'''\n[[file:ITEM NAME.ogg]]",

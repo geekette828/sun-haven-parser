@@ -27,9 +27,9 @@ def build_mount_section(item):
         base_name += " Mount"
     return (
         "\n\n==Mount Display==\n"
-        "<gallery widths=\"150\" bordercolor=\"transparent\" spacing=\"small\" captionalign=\"center\">\n"
-        f"{base_name}.png|Front\n"
-        f"{base_name}_Side.png|Side\n"
+        "Mount image needed [[Category:Mount image needed]]<br><gallery widths=\"150\" bordercolor=\"transparent\" spacing=\"small\" captionalign=\"center\">\n"
+        f"{base_name}_Front.png|Front\n"
+        f"{base_name}.png|Side\n"
         "</gallery>\n"
     )
 
