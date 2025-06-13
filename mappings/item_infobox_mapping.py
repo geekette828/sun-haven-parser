@@ -221,7 +221,7 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
     lines.append(f"|dlc = {dlc}")
 
     # Close infobox for pages that dont use the item data section.
-    if itemType == "Furniture" or subtype in ["Pet", "Wild Animal"]: 
+    if itemType == "Furniture" or subtype in ["Pet", "Wild Animal", "Mount"]: 
         lines[-1] = lines[-1] + "  }}"
         return "\n".join(lines)  
 
