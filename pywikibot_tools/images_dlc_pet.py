@@ -15,10 +15,6 @@ import time
 
 # Apply Pywikibot config from constants
 sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
-pywikibot.config.throttle = constants.PWB_SETTINGS["throttle"]
-pywikibot.config.max_retries = constants.PWB_SETTINGS["max_retries"]
-pywikibot.config.retry_wait = constants.PWB_SETTINGS["retry_wait"]
-pywikibot.config.user_agent = constants.PWB_SETTINGS["user_agent"]
 
 # Set up pyWikiBot configurations
 sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
@@ -103,16 +99,16 @@ def main():
 
             # --- Licensing ---
             missing = BASE_CATEGORIES - image_categories
-            has_games_template = "{{Games}}" in updated_text
+            has_games_template = "{{License|game}}" in updated_text
             if has_games_template:
                 if not re.search(r'==\s*Licensing\s*==\s*\n\{\{Games\}\}', updated_text, re.IGNORECASE):
                     updated_text = re.sub(r'(\{\{Games\}\})', r'==Licensing==\n\1', updated_text, count=1, flags=re.IGNORECASE)
                     modified = True
-                    fix_log_parts.append("Inserted Licensing header above {{Games}}")
+                    fix_log_parts.append("Inserted Licensing header above {{License|game}}")
             else:
-                updated_text += "\n\n==Licensing==\n{{Games}}"
+                updated_text += "\n\n==Licensing==\n{{License|game}}"
                 modified = True
-                fix_log_parts.append("Added Licensing section with {{Games}}")
+                fix_log_parts.append("Added Licensing section with {{License|game}}")
 
             cat_lines = []
             if "DLC pet images" in missing:
