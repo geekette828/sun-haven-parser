@@ -23,7 +23,7 @@ pywikibot.config.log = []
 pywikibot.config.noisy_output = False
 
 # Paths
-input_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "imagesTEST.txt")
+input_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "MissingImages_filenameConversion.txt")
 image_input_directory = os.path.join(constants.IMAGE_INPUT_DIRECTORY)
 output_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot")
 debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "pywikibot_imageUploader_debug.txt")

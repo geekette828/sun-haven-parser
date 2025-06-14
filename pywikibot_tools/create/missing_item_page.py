@@ -72,7 +72,8 @@ for idx, item_name in enumerate(item_names, 1):
         continue
 
     # Title-case the page name
-    page_title = item_name.title()
+    item = items_data_lower[key]
+    page_title = item["Name"]
 
     # Check if page exists
     page = pywikibot.Page(site, page_title)

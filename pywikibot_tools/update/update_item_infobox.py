@@ -12,8 +12,8 @@ from utils import file_utils, text_utils
 from config import constants
 from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 
-SKIP_VARIANTS_BASE = True       # Skip pages that are base names of variant groups
-DRY_RUN = False                  # No actual edits
+SKIP_VARIANTS_BASE = False       # Skip pages that are base names of variant groups
+DRY_RUN = True                  # No actual edits
 ADD_HISTORY = False              # Add a history bullet if changes were made
 
 TEST_RUN = False                # Only process test pages
