@@ -325,6 +325,9 @@ SKIP_ITEMS = [
     "snow cone machine",
     "ticket",
     "warehouse",
+    "snaccoon right outskirts winter",
+    "town north entrance sleeping monster",
+    "sparkling dragon scale rock",
 ]
 
 SKIP_PATTERNS = [

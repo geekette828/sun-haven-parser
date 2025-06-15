@@ -33,6 +33,27 @@ def build_mount_section(item):
         "</gallery>\n"
     )
 
+def build_house_display_section(item, display_name):
+    itemType, subtype, category = classify_item(item)
+    if itemType != "Building" or subtype != "House Customization":
+        return ""
+
+    # Skip Patio (no numbered images)
+    if category == "Patio":
+        return ""
+
+    base = display_name.replace(" ", "_")
+    return (
+        "\n\n==Display==\n"
+        '{| class="table-bottom tablexsmall" style="text-align: center; border-spacing: 10px;"\n'
+        "|-\n"
+        f'|style="vertical-align: bottom; width:33%;"|[[File:{base}1.png|150px]]<br>Tier 1 House\n'
+        f'|style="vertical-align: bottom; width:33%;"|[[File:{base}2.png|150px]]<br>Tier 2 House\n'
+        f'|style="vertical-align: bottom; width:33%;"|[[File:{base}3.png|150px]]<br>Tier 3 House\n'
+        "|}\n"
+        "[[Category:House images needed]]\n"
+    )
+
 def build_history_section(display_name):
     patch = constants.PATCH_VERSION
     return (
@@ -56,6 +77,7 @@ def create_item_page(item, display_name=None):
     infobox = format_infobox(item, classification, display_name or item.get("name", "ITEM NAME"))
     computed = parse_infobox(infobox)
     summary = create_item_summary(item, computed, display_name)
+    house_display = build_house_display_section(item, display_name)
     mount_section = build_mount_section(item)
     recipe_markup = get_recipe_markup_for_item(item)
     navbox = create_item_navbox(item)
@@ -69,6 +91,7 @@ def create_item_page(item, display_name=None):
     page_template = f"""{banner}{infobox}
 
 {summary}
+{house_display}
 {mount_section}
 ==Acquisition==
 ===Purchased From===
