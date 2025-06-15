@@ -152,17 +152,29 @@ def classify_item(item):
     if use_desc == "(Left click to summon/unsummon mount)":
         return "Item", "Mount", ""
 
-    # 9. Flooring
+    # 9. House Customization
+    if desc.startswith("Customizes your house's door in a "):
+        return "Building", "House Customization", "Door"
+    if desc.startswith("Customizes your house's patio in a "):
+        return "Building", "House Customization", "Patio"
+    if desc.startswith("Customizes your house's roof in a "):
+        return "Building", "House Customization", "Roof"
+    if desc.startswith("Customizes your house's walls in a "):
+        return "Building", "House Customization", "Walls"
+    if desc.startswith("Customizes your house's windows in a "):
+        return "Building", "House Customization", "Windows"
+
+    # 10. Flooring
     if use_desc == "(Left click to place path on farm)":
         return "Furniture", "Tile", ""
     if use_desc == "(Use on floor to place)":
         return "Furniture", "Flooring", ""
 
-    # 10. Wallpaper
+    # 11. Wallpaper
     if use_desc == "(Use on a wall to place)":
         return "Furniture", "Wallpaper", ""
 
-    # 11. Other Furniture classification.
+    # 12. Other Furniture classification.
     if use_desc == "(Left click to place)":
         if "end table" in name or "nightstand" in name or "night stand" in name:
             return "Furniture", "Nightstand", ""
@@ -202,7 +214,7 @@ def classify_item(item):
             return "Furniture", "Selling Portal", ""
         return "Furniture", "Misc", ""
 
-    # 12. Equipment fallback classification.
+    # 13. Equipment fallback classification.
     if stats:
         if "ring" in name:
             return "Equipment", "Accessory", "Ring"

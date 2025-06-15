@@ -16,6 +16,7 @@ def create_item_navbox(item):
     - If itemType is Furniture, use: {{Furniture navbox|subtype}}
     - If subtype is Clothing, use: {{Clothing navbox|category}}
     - If subtype is Armor, Accessory, Weapon, or Tool, use: {{Equipment navbox|subtype}}
+    - If subtype is House Customization use: {{Building customization navbox|house}}
     - Otherwise, add [[Category:Navbox needed]]
     """
     itemType, subtype, category = classify_item(item)
@@ -30,5 +31,7 @@ def create_item_navbox(item):
         return f"{{{{Clothing navbox|{category}}}}}"
     elif subtype.lower() in ("armor", "accessory", "weapon", "tool"):
         return f"{{{{Equipment navbox|{subtype}}}}}"
+    elif subtype.lower() == "house customization":
+        return f"{{{{Building customization navbox|house}}}}"
     else:
         return "[[Category:Navbox needed]]"

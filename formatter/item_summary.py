@@ -11,6 +11,13 @@ from mappings.item_classification import classify_item
 # Replace  ''RARITY'' (for pets or fish) with the item's rarity.
 # Replace SEASONAL LINE, EXPERIENCE, SELL, and SELLTYPE for fish summaries.
 SUMMARIES = {
+    # BUILDING > HOUSE CUSTOMIZATION
+    ("Building", "House Customization", "Door"): """The '''ITEM NAME''' is one of several [[House Customization/TYPE_PLURAL|TYPE_PLURAL]] the player can select to personalize the exterior of their home. These customizations affect the look and feel of the house and will automatically adapt to match each new tier when the house is upgraded. While the layout and structure of the house may change across tiers, the selected style will remain consistent throughout all upgrades.\n\nThe player can [[House Customization|customize]] the exterior of their Sun Haven [[Home Sweet Home|house]] by individually changing the roof, walls, door, windows, and patio. There are many styles available, and the player is not locked into a specific theme.\n\nOther items in the '''STYLE''' set include STYLE_MATCHES.""",
+    ("Building", "House Customization", "Roof"): """The '''ITEM NAME''' is one of several [[House Customization/TYPE_PLURAL|TYPE_PLURAL]] the player can select to personalize the exterior of their home. These customizations affect the look and feel of the house and will automatically adapt to match each new tier when the house is upgraded. While the layout and structure of the house may change across tiers, the selected style will remain consistent throughout all upgrades.\n\nThe player can [[House Customization|customize]] the exterior of their Sun Haven [[Home Sweet Home|house]] by individually changing the roof, walls, door, windows, and patio. There are many styles available, and the player is not locked into a specific theme.\n\nOther items in the '''STYLE''' set include STYLE_MATCHES.""",
+    ("Building", "House Customization", "Walls"): """The '''ITEM NAME''' is one of several [[House Customization/TYPE_PLURAL|TYPE_PLURAL]] the player can select to personalize the exterior of their home. These customizations affect the look and feel of the house and will automatically adapt to match each new tier when the house is upgraded. While the layout and structure of the house may change across tiers, the selected style will remain consistent throughout all upgrades.\n\nThe player can [[House Customization|customize]] the exterior of their Sun Haven [[Home Sweet Home|house]] by individually changing the roof, walls, door, windows, and patio. There are many styles available, and the player is not locked into a specific theme.\n\nOther items in the '''STYLE''' set include STYLE_MATCHES.""",
+    ("Building", "House Customization", "Windows"): """The '''ITEM NAME''' is one of several [[House Customization/TYPE_PLURAL|TYPE_PLURAL]] the player can select to personalize the exterior of their home. These customizations affect the look and feel of the house and will automatically adapt to match each new tier when the house is upgraded. While the layout and structure of the house may change across tiers, the selected style will remain consistent throughout all upgrades.\n\nThe player can [[House Customization|customize]] the exterior of their Sun Haven [[Home Sweet Home|house]] by individually changing the roof, walls, door, windows, and patio. There are many styles available, and the player is not locked into a specific theme.\n\nOther items in the '''STYLE''' set include STYLE_MATCHES.""",
+    ("Building", "House Customization", "Patio"): """The '''ITEM NAME''' is one of several [[House Customization/Patios|patios]] the player can choose to modify the base foundation of their house. Unlike other types of exterior customizations, the patio does not change appearance when the house is upgraded. It serves as a permanent stylistic choice that remains fixed regardless of the home's tier.\n\nThe player can [[House Customization|customize]] the exterior of their Sun Haven [[Home Sweet Home|house]] by individually changing the roof, walls, door, windows, and patio. There are many styles available, and the player is not locked into a specific theme.\n\nOther items in the '''STYLE''' set include STYLE_MATCHES.""",
+
     # EQUIPMENT > CLOTHING
     ("Equipment", "Clothing", "Skirt"): "'''ITEM NAME''' is a [[clothing]] item worn in the player's leg slot. Clothing items are purely cosmetic and do not provide any stats, unlike [[armor]], which grants bonuses when equipped. They are intended to be worn in the cosmetic slot, allowing the player to express their style and customize their appearance freely without impacting performance.",
     ("Equipment", "Clothing", "Pants"): "'''ITEM NAME''' is a [[clothing]] item worn in the player's leg slot. Clothing items are purely cosmetic and do not provide any stats, unlike [[armor]], which grants bonuses when equipped. They are intended to be worn in the cosmetic slot, allowing the player to express their style and customize their appearance freely without impacting performance.",
@@ -144,26 +151,16 @@ def create_item_summary(item, computed, display_name=None):
     """
     Generate and return a summary string for the given item using the summary template
     and the computed values parsed from the infobox.
-    
-    Optionally, a display_name can be provided if the item object doesn't include the name.
-    The display name will be processed using custom_title() so that it is in title case,
-    but preserves the correct casing after apostrophes.
     """
-    
     itemType, subtype, category = classify_item(item)
     key = normalize_classification(itemType, subtype, category)
     summary_template = SUMMARIES.get(key, "No summary available for this item. [[Category:Missing summary]]")
-    
-    # Use display_name override if provided, otherwise use the item's name.
+
     if display_name is None:
         display_name = item.get("name", "ITEM NAME")
-    # Convert display_name to title case using our custom function.
     display_name = custom_title(display_name)
-    
-    # Start with the template.
     summary = summary_template
-    
-    # Replace rarity using the computed value if available.
+
     raw_rarity = computed.get("rarity", str(item.get("rarity", "rarity")))
     if raw_rarity.isdigit():
         rarity = constants.RARITY_TYPE_MAPPING.get(int(raw_rarity), raw_rarity)
@@ -171,8 +168,7 @@ def create_item_summary(item, computed, display_name=None):
         rarity = raw_rarity
     rarity = rarity.lower()
     summary = summary.replace("RARITY", rarity)
-    
-    # For fish items, perform additional placeholder replacements.
+
     if key == ("Fish", "", ""):
         seasonal_mapping = {
             "Spring": "in the spring season",
@@ -184,45 +180,35 @@ def create_item_summary(item, computed, display_name=None):
         season = computed.get("season", "Any")
         seasonal_line = seasonal_mapping.get(season, "in all seasons")
         summary = summary.replace("SEASONAL LINE", seasonal_line)
-        
         exp_value = computed.get("exp", "EXPERIENCE")
         summary = summary.replace("EXPERIENCE", str(exp_value))
-        
         currency = computed.get("currency", "CURRENCY")
         summary = summary.replace("CURRENCY", currency.lower())
         sell = computed.get("sell", "SELL")
         summary = summary.replace("SELL", sell)
-    
-    # Append DLC section if applicable.
-    if computed.get("dlc", "false").lower() == "true":
-        # Using original item name might not be needed if you want consistency,
-        # so we'll use display_name everywhere.
-        if itemType == "Equipment" and subtype == "Clothing":
-            extra_text = (
-                f"{display_name} <!--is part of the [[PACK NAME#Clothing|PACK NAME clothing set]]. This set -->"
-                "belongs to a [[Downloadable Content|DLC]] game pack. Once acquired, the set will be delivered "
-                "to the player's mailbox. These items are delivered to every character on the player's steam account."
-            )
-        elif itemType == "Furniture":
-            extra_text = (
-                f"{display_name} <!--is part of the [[PACK NAME#Furniture|PACK NAME furniture set]]. This set -->"
-                "belongs to a [[Downloadable Content|DLC]] game pack. Once acquired, the set will be delivered "
-                "to the player's mailbox. These items are delivered to every character on the player's steam account."
-            )
-        elif itemType == "Mount" or subtype == "Pet":
-            extra_text = (
-                f"{display_name} <!--is part of the [[PACK NAME#Mounts & Pets|PACK NAME set]]. This set -->"
-                "belongs to a [[Downloadable Content|DLC]] game pack. Once acquired, the set will be delivered "
-                "to the player's mailbox. These items are delivered to every character on the player's steam account."
-            )
+
+    if itemType == "Building" and subtype == "House Customization":
+        style_targets = ["Door", "Roof", "Walls", "Windows", "Patio"]
+        name_words = display_name.split()
+        for idx, word in enumerate(name_words):
+            if word.capitalize() in style_targets:
+                style = " ".join(name_words[:idx])
+                item_type = word.capitalize()
+                break
         else:
-            extra_text = (
-                f"{display_name} belongs to a [[Downloadable Content|DLC]] game pack. Once acquired, the set will be delivered "
-                "to the player's mailbox. These items are delivered to every character on the player's steam account."
-            )
+            style = name_words[0]
+            item_type = "Unknown"
+
+        style_matches = [f"[[{style} {target}]]" for target in style_targets if target != item_type]
+        summary = summary.replace("STYLE", style).replace("STYLE_MATCHES", ", ".join(style_matches))
+
+    if computed.get("dlc", "false").lower() == "true":
+        extra_text = (
+            f"{display_name} belongs to a [[Downloadable Content|DLC]] game pack. Once acquired, "
+            "the set will be delivered to the player's mailbox. These items are delivered to every "
+            "character on the player's steam account."
+        )
         summary += "\n\n" + extra_text
-    
-    # Finally, perform a single replacement of "ITEM NAME" in case any remain.
+
     summary = summary.replace("ITEM NAME", display_name)
-    
     return summary
