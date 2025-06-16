@@ -54,28 +54,33 @@ Sun Haven Parser/
 |
 ├── pywikibot_tools/
 │   ├── compare/
-│   │   ├── compare_item_infobox.py       → Compares wiki item infobox template to the items json, logs diffs.
-│   │   ├── compare_recipe.py             → Compares wiki recipe template to the recipe json, logs diffs.
+│   │   ├── compare_item_infobox.py                 → Compares wiki item infobox template to the items json, logs diffs.
+│   │   ├── compare_recipe.py                       → Compares wiki recipe template to the recipe json, logs diffs.
 │   ├── core/
-│   │   ├── item_infobox_core.py          → Core item infobox scripts for compare/update/create.
-│   │   ├── recipe_core.py                → Core recipe scripts for compare/update/create.
+│   │   ├── item_infobox_core.py                    → Core item infobox scripts for compare/update/create.
+│   │   ├── recipe_core.py                          → Core recipe scripts for compare/update/create.
 │   ├── create/
-│   │   ├── missing_item_image.py         → Uploads missing item images.
-│   │   └── missing_item_page.py          → Creates missing item pages using `formatter/item_page/create_page.py`.
+│   │   ├── missing_item_image.py                   → Uploads missing item images.
+│   │   ├── missing_item_page.py                    → Creates missing item pages using `formatter/item_page/create_page.py`.
+│   │   ├── upload_floor_wallpaper_display.py       → Uploads the display images of wallpaper and flooring. Removes the "missing" category.
+│   │   ├── upload_house_customization_display.py   → Uploads the display images of door, window, wall, patios, and roof images of houseing customizations.
+│   │   └── upload_mount_display.py                 → Merges and uploads mount display images.
+│   ├── delete/
+│   │   ├── deduplicate_house_parts.py              → Removes the duplicated house customization images. Sets up proper redirects.
+│   |   └── unused_categories.py                    → Removes unused categories that meet a certain criteria.
 │   ├── update/
-│   │   ├── update_item_infobox.py        → Updates wiki item infobox template to match items json.
-│   │   ├── update_recipe.py              → Updates wiki recipe template to match recipe json.
-│   |   └── update_uncategorized_files.py → Categorizes files from Special:UncategorizedFiles to clean up file metadata.
+│   │   ├── dlc_mount_image_categories.py           → Puts specific missing categories on mount image files.
+│   │   ├── dlc_pet_image_categories.py             → Puts specific missing categories on pet image files.
+│   │   ├── update_item_infobox.py                  → Updates wiki item infobox template to match items json.
+│   │   ├── update_recipe.py                        → Updates wiki recipe template to match recipe json.
+│   |   └── update_uncategorized_files.py           → Categorizes files from Special:UncategorizedFiles to clean up file metadata.
 │   ├── validators/
-│   │   ├── missing_item_images.py        → Compares items.json to the wiki to find missing item images.
-│   │   ├── missing_item.py               → Lists missing item pages based on the item json file.
-│   │   ├── missing_quests.py             → Lists missing quest pages based on the quest json files.
-│   |   └── missing_recipe_template.py    → Lists pages missing the recipe template, based on the recipe json file.
-│   ├── formatting_recipe_template.py     → Standardizes the recipe template, so the compare script can run.
-│   ├── images_dlc_pet.py                 → Puts specific categories on pet image files.
-│   ├── images_dlc_mount.py               → Puts specific categories on mount image files.
-│   ├── images_dlc_mount_display.py       → (WIP) 
-│   └── redirect_creation.py              → Creates redirect pages to specific base pages.
+│   │   ├── missing_item_images.py                  → Compares items.json to the wiki to find missing item images.
+│   │   ├── missing_item.py                         → Lists missing item pages based on the item json file.
+│   │   ├── missing_quests.py                       → Lists missing quest pages based on the quest json files.
+│   |   └── missing_recipe_template.py              → Lists pages missing the recipe template, based on the recipe json file.
+│   ├── formatting_recipe_template.py               → Standardizes the recipe template, so the compare script can run.
+│   └── redirect_creation.py                        → Creates redirect pages to specific base pages.
 |
 ├── _run_for_new_patch.py               → Runs JSON and Formatter scripts in correct order for new patch.
 ├── pwb.ps1                             → Recommended launcher script for pywikibot stuff
