@@ -27,6 +27,8 @@ def create_item_navbox(item):
         return "{{Fish navbox}}"
     elif itemType == "Furniture":
         return f"{{{{Furniture navbox|{subtype}}}}}"
+    elif subtype.lower() == "mount":
+        return f"{{{{Animal navbox|mounts}}}}"
     elif subtype.lower() == "clothing":
         return f"{{{{Clothing navbox|{category}}}}}"
     elif subtype.lower() in ("armor", "accessory", "weapon", "tool"):

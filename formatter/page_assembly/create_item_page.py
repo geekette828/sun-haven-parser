@@ -38,11 +38,15 @@ def build_house_display_section(item, display_name):
     if itemType != "Building" or subtype != "House Customization":
         return ""
 
+    base = display_name.replace(" ", "_")
+    
     # Skip Patio (no numbered images)
     if category == "Patio":
-        return ""
+        return (
+        "\n\n==Display==\n"
+        f'[[File:{base}1.png|200px]] [[Category:House images needed]]\n'
+    )
 
-    base = display_name.replace(" ", "_")
     return (
         "\n\n==Display==\n"
         '{| class="table-bottom tablexsmall" style="text-align: center; border-spacing: 10px;"\n'
@@ -50,8 +54,7 @@ def build_house_display_section(item, display_name):
         f'|style="vertical-align: bottom; width:33%;"|[[File:{base}1.png|150px]]<br>Tier 1 House\n'
         f'|style="vertical-align: bottom; width:33%;"|[[File:{base}2.png|150px]]<br>Tier 2 House\n'
         f'|style="vertical-align: bottom; width:33%;"|[[File:{base}3.png|150px]]<br>Tier 3 House\n'
-        "|}\n"
-        "[[Category:House images needed]]\n"
+        "|} [[Category:House images needed]]\n"
     )
 
 def build_history_section(display_name):
