@@ -34,14 +34,19 @@ def normalize_field(field, value):
                 return recipe_utils.format_time(parsed)
             except Exception:
                 return value.strip().lower()
+    if field == "product":
+        value = value.lower().replace("(", "").replace(")", "").strip()
     return value.strip().lower()
 
 pages = recipe_core.get_recipe_pages()
+pages += recipe_core.get_recipe_none_pages()
+pages = list(set(pages))
+
 data = recipe_core.load_normalized_json(json_file_path)
 
 mismatches = []
-json_only = list(data.keys())
 debug_lines = []
+recipe_none_to_update = []
 
 total = len(pages)
 processed = 0
@@ -60,7 +65,18 @@ for i in range(0, total, BATCH_SIZE):
         templates = [tpl for tpl in parsed.filter_templates() if tpl.name.strip().lower() == "recipe"]
 
         if not templates:
-            debug_lines.append(f"[SKIP] {title} - No recipe templates found")
+            # Check for recipe/none
+            none_templates = [tpl for tpl in parsed.filter_templates() if tpl.name.strip().lower() == "recipe/none"]
+            if none_templates:
+                key, matched_json = recipe_core.find_json_by_product_name(data, title)
+                if matched_json:
+                    rid = matched_json.get("recipeID")
+                    debug_lines.append(f"[RECIPE/NONE] {title} - Matching recipe ID {rid} found in JSON")
+                    recipe_none_to_update.append((title, rid))
+                else:
+                    debug_lines.append(f"[RECIPE/NONE] {title} - No matching recipe found in JSON")
+            else:
+                debug_lines.append(f"[SKIP] {title} - No recipe templates found")
             continue
 
         for template in templates:
@@ -101,10 +117,6 @@ for i in range(0, total, BATCH_SIZE):
             else:
                 debug_lines.append(f"[MATCH] {title} - Recipe ID {rid}")
 
-            key = matched_json.get("productName") or matched_json.get("output", {}).get("name")
-            if key and key in json_only:
-                json_only.remove(key)
-
     if processed % 500 == 0:
         percent = round((processed / total) * 100, 1)
         print(f"     🔄 Reviewed {processed} of {total} pages ({percent}% complete). Sleeping {SLEEP_INTERVAL} seconds.")
@@ -119,17 +131,15 @@ with open(output_file, "w", encoding="utf-8") as out:
             for field, exp, act in diffs:
                 out.write(f"    - {field}: expected '{exp}' but found '{act}'\n")
             out.write("\n")
-    if json_only:
-        out.write("### JSON ONLY\n")
-        for key in json_only:
-            rid = data[key].get("recipeID")
-            name = data[key].get("output", {}).get("name", "")
-            if rid and name:
-                out.write(f"recipe {rid} - {name}.asset\n")
+    if recipe_none_to_update:
+        out.write("### RECIPE/NONE TO UPDATE\n")
+        for title, rid in recipe_none_to_update:
+            out.write(f"{title} - Matching recipe ID {rid} found in JSON\n")
+        out.write("\n")
 
 # Write debug log
 with open(debug_log_path, "w", encoding="utf-8") as f:
     f.write("\n".join(debug_lines))
     f.write("\n")
 
-print(f"✅ Comparison complete. {len(mismatches)} mismatches, {len(json_only)} unmatched JSON entries.")
+print(f"✅ Comparison complete. {len(mismatches)} mismatches, {len(recipe_none_to_update)} recipe/none to update.")

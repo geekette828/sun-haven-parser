@@ -18,6 +18,9 @@ def load_normalized_json(json_file_path):
 def get_recipe_pages(TEST_RUN=False, test_list=None):
     return test_list if TEST_RUN and test_list else get_pages_with_template("Recipe", namespace=0)
 
+def get_recipe_none_pages(TEST_RUN=False, test_list=None):
+    return test_list if TEST_RUN and test_list else get_pages_with_template("Recipe/none", namespace=0)
+
 def get_recipe_param_map(wikitext, page_title):
     params = parse_template_params(wikitext, "Recipe")
     if "product" not in params or not params["product"].strip():
@@ -68,15 +71,22 @@ def find_json_by_product_name(data, page_title):
     title_lc = page_title.lower()
     for key, record in data.items():
         output = record.get("output", {})
-        name = output.get("name", "").lower()
-        if name == title_lc:
+        name = output.get("name", "").lower().replace("(", "").replace(")", "").strip()
+        if name == title_lc.replace("(", "").replace(")", "").strip():
             return key, record
     return None, None
 
+# NEW preferred matching logic
 def match_json_recipe(template, page_title, data, num_templates_on_page):
     logs = []
-    product = template.get("product").value.strip() if template.has("product") else page_title
     recipe_id = template.get("id").value.strip() if template.has("id") else None
+    product = template.get("product").value.strip() if template.has("product") else page_title
+
+    if recipe_id:
+        entry = data.get(recipe_id.lower())
+        if entry:
+            return entry, logs
+        logs.append(f"[ID NOT FOUND] {page_title} - Recipe ID {recipe_id} not found in JSON data")
 
     name_matches = [k for k, v in data.items()
                     if isinstance(v.get("output"), dict) and v["output"].get("name", "").strip().lower() == product.lower()]
@@ -84,17 +94,9 @@ def match_json_recipe(template, page_title, data, num_templates_on_page):
     if len(name_matches) == 1 and num_templates_on_page == 1:
         return data[name_matches[0]], logs
 
-    if not recipe_id:
-        logs.append(f"[MISSING ID] {page_title} - Skipping template with no ID")
-        return None, logs
-
     if not name_matches:
-        logs.append(f"[UNKNOWN ID] {page_title} - No JSON recipes found for product '{product}'")
+        logs.append(f"[NO MATCH] {page_title} - No JSON recipes found for product '{product}'")
         return None, logs
 
-    recipe_id_lc = recipe_id.lower()
-    if recipe_id_lc in data:
-        return data[recipe_id_lc], logs
-
-    logs.append(f"[ID NOT FOUND] {page_title} - Recipe ID {recipe_id} not found in JSON data")
+    logs.append(f"[MULTI MATCH] {page_title} - Multiple JSON recipes found for '{product}'")
     return None, logs

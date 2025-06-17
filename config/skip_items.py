@@ -329,6 +329,7 @@ SKIP_ITEMS = [
     "town north entrance sleeping monster",
     "sparkling dragon scale rock",
     "moon fruit",
+    "old scythe",
 ]
 
 SKIP_PATTERNS = [

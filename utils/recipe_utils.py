@@ -1,4 +1,5 @@
 import re
+from utils import text_utils
 
 def format_time(hours):
     """
@@ -59,3 +60,9 @@ def parse_time(s):
         return float(s)
     except ValueError:
         return 0
+
+def normalize_ingredient_list(s: str) -> str:
+    return text_utils.normalize_list_string(s.replace('Inputs:', ''))
+
+def format_json_ingredients(inputs):
+    return "; ".join(f"{item['name']}*{item['amount']}" for item in inputs if item.get("name") and item.get("amount"))
