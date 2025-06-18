@@ -10,10 +10,12 @@ from config import skip_items
 from math import floor
 
 # Define paths
-input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
+monobehaviour_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
+gamedata_directory = os.path.join(constants.INPUT_DIRECTORY, "GameObject")
+en_display_name_file = os.path.join(constants.INPUT_DIRECTORY, "English.prefab")
+
 output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
 output_file = "items_data.json"
-en_display_name_file = os.path.join(constants.INPUT_DIRECTORY, "English.prefab")
 
 file_utils.ensure_dir_exists(output_directory)
 
@@ -292,6 +294,33 @@ def extract_attributes(asset_file):
 
     return attributes
 
+def extract_prefab_attributes(prefab_file):
+    try:
+        lines = file_utils.read_file_lines(prefab_file)
+    except Exception as e:
+        logging.warning(f"Failed to read prefab file {prefab_file}: {e}")
+        return {}
+
+    def get_bool(line):
+        return line.endswith("1")
+
+    data = {}
+    rotate_keys = ["southDecoration", "eastDecoration", "northDecoration", "westDecoration"]
+    rotate_count = 0
+
+    for line in lines:
+        line = line.strip()
+        if match := re.match(r"(pickaxeable|axeable|placeableOnTables|placeableOnWalls|placeableAsRug|placeableInWater):\s*(\d)", line):
+            key, val = match.groups()
+            data[key] = int(val)
+        elif any(k in line for k in rotate_keys):
+            rotate_count += 1
+
+    if rotate_count >= 2:
+        data["canRotate"] = True
+
+    return data
+
 def extract_stat_buff(lines):
     def parse_number(val):
         return float(val) if '.' in val else int(val)
@@ -345,11 +374,13 @@ def extract_stat_buff(lines):
 
 def generate_item_data():
     logging.info("Starting item data extraction...")
+    prefab_files = [f for f in os.listdir(gamedata_directory) if f.endswith(".prefab")]
+    prefab_lookup = {os.path.splitext(f)[0]: os.path.join(gamedata_directory, f) for f in prefab_files}
     display_names = get_display_names(en_display_name_file)
     logging.info(f"Loaded {len(display_names)} display names.")
     all_items = {}
 
-    files = [f for f in os.listdir(input_directory) if f.endswith(".asset")]
+    files = [f for f in os.listdir(monobehaviour_directory) if f.endswith(".asset")]
     total = len(files)
     step = max(1, total // 5)
 
@@ -359,7 +390,7 @@ def generate_item_data():
         if idx % step == 0:
             print(f"  🔄 {floor((idx / total) * 100)}% complete...")
 
-        asset_path = os.path.join(input_directory, filename)
+        asset_path = os.path.join(monobehaviour_directory, filename)
         item_id, item_name = extract_item_info(asset_path)
         if not item_id or not item_name:
             continue
@@ -370,6 +401,14 @@ def generate_item_data():
         display_name = display_names.get(key_display, item_name)
 
         attributes = extract_attributes(asset_path)
+        
+        prefab_path = prefab_lookup.get(item_name)
+        if prefab_path:
+            prefab_data = extract_prefab_attributes(prefab_path)
+            attributes.update(prefab_data)
+        else:
+            logging.debug(f"No prefab match for {item_name}")
+
         icon_guid = extract_icon_guid(asset_path)
         if icon_guid:
             attributes["iconGUID"] = icon_guid

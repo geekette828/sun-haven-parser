@@ -121,14 +121,6 @@ for i, filename in enumerate(file_list, start=1):
             ("romanceable", "_romanceable", int),
             ("shopKeeper", "_shopKeeper", int),
             ("quests", "_quests", str),
-
-            # Resource-specific
-            ("requiredPower", "_requiredPower", int),
-            ("regenRate", "regenRate", int),
-            ("pickaxeable", "pickaxeable", int),
-            ("axeable", "axeable", int),
-            ("isHeavystone", "isHeavystone", int),
-            ("isHardwood", "isHardwood", int),
         ]:
             match = re.search(rf"{field}:\s*(.+)", content)
             if match:
@@ -145,8 +137,16 @@ for i, filename in enumerate(file_list, start=1):
                         continue
                 entity[key] = value
 
-        if "health" not in entity:
-            continue  # skip entries that don't have health
+        # Determine if the furniture can rotate
+        if any(entity.get(dir_key) for dir_key in ["southDecoration", "eastDecoration", "northDecoration", "westDecoration"]):
+            entity["canRotate"] = True
+        else:
+            entity["canRotate"] = False
+
+        if "health" not in entity and not any(k in entity for k in [
+            "placeableOnTables", "placeableOnWalls", "placeableAsRug", "placeableInWater"
+        ]):
+            continue  # skip entries that don't have health or furniture data
 
         drop_tables = extract_drop_tables(lines)
         entity.update(drop_tables)
