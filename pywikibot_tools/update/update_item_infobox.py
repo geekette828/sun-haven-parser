@@ -24,13 +24,9 @@ debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "item_info
 
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 
-KEYS_TO_CHECK = [
-    "name", "sell", "currency", "stack", "rarity", "hearts", "dlc",
-    "restores", "statInc", "season", "exp", "requirement", "organic"
-]
-
 BATCH_SIZE = constants.PWB_SETTINGS["BATCH_SIZE"]
 SLEEP_INTERVAL = constants.PWB_SETTINGS["SLEEP_INTERVAL"]
+KEYS_TO_CHECK = item_infobox_core.KEYS_TO_CHECK
 
 site = pywikibot.Site()
 pages = item_infobox_core.get_infobox_pages(TEST_RUN, TEST_PAGES)

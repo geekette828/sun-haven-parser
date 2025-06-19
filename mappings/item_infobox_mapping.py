@@ -174,6 +174,17 @@ def compute_requirement(item, classification):
     else:  # <-- Fallback: even if skill not found, still return the number
         return str(required_level)
 
+def compute_placement_type(item):
+    if str(item.get("placeableOnTables", 0)) == "1":
+        return "Surface"
+    elif str(item.get("placeableOnWalls", 0)) == "1":
+        return "Wall"
+    else:
+        return "Floor"
+
+def compute_is_rotatable(item):
+    return "True" if item.get("canRotate") is True else "False"
+
 # ---------------------------
 # Computed-only fields (not tied to a single JSON key)
 # ---------------------------
@@ -185,7 +196,9 @@ FIELD_COMPUTATIONS: Dict[str, Callable[[dict], str]] = {
     "season": compute_season,
     "exp": compute_exp,
     "organic": compute_organic,
-    "requirement": lambda item: compute_requirement(item, classify_item(item))
+    "requirement": lambda item: compute_requirement(item, classify_item(item)),
+    "placementType": compute_placement_type,
+    "isRotatable": compute_is_rotatable,
 }
 
 def format_infobox(item: dict, classification: Tuple[str, str, str], title: str) -> str:
@@ -221,14 +234,26 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
     lines.append(f"|dlc = {dlc}")
 
     # Close infobox for pages that dont use the item data section.
-    if itemType in ["Furniture", "Building"] or subtype in ["Pet", "Wild Animal", "Mount"]: 
+    if itemType in ["Building"] or subtype in ["Pet", "Wild Animal", "Mount"]: 
         lines[-1] = lines[-1] + "  }}"
         return "\n".join(lines)  
 
     # Data section
     lines.append("<!-- Item Data-->")
 
-    if subtype == "Barn Animal":
+    if itemType == "Furniture":
+        placement = ""
+        if str(item.get("placeableOnTables", 0)) == "1":
+            placement = "Surface"
+        elif str(item.get("placeableOnWalls", 0)) == "1":
+            placement = "Wall"
+        else:
+            placement = "Floor"
+        lines.append(f"|placementType = {placement}")
+        rotatable = "True" if item.get("canRotate") is True else "False"
+        lines.append(f"|isRotatable = {rotatable}")
+        lines.append("|set = ")
+    elif subtype == "Barn Animal":
         lines.append("|region = ")
         lines.append("|produces = ")
         lines.append("|capacity = ")
@@ -246,9 +271,9 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
         lines.append(f"|season = {FIELD_COMPUTATIONS['season'](item)}")
         lines.append(f"|exp = {FIELD_COMPUTATIONS['exp'](item)}")
     elif subtype == "Clothing":
-        lines.append("|armorset = ")
+        lines.append("|set = ")
     elif subtype in ["Armor", "Accessory"]:
-        lines.append("|armorset = ")
+        lines.append("|set = ")
         lines.append(f"|effect = {compute_effect(item)}")
         lines.append(f"|requirement = {FIELD_COMPUTATIONS['requirement'](item)}")
     elif subtype in ["Tool", "Weapon"]:

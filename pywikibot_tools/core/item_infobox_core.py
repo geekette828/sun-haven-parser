@@ -10,6 +10,12 @@ from mappings.item_infobox_mapping import FIELD_MAP, FIELD_COMPUTATIONS
 from utils.compare_utils import compare_instance_generic
 from utils.wiki_utils import get_pages_with_template, fetch_pages, parse_template_params
 
+KEYS_TO_CHECK = [
+    "name", "sell", "currency", "stack", "rarity", "hearts", "dlc",
+    "restores", "statInc", "season", "exp", "requirement", "organic",
+    "placementType", "isRotatable"
+]
+
 def load_normalized_json(json_file_path):   # Load and normalize the item JSON data.
     from utils import json_utils
     data = json_utils.load_json(json_file_path)

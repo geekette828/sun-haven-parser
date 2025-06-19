@@ -81,7 +81,7 @@ def classify_item(item):
     If no rule applies, returns empty strings.
     """
     use_desc = item.get("useDescription", "")
-    desc = item.get("description", "")
+    desc = (item.get("description") or "").strip()
     stats = item.get("stats", [])
     name = item.get("Name", "").lower()
     foodStat = item.get("foodStat", [])
