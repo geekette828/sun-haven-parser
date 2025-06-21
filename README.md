@@ -110,7 +110,7 @@ Sun Haven Parser/
     │   ├── EditorSettings
     │   ├── Font
     │   ├── GraphicsSettings
-    │   ├── GameObject              # Entity information [Monster/NPC/Resource stats and deop info] 
+    │   ├── GameObject              # Entity information [Monster/NPC/Resource stats and drop info] 
     │   ├── InputManager
     │   ├── LightingSettings
     │   ├── Mesh
