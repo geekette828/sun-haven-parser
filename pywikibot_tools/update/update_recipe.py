@@ -16,11 +16,11 @@ from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 SKIP_WORKBENCH = True           # Skip updating the workbench
 SKIP_SKILL_TOMES = True         # Skip items that have the words "Skill Tome" in them.
 
-DRY_RUN = True                    # No actual edits
-ADD_HISTORY = False             # Add a history bullet if changes were made
+DRY_RUN = False                 # No actual edits
+ADD_HISTORY = True              # Add a history bullet if changes were made
 
 TEST_RUN = False                # Only process test pages
-TEST_PAGES = ["Open Beach Cooler"]
+TEST_PAGES = ["Elven Wood End Table"]
 
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
 debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "recipe_update_debug.txt")
@@ -32,6 +32,7 @@ SLEEP_INTERVAL = constants.PWB_SETTINGS["SLEEP_INTERVAL"]
 
 site = pywikibot.Site()
 pages = recipe_core.get_recipe_pages(TEST_RUN, TEST_PAGES) + recipe_core.get_recipe_none_pages(TEST_RUN, TEST_PAGES)
+pages = list(dict.fromkeys(pages))  # Removes duplicates while preserving order
 data = recipe_core.load_normalized_json(json_file_path)
 
 debug_lines = []
@@ -127,6 +128,7 @@ for i in range(0, len(pages), BATCH_SIZE):
             time.sleep(SLEEP_INTERVAL)
 
     for title in batch:
+        did_save_page = False
         text = page_texts.get(title, "")
         if title in SKIP_ITEMS or (SKIP_SKILL_TOMES and "skill tome" in title.lower()):
             continue
@@ -155,7 +157,7 @@ for i in range(0, len(pages), BATCH_SIZE):
                     mapped["recipesource"] = matched_json.get("recipesource", "").strip()
 
                     lines = ["{{Recipe"]
-                    for name in ["product", "workbench", "ingredients", "time", "yield", "recipesource", "id"]:
+                    for name in ["product", "workbench", "ingredients", "time", "yield", "id", "recipesource"]:
                         lines.append(f"|{name} = {mapped.get(name, '')}")
                     lines[-1] += "}}"
                     formatted_tpl = "\n".join(lines)
@@ -166,45 +168,44 @@ for i in range(0, len(pages), BATCH_SIZE):
                     templates = [tpl for tpl in parsed.filter_templates() if tpl.name.strip().lower() == "recipe"]
 
                     debug_lines.append(f"[REPLACED RECIPE/NONE] {title}")
+
+                    page = pywikibot.Page(site, title)
+                    try:
+                        if not DRY_RUN:
+                            if ADD_HISTORY:
+                                from utils.history_utils import append_history_entry
+                                product = mapped.get("product", title)
+                                summary = f"[[{product}]] can now be crafted."
+                                patch = constants.PATCH_VERSION
+                                text = append_history_entry(text, summary, patch)
+                            page.text = text
+                            page.save(summary="Adding recipe to craft item.")
+                            if not TEST_RUN:
+                                time.sleep(SLEEP_INTERVAL)
+                        updated.append(title)
+                        debug_lines.append(f"[{'DRY RUN' if DRY_RUN else 'UPDATED'}] {title}")
+                        did_save_page = True
+                    except Exception as e:
+                        skipped.append(title)
+                        debug_lines.append(f"[FAILED] {title} - {str(e)}")
                     break
 
-            if not templates:
-                debug_lines.append(f"[NO TEMPLATE] {title}")
+            if did_save_page or not templates:
                 continue
 
-        if any(tpl.name.strip().lower() == "recipe" for tpl in templates):
-            page = pywikibot.Page(site, title)
-            try:
-                if not DRY_RUN:
-                    if ADD_HISTORY:
-                        from utils.history_utils import append_history_entry
-                        summary = "Adding recipe to craft item."
-                        patch = constants.PATCH_VERSION
-                        text = append_history_entry(text, summary, patch)
-                    page.text = text
-                    page.save(summary="Adding recipe to craft item.")
-                    if not TEST_RUN:
-                        time.sleep(SLEEP_INTERVAL)
-                updated.append(title)
-                debug_lines.append(f"[{'DRY RUN' if DRY_RUN else 'UPDATED'}] {title}")
-            except Exception as e:
-                skipped.append(title)
-                debug_lines.append(f"[FAILED] {title} - {str(e)}")
-            continue  # ✅ Prevent further field-by-field diff logic
+        if did_save_page:
+            continue
 
         for template in templates:
             matched_json, match_logs = recipe_core.match_json_recipe(template, title, data, len(templates))
             debug_lines.extend(match_logs)
 
-            # Handle fallback by product name if ID match failed
             if not matched_json:
                 product = template.get("product").value.strip() if template.has("product") else title
                 matches = [
                     (k, v) for k, v in data.items()
-                    if isinstance(v.get("output"), dict)
-                    and v["output"].get("name", "").strip().lower() == product.lower()
+                    if isinstance(v.get("output"), dict) and v["output"].get("name", "").strip().lower() == product.lower()
                 ]
-
                 if len(matches) == 1 and len(templates) == 1:
                     key, matched_json = matches[0]
                     debug_lines.append(f"[FALLBACK PRODUCT MATCH] {title} → {key}")
@@ -234,7 +235,6 @@ for i in range(0, len(pages), BATCH_SIZE):
                 if norm_expected != norm_actual:
                     clean_diffs.append((field, expected, actual))
 
-            # Skip save if all diffs are workbench and we're skipping workbench
             non_skipped_diffs = [
                 (f, e, a) for f, e, a in clean_diffs
                 if not (SKIP_WORKBENCH and f == "workbench")
@@ -256,15 +256,9 @@ for i in range(0, len(pages), BATCH_SIZE):
                         patch = constants.PATCH_VERSION
                         new_text = append_history_entry(new_text, summary, patch)
 
-                    if "[REPLACED RECIPE/NONE]" in debug_lines[-5:]:
-                        summary = "Adding recipe to craft item."
-                    else:
-                        changed_fields = [field for field, _, _ in non_skipped_diffs]
-                        summary = f"Updating {', '.join(changed_fields)}."
-
+                    summary = f"Updating {', '.join([f for f, _, _ in non_skipped_diffs])}."
                     page.text = new_text
                     page.save(summary=summary)
-
                     if not TEST_RUN:
                         time.sleep(SLEEP_INTERVAL)
 
