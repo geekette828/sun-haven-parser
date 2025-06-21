@@ -34,6 +34,7 @@ Sun Haven Parser/
 │   │   └── create_quest_page.py   
 │   ├── all_dialogue.py           → Creates a directory of all dialgoue for all NPCs.
 │   ├── all_item_descriptions.py  → Creates the format for `Module:Description`.
+│   ├── all_monster_drops.py      → A list of all drops and % to drop item from monsters.
 │   ├── all_npc_names.py          → A list of all NPCs that have speaking lines.
 │   ├── all_recipes.py            → A list of all recipies, in the `Template:Recipie` format in one output.
 │   ├── all_shops.py              → Formats all shop inventory sections.
