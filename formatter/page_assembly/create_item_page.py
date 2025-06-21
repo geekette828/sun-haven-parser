@@ -103,8 +103,8 @@ def create_item_page(item, display_name=None):
 ===Crafting===
 {recipe_markup}
 
-===Dropped By===
-{{{{Item as drop}}}}
+===Collected From===
+{{{{Item collected from}}}}
 
 ==Item Uses==
 {{{{Item as ingredient}}}}
