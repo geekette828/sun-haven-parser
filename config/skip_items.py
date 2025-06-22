@@ -295,7 +295,6 @@ SKIP_ITEMS = [
     "spring crops bundle",
     "squeaky clean chest",
     "summer crops bundle",
-    "sweet mounts chest",
     "tea temple chest",
     "tiger print gift",
     "traditional gift",
@@ -306,7 +305,6 @@ SKIP_ITEMS = [
     "water fruit seeds",
     "wheat grass juice",
     "white gift",
-    "wicked mounts chest",
     "wind orb",
     "winter crops bundle",
     "withergate farming bundle",
@@ -348,4 +346,13 @@ SKIP_PATTERNS = [
     "recurringchest*",
     "hiddenchest*",
     "*(old)",
+]
+
+SKIP_IMAGES = [
+    "Orange Kitty.png",
+    "Tuxedo Kitty.png",
+    "Grey Kitty.png",
+    "Brown Buppy.png",
+    "Sand Floor TIle.png",
+    "Lynn Gloves.png"
 ]

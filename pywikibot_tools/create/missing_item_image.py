@@ -9,6 +9,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import config.constants as constants
+from config.skip_items import SKIP_ITEMS, SKIP_IMAGES
 import pywikibot
 import traceback
 import time
@@ -78,6 +79,14 @@ def process_image_line(line):
         return
 
     item_name, file_name = [x.strip() for x in line.split('->', 1)]
+
+    if item_name.lower() in SKIP_ITEMS:
+        log_debug(f"Skipping item (in SKIP_ITEMS): {item_name}")
+        return
+    if file_name in SKIP_IMAGES:
+        log_debug(f"Skipping image (in SKIP_IMAGES): {file_name}")
+        return
+
     upload_name = item_name + ".png"
     image_path = os.path.join(image_input_directory, file_name)
 

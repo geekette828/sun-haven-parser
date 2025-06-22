@@ -71,8 +71,8 @@ SUMMARIES = {
     ("Furniture", "Rug", ""): "'''ITEM NAME''' is a decorative [[Furniture/Rugs|rug]] that can be placed on the floor in the player's house or on their farm. Like most furniture, rugs serve no functional purpose and are purely aesthetic, allowing the player to personalize their space. Furniture can be placed either outdoors on the farm or inside any of the player's buildings. Some pieces must be placed directly on the floor, while others can also sit atop tables or countertops. Wall-mounted items must be placed indoors. To pick up furniture, the player can strike the item with a [[pickaxe]].",
     ("Furniture", "Table", ""): "'''ITEM NAME''' is a surface furniture piece. [[Furniture/Surfaces#Tables|Tables]] allow smaller decorative items to be placed on top, making them ideal for interior design.",
     ("Furniture", "Tile", ""): "[[Tile Maker#Item Showcase|Tiles]] prevent trees from spawning on them and come in batches of 10. Investing in the [[Architect]] skill improves [[Movement Speed]] while walking on these tiles.",
-    ("Furniture", "Wallpaper", ""): "'''ITEM NAME''' is a wallpaper item used to decorate interior walls. Wallpaper can be reused multiple times and must be equipped to change wall appearances. It only functions indoors.\n\n===Display===\n\n[[File:ITEM NAME display.png|300px]]",
-    ("Furniture", "Flooring", ""): "'''ITEM NAME''' is a flooring item used to decorate interior floors. Flooring can be reused multiple times and must be equipped to change floor appearances. It only functions indoors.\n\n===Display===\n\n[[File:ITEM NAME display.png|300px]]",
+    ("Furniture", "Wallpaper", ""): "'''ITEM NAME''' is a wallpaper item used to decorate interior walls. Wallpaper can be reused multiple times and must be equipped to change wall appearances. It only functions indoors.",
+    ("Furniture", "Flooring", ""): "'''ITEM NAME''' is a flooring item used to decorate interior floors. Flooring can be reused multiple times and must be equipped to change floor appearances. It only functions indoors.",
     ("Furniture", "Wardrobe", ""): "'''ITEM NAME''' is a storage item placed on the floor. [[Furniture/Storage#Wardrobes|Wardrobes]] work similarly to chests and provide additional organization options.",
     ("Furniture", "Window", ""): "'''ITEM NAME''' is a window that changes appearance based on the time of day. It must be placed indoors and always faces forward. Players' homes come with two default windows that can be relocated with a [[pickaxe]].",
     ("Furniture", "Selling Portal", ""): "'''ITEM NAME''' is a piece of furniture that can be placed on the floor in the players house or on their farm. This item cannot be rotated and must always be facing front. [[Selling Portals|Selling portals]] are furniture items that allow the player to ship various things for currency. Each selling portal has a max number of items that can be shipped per day, if the player places additional selling portals on their farm(s), they are able to ship more items from the different portals. The player will receive their money during the transition of to the next day.\"\n\n[[Furniture]] items can be placed within the boundaries of the player characters farm; whether indoors, outdoors, or both. Items that require a wall, can only be placed indoors. The player can pick up furniture items by hitting them with a [[pickaxe]]. ",
@@ -208,7 +208,7 @@ def create_item_summary(item, computed, display_name=None):
             "the set will be delivered to the player's mailbox. These items are delivered to every "
             "character on the player's steam account."
         )
-        summary += "\n\n" + extra_text
+        summary = summary.rstrip() + "\n\n" + extra_text.strip()
 
     summary = summary.replace("ITEM NAME", display_name)
     return summary

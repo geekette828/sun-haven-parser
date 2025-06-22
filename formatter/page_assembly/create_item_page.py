@@ -26,12 +26,22 @@ def build_mount_section(item):
     if "mount" not in base_name.lower():
         base_name += " Mount"
     return (
-        "\n\n==Mount Display==\n"
+        "\n==Display==\n"
         "Mount image needed [[Category:Mount image needed]]<br><gallery widths=\"150\" bordercolor=\"transparent\" spacing=\"small\" captionalign=\"center\">\n"
         f"{base_name}_Front.png|Front\n"
         f"{base_name}.png|Side\n"
         "</gallery>\n"
     )
+
+def build_wallpaper_flooring_display(item, display_name):
+    _, subtype, _ = classify_item(item)
+    if subtype.lower() in ("wallpaper", "flooring"):
+        base_name = display_name.replace(" ", "_")
+        return (
+            "\n==Display==\n"
+            f"[[File:{base_name}_display.png|300px]] [[Category:Display image needed]]"
+        )
+    return ""
 
 def build_house_display_section(item, display_name):
     itemType, subtype, category = classify_item(item)
@@ -43,12 +53,12 @@ def build_house_display_section(item, display_name):
     # Skip Patio (no numbered images)
     if category == "Patio":
         return (
-        "\n\n==Display==\n"
+        "\n==Display==\n"
         f'[[File:{base}1.png|200px]] [[Category:House images needed]]\n'
     )
 
     return (
-        "\n\n==Display==\n"
+        "\n==Display==\n"
         '{| class="table-bottom tablexsmall" style="text-align: center; border-spacing: 10px;"\n'
         "|-\n"
         f'|style="vertical-align: bottom; width:33%;"|[[File:{base}1.png|150px]]<br>Tier 1 House\n'
@@ -61,7 +71,7 @@ def build_history_section(display_name):
     patch = constants.PATCH_VERSION
     return (
         f"==History==\n"
-        f"*{{{{History|{patch}|{display_name} added to the game.}}}}\n"
+        f"*{{{{History|{patch}|[[{display_name}]] added to the game.}}}}\n"
     )
 
 def build_media_trivia_comment():
@@ -80,22 +90,29 @@ def create_item_page(item, display_name=None):
     infobox = format_infobox(item, classification, display_name or item.get("name", "ITEM NAME"))
     computed = parse_infobox(infobox)
     summary = create_item_summary(item, computed, display_name)
-    house_display = build_house_display_section(item, display_name)
-    mount_section = build_mount_section(item)
+    house_display = build_house_display_section(item, display_name).strip()
+    wallpaper_floor_display = build_wallpaper_flooring_display(item, display_name).strip()
+    mount_section = build_mount_section(item).strip()
     recipe_markup = get_recipe_markup_for_item(item)
     navbox = create_item_navbox(item)
 
     banner = (
-    f"{{{{upcoming|First appeared in the game files in PBE patch {constants.PATCH_VERSION}.}}}}\n"
-    if INCLUDE_UPCOMING_BANNER else ""
+        f"{{{{upcoming|First appeared in the game files in PBE patch {constants.PATCH_VERSION}.}}}}\n"
+        if INCLUDE_UPCOMING_BANNER else ""
     )
-       
-    # Build core page content
-    page_template = f"""{banner}{infobox}
 
-{summary}
-{house_display}
-{mount_section}
+    # Build core page content with consistent line spacing
+    page_template = f"""{banner}{infobox}\n\n{summary}"""
+
+    if house_display:
+        page_template += f"\n\n{house_display}"
+    if wallpaper_floor_display:
+        page_template += f"\n\n{wallpaper_floor_display}"
+    if mount_section:
+        page_template += f"\n\n{mount_section}"
+
+    page_template += f"""
+
 ==Acquisition==
 ===Purchased From===
 {{{{Shop availability}}}}
