@@ -121,13 +121,15 @@ def parse_infobox(infobox):
     Parse the infobox output to extract computed values.
     Returns a dictionary with keys in lower case.
     """
-    pattern = re.compile(r'\|\s*(\w+)\s*=\s*(.+)')
+    pattern = re.compile(r'^\s*\|\s*([^=]+?)\s*=\s*(.*)')
     computed = {}
     for line in infobox.splitlines():
         match = pattern.match(line)
         if match:
             key, value = match.groups()
-            computed[key.strip().lower()] = value.strip()
+            # Strip both spaces and any trailing '}' from the value
+            value = value.strip().rstrip("}").strip()
+            computed[key.strip().lower()] = value
     return computed
 
 def custom_title(text):

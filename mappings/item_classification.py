@@ -239,7 +239,7 @@ def classify_item(item):
             return "Equipment", "Clothing", "Wig"
         if "dress" in name or "robe" in name:
             return "Equipment", "Clothing", "Dress"
-        if any(k in name for k in ["chest", "kimono", "chestplate", "chest plate", "shirt", "tank top", "hoodie", "jacket", "crop top", "sweater", "torso", "costume", "outfit", "vest", "coat", "tee", "t-shirt", "blouse", "suit", "cover up"]):
+        if any(k in name for k in ["chest", "gown", "toga", "kimono", "chestplate", "chest plate", "shirt", "tank top", "hoodie", "jacket", "crop top", "sweater", "torso", "costume", "outfit", "vest", "coat", "tee", "t-shirt", "blouse", "suit", "cover up"]):
             return "Equipment", "Clothing", "Shirt"
         if any(k in name for k in ["gloves", "gauntlets"]):
             return "Equipment", "Clothing", "Gloves"

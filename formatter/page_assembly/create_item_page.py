@@ -18,8 +18,8 @@ def normalize_name(name):
     return clean_whitespace(name).lower()
 
 def build_mount_section(item):
-    itemType, _, _ = classify_item(item)
-    if itemType.lower() != "mount":
+    _, subtype, _ = classify_item(item)
+    if subtype.lower() != "mount":
         return ""
     title = item.get("name", "ITEM NAME")
     base_name = title.rsplit(" Whistle", 1)[0]
@@ -27,7 +27,8 @@ def build_mount_section(item):
         base_name += " Mount"
     return (
         "\n==Display==\n"
-        "Mount image needed [[Category:Mount image needed]]<br><gallery widths=\"150\" bordercolor=\"transparent\" spacing=\"small\" captionalign=\"center\">\n"
+        "Mount image needed [[Category:Mount image needed]]\n"
+        "<gallery widths=\"150\" bordercolor=\"transparent\" spacing=\"small\" captionalign=\"center\">\n"
         f"{base_name}_Front.png|Front\n"
         f"{base_name}.png|Side\n"
         "</gallery>\n"
@@ -39,7 +40,7 @@ def build_wallpaper_flooring_display(item, display_name):
         base_name = display_name.replace(" ", "_")
         return (
             "\n==Display==\n"
-            f"[[File:{base_name}_display.png|300px]] [[Category:Display image needed]]"
+            f"[[File:{base_name}_display.png|300px]]"
         )
     return ""
 
@@ -168,7 +169,7 @@ def main():
 
     items_data_lower = { key.lower(): value for key, value in items_data.items() }
     test_items = [
-        "Simple Adamant Hammer", "Alien Bed", "Alien Couch"
+        "Ethereal Pegasus Mount Whistle", "Astral Wallpaper", "Arcade Flooring", "Spring Door", "Myths and Muses Chair"
     ]
 
     for item_name in test_items:
