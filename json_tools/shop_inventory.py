@@ -13,6 +13,10 @@ shops_json_path = os.path.join(output_directory, "shop_data.json")
 
 os.makedirs(output_directory, exist_ok=True)
 
+EDGE_CASE_SHOP_NAMES = [
+    "MythsAndMusesMerchat"
+]
+
 # Function to extract GUID from .meta file
 def extract_guid(meta_file_path):
     if os.path.exists(meta_file_path):
@@ -76,7 +80,13 @@ def parse_asset_file(asset_path):
 # Gather all MerchantTable.asset files
 shop_list = []
 for file_name in os.listdir(input_directory):
-    if file_name.endswith(".asset") and "merchant" in file_name.lower() and not file_name[0].isdigit():
+    if (
+        file_name.endswith(".asset")
+        and (
+            ("merchant" in file_name.lower() and not file_name[0].isdigit()) or
+            any(file_name.startswith(edge_case) for edge_case in EDGE_CASE_SHOP_NAMES)
+        )
+    ):
         file_path = os.path.join(input_directory, file_name)
         shop_data = parse_asset_file(file_path)
         shop_list.append(shop_data)
