@@ -1,6 +1,6 @@
 import os
-import sys
 import re
+import sys
 import time
 import pywikibot
 
@@ -23,18 +23,18 @@ def normalize_name(name):
     return re.sub(r'[^a-z0-9]', '', name.lower())
 
 def find_image_file(pagename, is_flooring):
-    candidates = []
     files = os.listdir(image_input_directory)
 
+    # Flooring uses only "_NV_Top.png"
     if is_flooring:
-        candidates = [f"{pagename}_Preview.png", f"{pagename}_NV_Top.png"]
+        candidate = f"{pagename}_NV_Top.png"
     else:
-        candidates = [f"{pagename}_0.png"]
+        # Wallpaper fallback
+        candidate = f"{pagename}_0.png"
 
-    for candidate in candidates:
-        for file in files:
-            if normalize_name(file) == normalize_name(candidate):
-                return os.path.join(image_input_directory, file), file
+    for file in files:
+        if normalize_name(file) == normalize_name(candidate):
+            return os.path.join(image_input_directory, file), file
     return None, None
 
 def process_page(title, is_flooring):
@@ -51,7 +51,14 @@ def process_page(title, is_flooring):
 
     try:
         img = image_utils.crop_whitespace(image_utils.Image.open(filepath))
-        img = image_utils.scale_image_to_min_size(img, 500)
+
+        if is_flooring:
+            # Scale flooring to exactly 1080x780 (approx 500% if original is 216x156)
+            img = img.resize((1080, 780), resample=image_utils.Image.NEAREST)
+        else:
+            # Default scale to at least 500px on one side
+            img = image_utils.scale_image_to_min_size(img, 500)
+
         image_utils.upload_image(
             img,
             output_filename,
