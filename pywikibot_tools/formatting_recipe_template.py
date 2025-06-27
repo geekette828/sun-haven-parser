@@ -5,12 +5,13 @@ This script also updates the spacing to make it more uniform.
 '''
 
 import os
+import re
 import sys
+import pywikibot
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import config.constants as constants
-import pywikibot
-import re
+from config import constants
 
 # Setup PWB
 import sys

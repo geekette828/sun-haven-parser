@@ -5,13 +5,14 @@ For items missing their image in the wiki, it will map the file name of the item
 
 import os
 import sys
+import json
+import time
+import pywikibot
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 sys.stdout.reconfigure(encoding='utf-8')
 
-import config.constants as constants
-import pywikibot
-import json
-import time
+from config import constants
 from utils.text_utils import normalize_apostrophe
 
 # Set up necessary configurations before other imports
@@ -48,8 +49,6 @@ def chunk_list(lst, chunk_size):
 def step1_combined_check_and_map():
     print("🔍 Checking JSON names for images...")
     ensure_dir(missing_files_txt)
-
-    debug_log_path = os.path.join(constants.OUTPUT_DIRECTORY, "Debug", "pywikibot_missingImageCheck_skipped.txt")
     ensure_dir(debug_log_path)
 
     # Load data

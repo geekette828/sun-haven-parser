@@ -6,13 +6,14 @@ Ensure image files are in the right place.
 
 import os
 import sys
+import time
+import traceback
+import pywikibot
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import config.constants as constants
+from config import constants
 from config.skip_items import SKIP_ITEMS, SKIP_IMAGES
-import pywikibot
-import traceback
-import time
 from datetime import datetime
 from PIL import Image
 

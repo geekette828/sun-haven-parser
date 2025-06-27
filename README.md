@@ -98,6 +98,7 @@ Sun Haven Parser/
 3. Export the folder to an area of your choosing. You will want to choose the export type: `Unity Project`. This is how it will export:
 ### Asset Directory Structure
 ```
+Unity Project Export
 └── ExportedProject
     ├── Assets
     │   ├── AssetBundle
@@ -146,6 +147,16 @@ Sun Haven Parser/
     ├── Assembilies
     └── Scripts
 ```
+4. After that export is done, export the same package as export type: `Primary Content`. This is how we will get the scripts for the cutscene dialogue, allowing us to know who is talking. <br>
+You will take the scripts folder IN THIS FORMAT (not the scripts folder of the other format) and put it into the input folder of the parser.
+```
+Primary Content Export
+├── Assemblies
+├── Assets
+└── Scripts
+    └── A Bunch of file folders that hold cutscene.cs files
+```
+
 ## Using the collection of scripts
 4. Rename & update `constants.example.py` where applicable for your paths.
 5. Take the necessary file folders from the ripped project and drop them into the parser project input folder.

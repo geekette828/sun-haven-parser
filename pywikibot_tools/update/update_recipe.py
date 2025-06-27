@@ -2,16 +2,16 @@ import os
 import re
 import sys
 import time
+import pywikibot
+import mwparserfromhell
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import pywikibot
-import mwparserfromhell
-from pywikibot_tools.core import recipe_core
-from mappings.recipe_mapping import RECIPE_FIELD_MAP
-from utils import file_utils, text_utils, recipe_utils
 from config import constants
 from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
+from pywikibot_tools.core import recipe_core
+from mappings.recipe_mapping import RECIPE_FIELD_MAP
+from utils import file_utils, recipe_utils
 
 SKIP_WORKBENCH = True           # Skip updating the workbench
 SKIP_SKILL_TOMES = True         # Skip items that have the words "Skill Tome" in them.

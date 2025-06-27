@@ -6,14 +6,14 @@ Includes redirect recovery and progress logging.
 import os
 import sys
 import time
-from itertools import islice
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 sys.stdout.reconfigure(encoding="utf-8")
 
-import config.constants as constants
+from config import constants
 from utils import json_utils, file_utils
 from utils.wiki_utils import get_site
+from itertools import islice
 
 # Setup wiki site
 site = get_site()

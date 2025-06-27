@@ -1,22 +1,21 @@
 '''
 This python script pulls a list of pages that are both `Pets` and `DLC`
-then associates specific cateogories to those image files
+then associates specific categories to those image files
 so they show up in various DPL queries on the wiki.
 '''
 
 import os
+import re
 import sys
+import time
+import random
+import pywikibot
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import config.constants as constants
-import pywikibot
-import re
-import time
 
 # Apply Pywikibot config from constants
-sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
-
-# Set up pyWikiBot configurations
 sys.path.append(constants.ADDITIONAL_PATHS["PWB"])
 site = pywikibot.Site()
 
@@ -29,6 +28,7 @@ os.makedirs(os.path.dirname(debug_log_path), exist_ok=True)
 BASE_CATEGORIES = {"Sun Haven assets", "Pet images", "DLC pet images"}
 UNKNOWN_PACK_CATEGORY = "Unknown pack images"
 PACK_SUFFIX = " pack images"
+UPLOAD_SLEEP_INTERVAL = constants.PWB_SETTINGS["SLEEP_INTERVAL"]
 
 def log_debug(message):
     with open(debug_log_path, "a", encoding="utf-8") as debug_file:
@@ -40,13 +40,27 @@ def write_section_header(file, header):
 def get_category_titles(page):
     return set(cat.title().replace("Category:", "") for cat in page.categories())
 
-def preload_pages(page_titles):
-    pages = [pywikibot.Page(site, title) for title in page_titles]
-    return {page.title(): page for page in site.preloadpages(pages)}
+def preload_pages_batched(titles, batch_size=25, sleep_interval=2):
+    pages = {}
+    for i in range(0, len(titles), batch_size):
+        batch = titles[i:i+batch_size]
+        batch_pages = site.preloadpages([pywikibot.Page(site, title) for title in batch])
+        for page in batch_pages:
+            pages[page.title()] = page
+        log_debug(f"🛠️ Preloaded {len(batch)} pages, sleeping {sleep_interval}s...")
+        time.sleep(sleep_interval)
+    return pages
 
-def preload_file_pages(file_titles):
-    files = [pywikibot.FilePage(site, f"File:{title}") for title in file_titles]
-    return {file.title(with_ns=False): file for file in site.preloadpages(files)}
+def preload_file_pages_batched(file_titles, batch_size=25, sleep_interval=2):
+    pages = {}
+    for i in range(0, len(file_titles), batch_size):
+        batch = file_titles[i:i+batch_size]
+        batch_pages = site.preloadpages([pywikibot.FilePage(site, f"File:{title}") for title in batch])
+        for page in batch_pages:
+            pages[page.title(with_ns=False)] = page
+        log_debug(f"🛠️ Preloaded {len(batch)} files, sleeping {sleep_interval}s...")
+        time.sleep(sleep_interval)
+    return pages
 
 def get_category_members(category_name):
     try:
@@ -59,16 +73,23 @@ def get_category_members(category_name):
 def main():
     try:
         pets_pages = get_category_members("Pets")
+        time.sleep(5)
         dlc_pages = get_category_members("DLC")
+        time.sleep(5)
+
         common_pages = sorted(pets_pages & dlc_pages)
+        if not common_pages:
+            log_debug("No matching pages found between 'Pets' and 'DLC'.")
+            return
 
         print(f"✅ Found {len(common_pages)} pages that are both 'Pets' and 'DLC' categories.")
         print("📦 Gathering category information from matched pages...")
 
-        page_map = preload_pages(common_pages)
         file_titles = [f"{title}.png" for title in common_pages]
-        file_map = preload_file_pages(file_titles)
+        page_map = preload_pages_batched(common_pages)
+        file_map = preload_file_pages_batched(file_titles)
 
+        upload_counter = 0
         missing_images = []
         missing_base = []
         mismatch_pack = []
@@ -141,7 +162,8 @@ def main():
                         image_cat_page.text = f"{{{{category}}}}\n[[Category:{pack_category}]]"
                         image_cat_page.save(summary=f"Creating image category for {pack_category}")
                         log_debug(f"📁 Created category: [[Category:{pack_image_category}]]")
-                        time.sleep(6)
+                        log_debug(f"🕒 Sleeping for {UPLOAD_SLEEP_INTERVAL} seconds after saving [[Category:{pack_image_category}]], {time.strftime('%Y-%m-%d %H:%M:%S')}")
+                        time.sleep(UPLOAD_SLEEP_INTERVAL + random.uniform(1.0, 2.0))
                     except Exception as e:
                         log_debug(f"❌ Failed to create category page [[Category:{pack_image_category}]]: {e}")
 
@@ -151,7 +173,9 @@ def main():
                 try:
                     file_page.save(summary="Updated image page: added missing caption, licensing, and categories")
                     log_debug(f"🔧 Fixed {file_name}: " + " + ".join(fix_log_parts))
-                    time.sleep(6)  # Respect server limits
+                    upload_counter += 1
+                    log_debug(f"🕒 Sleeping for {UPLOAD_SLEEP_INTERVAL} seconds after saving {file_name}, {time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    time.sleep(UPLOAD_SLEEP_INTERVAL + random.uniform(1.0, 2.0))
                 except Exception as e:
                     log_debug(f"❌ Failed to save {file_name}: {e}")
                     time.sleep(10)  # Backoff after failure

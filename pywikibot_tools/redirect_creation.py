@@ -5,10 +5,11 @@ This is useful for mounts/pets/clothing when many colors direct to the base page
 
 import os
 import sys
+import pywikibot
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import config.constants as constants
-import pywikibot
+from config import constants
 
 # Set up necessary configurations before other imports
 sys.path.append(constants.ADDITIONAL_PATHS["PWB"])

@@ -2,15 +2,15 @@ import os
 import re
 import sys
 import time
+import pywikibot
+import mwparserfromhell
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import pywikibot
-import mwparserfromhell
-from pywikibot_tools.core import item_infobox_core
-from utils import file_utils, text_utils
 from config import constants
 from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
+from pywikibot_tools.core import item_infobox_core
+from utils import file_utils, text_utils
 
 SKIP_VARIANTS_BASE = False       # Skip pages that are base names of variant groups
 DRY_RUN = True                  # No actual edits

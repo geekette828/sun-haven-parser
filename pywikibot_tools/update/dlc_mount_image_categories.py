@@ -5,12 +5,13 @@ so they show up in various DPL queries on the wiki.
 '''
 
 import os
+import re
 import sys
 import time
-import re
 import pywikibot
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from config import constants
 
 # Pywikibot config

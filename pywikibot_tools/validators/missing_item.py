@@ -3,16 +3,17 @@ This python script will review the SH wiki and compare the JSON file with item i
 The user must be in the PWB-Core folder and logged in to PyWikiBot using: python pwb.py login
 """
 import os
+import re
 import sys
+import json
+import time
+import fnmatch
+import pywikibot
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 sys.stdout.reconfigure(encoding='utf-8')
 
-import config.constants as constants
-import pywikibot
-import json
-import re
-import time
-import fnmatch
+from config import constants
 from config.skip_items import SKIP_ITEMS, SKIP_PATTERNS
 from collections import defaultdict
 from itertools import islice

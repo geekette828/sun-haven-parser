@@ -5,12 +5,13 @@ that do not have `Template:Recipe` based on `recipes_data.json`
 
 import os
 import sys
+import json
+import pywikibot
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 sys.stdout.reconfigure(encoding='utf-8')
 
-import config.constants as constants
-import pywikibot
-import json
+from config import constants
 from utils import file_utils
 
 # Setup PWB and site

@@ -3,12 +3,12 @@ import re
 import sys
 import time
 import json
+import pywikibot
+import mwparserfromhell
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from config import constants
-import pywikibot
-import mwparserfromhell
 from utils import image_utils
 from utils.wiki_utils import fetch_pages, parse_template_params
 from utils.file_utils import write_debug_log
