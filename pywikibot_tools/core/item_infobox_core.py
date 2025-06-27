@@ -1,14 +1,14 @@
 import os
 import re
 import sys
+import mwparserfromhell
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import mwparserfromhell
 from utils import text_utils
 from mappings.item_infobox_mapping import FIELD_MAP, FIELD_COMPUTATIONS
 from utils.compare_utils import compare_instance_generic
-from utils.wiki_utils import get_pages_with_template, fetch_pages, parse_template_params
+from utils.wiki_utils import get_pages_with_template, parse_template_params
 
 KEYS_TO_CHECK = [
     "name", "sell", "currency", "stack", "rarity", "hearts", "dlc",

@@ -1,14 +1,13 @@
 import os
 import re
 import sys
-import mwparserfromhell
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from mappings.recipe_mapping import RECIPE_FIELD_MAP, RECIPE_COMPUTE_MAP, RECIPE_EXTRA_FIELDS
-from utils.compare_utils import compare_instance_generic
 from utils import text_utils, recipe_utils
+from utils.compare_utils import compare_instance_generic
 from utils.wiki_utils import get_pages_with_template, fetch_pages, parse_template_params
+from mappings.recipe_mapping import RECIPE_FIELD_MAP, RECIPE_COMPUTE_MAP, RECIPE_EXTRA_FIELDS
 
 def load_normalized_json(json_file_path):
     from utils import json_utils
