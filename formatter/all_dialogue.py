@@ -1,9 +1,10 @@
 import os
+import re
 import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import config.constants as constants
-import re
+from config import constants
 from utils import file_utils, text_utils
 
 # Define input and output paths
@@ -69,7 +70,7 @@ for character, files in dialogue_groups.items():
                 if cycle_number == "0":
                     cycle_text = f"{{{{Player Introduction|{character}\n"
                 else:
-                    cycle_text = f"{{{{Conversation Dialogue|{character}\n"
+                    cycle_text = f"{{{{Conversation Dialogue|npc={character}\n"
                     cycle_text += f"|title = Cycle {cycle_number}\n"
 
                 dialogue_text = ""
