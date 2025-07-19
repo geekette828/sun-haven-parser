@@ -1,19 +1,17 @@
 import os
 import sys
 import re
-import json
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import config.constants as constants
 from utils import file_utils, json_utils
 
 # Define paths
-input_directory = os.path.join(constants.INPUT_DIRECTORY, "GameObject")
-output_directory = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data")
-output_file = "entities_data.json"
-output_path = os.path.join(output_directory, output_file)
-
-file_utils.ensure_dir_exists(output_directory)
+base_npc_directory = os.path.join(constants.INPUT_DIRECTORY, "GameObject")
+combat_dungeon_directory = os.path.join(constants.INPUT_DIRECTORY, "Scenes")
+output_file = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "entities_data.json")
+file_utils.ensure_dir_exists(os.path.dirname(output_file))
 
 def extract_drop_tables(lines):
     drop_tables = []
@@ -66,14 +64,14 @@ def extract_drop_tables(lines):
 # Main extraction
 entity_data = {}
 
-file_list = [f for f in os.listdir(input_directory) if f.endswith(".prefab")]
+file_list = [f for f in os.listdir(base_npc_directory) if f.endswith(".prefab")]
 total_files = len(file_list)
 
 for i, filename in enumerate(file_list, start=1):
     if total_files > 0 and i % max(1, total_files // 5) == 0:
         print(f"  🔄 {i}/{total_files} files complete — ({int((i / total_files) * 100)}%)")
 
-    prefab_path = os.path.join(input_directory, filename)
+    prefab_path = os.path.join(base_npc_directory, filename)
     meta_path = prefab_path + ".meta"
     prefab_name = os.path.splitext(filename)[0]
 
@@ -156,6 +154,48 @@ for i, filename in enumerate(file_list, start=1):
     except Exception as e:
         print(f"Error processing {filename}: {e}")
 
-# 
-json_utils.write_json(entity_data, output_path)
-print(f"✅ Entity data written to {output_path}")
+# Add combat dungeon enemies
+combat_files = [f for f in os.listdir(combat_dungeon_directory) if re.match(r"CombatDungeon(\d+)\.unity", f)]
+for filename in sorted(combat_files):
+    filepath = os.path.join(combat_dungeon_directory, filename)
+    print(f"🔍 Parsing {filename}")
+    lines = file_utils.read_file_lines(filepath)
+    content = "\n".join(lines)
+
+    enemy_blocks = re.findall(r'enemySpawnerName:.*?(?=\n\S)', content, flags=re.DOTALL)
+    floor_match = re.search(r'CombatDungeon(\d+)', filename)
+    floor_number = floor_match.group(1) if floor_match else "?"
+
+    for block in enemy_blocks:
+        name_match = re.search(r'enemySpawnerName:\s*([^\n]+)', block)
+        if not name_match:
+            continue
+        name = name_match.group(1).strip()
+        key = f"{name}_CombatDungeon{floor_number}"
+        entity = {
+            "enemy name": name,
+            "location": f"Combat Dungeon Floor {floor_number}"
+        }
+
+        for field, cast in [
+            ("_health", float),
+            ("_powerLevel", int),
+            ("defense", int),
+            ("_hasAttack", int),
+            ("_attacking", int),
+            ("_attackStateDuration", float),
+            ("timeBetweenAttacks", float),
+            ("reflectDamage", int)
+        ]:
+            match = re.search(rf"{field}:\s*([^\n]+)", block)
+            if match:
+                try:
+                    entity[field.lstrip("_")] = cast(match.group(1).strip())
+                except:
+                    continue
+
+        entity_data[key] = entity
+
+
+json_utils.write_json(entity_data, output_file)
+print(f"✅ Entity data written to {output_file}")

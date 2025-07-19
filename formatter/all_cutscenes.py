@@ -15,83 +15,150 @@ file_utils.ensure_dir_exists(output_directory)
 
 # Load localization data from English.prefab
 def load_localization_dict(filepath):
-    lines = file_utils.read_file_lines(filepath)
-    text = "\n".join(lines)
-    pattern = r'"(.*?)"\s*:\s*"((?:[^"\\]|\\.)*)"'
-    matches = re.findall(pattern, text)
-    return {key: val.encode().decode('unicode_escape') for key, val in matches}
+    with open(filepath, encoding="utf-8") as f:
+        text = f.read()
+    entries = re.findall(r'- Term:\s*(.*?)\n\s*TermType:.*?Languages:\s*- (.*?)\n', text, re.DOTALL)
+    return {k.strip().strip('"').replace(" ", ""): v.strip().strip('"') for k, v in entries}
 
 localization = load_localization_dict(english_prefab_path)
 
-def localize(key):
-    if not key or key.lower() in {"null", "none"}:
-        return "Narrator"
-    return localization.get(key.strip(), key.strip())
+HARDCODED_KEYS = {
+    "Yes": "Yes",
+    "No": "No"
+}
 
-# Extract relevant dialogue lines from .cs content
-def extract_cutscene_dialogue(lines):
-    results = []
+def localize_key(key):
+    if key in HARDCODED_KEYS:
+        return HARDCODED_KEYS[key]
+    lookup_key = key.strip().replace("_", ".")
+    return localization.get(lookup_key, f"[Missing text: {key}]")
+
+def format_line(indent, speaker, text_key):
+    return f"{'    ' * indent}{speaker}: {text_utils.clean_dialogue(localize_key(text_key))}\n"
+
+def extract_dialogue(lines):
+    i = 0
+    indent = 0
     current_speaker = "Narrator"
+    results = []
+    option_lookup = {}
+    post_option_lines = []
+    active_case = None
 
-    for line in lines:
-        line = line.strip()
-        if not line or line.startswith("//"):
-            continue
+    def add_line(speaker, key, level=0):
+        results.append(format_line(level, speaker, key))
+
+    while i < len(lines):
+        line = lines[i].strip()
 
         if "SetDialogueBustVisuals" in line:
-            match = re.search(r"SetDialogueBustVisuals\([^,]+,\s*([a-zA-Z0-9_.]+)", line)
+            match = re.search(r"SetDialogueBustVisuals\(([^,]+),\s*([a-zA-Z0-9_.]+)", line)
             if match:
-                current_speaker = match.group(1).split('.')[-1]
+                npc_field = match.group(2)
+                current_speaker = npc_field.split(".")[-1].capitalize()
+            i += 1
             continue
 
-        if "SetDefaultBox" in line:
-            match = re.search(r"SetDefaultBox\(([^)]+)\)", line)
-            if match:
-                current_speaker = match.group(1).split('.')[-1]
+        if "DialogueSingle(" in line and "," in line:
+            match = re.findall(r"ScriptLocalization\.([a-zA-Z0-9_]+)", line)
+            if len(match) == 2:
+                npc_key, player_key = match
+                results.append(format_line(indent, current_speaker, npc_key))
+                results.append(format_line(indent, "Player", player_key))
+                i += 1
+                continue
+
+        if "DialogueSingleNoResponse" in line:
+            key_match = re.search(r"ScriptLocalization\.([a-zA-Z0-9_]+)", line)
+            if key_match:
+                add_line(current_speaker, key_match.group(1), indent)
+            else:
+                raw_match = re.search(r'DialogueSingleNoResponse\("([^"]+)"', line)
+                if raw_match:
+                    add_line(current_speaker, raw_match.group(1), indent)
+            i += 1
             continue
 
+        if "DialogueSingle(" in line and "new List<" in line:
+            prompt_key_match = re.search(r"ScriptLocalization\.([a-zA-Z0-9_]+)", line)
+            prompt_key = prompt_key_match.group(1) if prompt_key_match else None
+            if prompt_key:
+                add_line(current_speaker, prompt_key, indent)
+            i += 1
+            options = []
+            while i < len(lines) and not lines[i].strip().startswith("}),"):
+                opt_line = lines[i].strip()
+                key_match = re.findall(r"ScriptLocalization\.([a-zA-Z0-9_]+)", opt_line)
+                if key_match:
+                    for key in key_match:
+                        if "delegate" in opt_line:
+                            options.append(key)
+                        else:
+                            add_line(current_speaker, key, indent)
+                i += 1
+            for idx, opt in enumerate(options):
+                results.append(f"{'    ' * indent}→ Option {idx + 1}: {text_utils.clean_dialogue(localize_key(opt))}\n")
+                option_lookup[f"case {idx + 1}"] = indent + 1
+            i += 1
+            continue
+
+        response_case = re.match(r"case (\d+):", line)
+        if response_case:
+            opt = f"case {response_case.group(1)}"
+            indent = option_lookup.get(opt, 1)
+            results.append(f"{'    ' * (indent - 1)}[If Option {response_case.group(1)}]\n")
+            active_case = int(response_case.group(1))
+            i += 1
+            continue
+
+        if "DialogueSingle(" in line or "DialogueSingleNoResponse" in line:
+            key_match = re.search(r"ScriptLocalization\.([a-zA-Z0-9_]+)", line)
+            if key_match:
+                add_line(current_speaker, key_match.group(1), indent)
+            i += 1
+            continue
+
+        if "ScriptLocalization." in line:
+            key_match = re.search(r"ScriptLocalization\.([a-zA-Z0-9_]+)", line)
+            if key_match:
+                value = localize_key(key_match.group(1))
+                if key_match.group(1).startswith("Yes") or key_match.group(1).startswith("No"):
+                    results.append(f"{'    ' * indent}→ Option {1 if 'Yes' in key_match.group(1) else 2}: {value}\n")
+                else:
+                    results.append(f"{'    ' * indent}{current_speaker}: {text_utils.clean_dialogue(value)}\n")
+            i += 1
+            continue
+
+        if active_case and not line.strip():
+            active_case = None
+
+        elif active_case is None and line:
+            post_option_lines.append(line)
+
+        i += 1
+
+    for line in post_option_lines:
         key_match = re.search(r"ScriptLocalization\.([a-zA-Z0-9_]+)", line)
         if key_match:
-            results.append((current_speaker, key_match.group(1)))
-            continue
-
-        text_match = re.search(r'DialogueSingleNoResponse\("([^"]+)"', line)
-        if text_match:
-            cleaned = text_utils.clean_dialogue(text_match.group(1))
-            results.append((current_speaker, cleaned))
+            results.append(format_line(indent, current_speaker, key_match.group(1)))
 
     return results
 
-# Main routine
 def main():
-    summary = []
-
     for root, _, files in os.walk(input_directory):
         for filename in files:
             if not filename.endswith("Cutscene.cs"):
                 continue
-
             filepath = os.path.join(root, filename)
             lines = file_utils.read_file_lines(filepath)
-            dialogue_lines = extract_cutscene_dialogue(lines)
-
-            out_lines = []
-            for speaker_key, text_key in dialogue_lines:
-                speaker = localize(speaker_key)
-                dialogue = localization.get(text_key.strip(), f"[Missing text: {text_key.strip()}]")
-                out_lines.append(f"{speaker}: {text_utils.clean_dialogue(dialogue)}\n")
+            dialogue = extract_dialogue(lines)
 
             rel_path = os.path.relpath(filepath, input_directory)
             flat_name = rel_path.replace("\\", "/").replace("/", "-").replace(".cs", ".txt")
-            flat_name = re.sub(r"^SunHaven\.Core-", "", flat_name)
+            flat_name = re.sub(r"^SunHaven\.Core-", "", flat_name, flags=re.IGNORECASE)
 
             output_path = os.path.join(output_directory, flat_name)
-            file_utils.write_lines(output_path, out_lines)
-            summary.append((flat_name, len(out_lines)))
-
-    print("✅ Cutscene dialogue extraction complete:")
-    for name, count in summary:
-        print(f" - {name}: {count} lines")
+            file_utils.write_lines(output_path, dialogue)
 
 if __name__ == "__main__":
     main()

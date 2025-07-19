@@ -1,9 +1,10 @@
 import os
+import re
 import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import config.constants as constants
-import re
+from config import constants
 from utils import json_utils, file_utils
 
 # Define paths
