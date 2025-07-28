@@ -72,6 +72,7 @@ Sun Haven Parser/
 │   ├── update/
 │   │   ├── dlc_mount_image_categories.py           → Puts specific missing categories on mount image files.
 │   │   ├── dlc_pet_image_categories.py             → Puts specific missing categories on pet image files.
+│   │   ├── update_image_scale_whitespace.py        → Checks for small images, scales and crops them.
 │   │   ├── update_item_infobox.py                  → Updates wiki item infobox template to match items json.
 │   │   ├── update_recipe.py                        → Updates wiki recipe template to match recipe json.
 │   |   └── update_uncategorized_files.py           → Categorizes files from Special:UncategorizedFiles to clean up file metadata.

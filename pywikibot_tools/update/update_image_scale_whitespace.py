@@ -26,6 +26,8 @@ MIN_DIM = 300
 MAX_PAD = 10
 TARGET_PAD = 3
 SLEEP_INTERVAL = constants.PWB_SETTINGS["SLEEP_INTERVAL"]
+CATEGORY_NAME = "Sun Haven assets"
+START_AT_LETTER = "M"  # Leave as 'None' to disable filtering
 
 def log_debug(msg):
     file_utils.append_line(debug_log_path, msg)
@@ -65,12 +67,19 @@ def trim_whitespace(img, bounds):
     w, h = img.size
 
     def shrink(val): return val - (MAX_PAD - TARGET_PAD) if val > MAX_PAD else 0
-    new_l = shrink(l)
-    new_t = shrink(t)
-    new_r = shrink(r)
-    new_b = shrink(b)
 
-    return img.crop((new_l, new_t, w - new_r, h - new_b))
+    new_l = min(max(0, shrink(l)), w - 1)
+    new_t = min(max(0, shrink(t)), h - 1)
+    new_r = min(max(0, shrink(r)), w - 1)
+    new_b = min(max(0, shrink(b)), h - 1)
+
+    # Calculate crop box
+    crop_left = new_l
+    crop_top = new_t
+    crop_right = max(crop_left + 1, w - new_r)  # ensure right > left
+    crop_bottom = max(crop_top + 1, h - new_b)  # ensure bottom > top
+
+    return img.crop((crop_left, crop_top, crop_right, crop_bottom))
 
 def scale_image(img):
     w, h = img.size
@@ -99,39 +108,89 @@ def upload_overwrite(file_page, img, summary):
         except Exception as e:
             log_debug(f"⚠️ Failed to delete temp file {temp_path}: {e}")
 
+API_METADATA_SLEEP = 0.5  # seconds between file info queries
+
 def process_file(file_page):
-    log_debug(f"🔍 Checking {file_page.title()}")
+    title = file_page.title(with_ns=False)
+    if title.lower().endswith('.gif'):
+        log_debug(f"⏩ Skipped GIF file: {title}")
+        return
+
+    if not file_page.exists():
+        log_debug(f"❌ File missing: {title}")
+        return
+
+    # Throttle API metadata calls
+    time.sleep(API_METADATA_SLEEP)
+    info = file_page.latest_file_info
+    if not info or not info.mime or 'image' not in info.mime:
+        log_debug(f"⏩ Skipped non-image or unknown type: {title}")
+        return
+
+    width = info.width
+    height = info.height
+
+    if width >= MIN_DIM or height >= MIN_DIM:
+        log_debug(f"✅ {title} already ≥{MIN_DIM}px (W:{width} H:{height}) — skipping download")
+        return
+
+    log_debug(f"🔍 Downloading {title} for deeper inspection")
     img = download_image(file_page)
     if not img:
         return
 
-    original_size = img.size
+    w, h = img.size
     summary_parts = []
 
-    if original_size[0] < MIN_DIM and original_size[1] < MIN_DIM:
+    if w < MIN_DIM and h < MIN_DIM:
         img = scale_image(img)
-        summary_parts.append(f"scaled from {original_size[0]}x{original_size[1]}")
+        summary_parts.append(f"scaled from {w}x{h}")
+        w, h = img.size  # update after scaling
 
     bounds = get_transparent_bounds(img)
     if any(p > MAX_PAD for p in bounds):
-        img = trim_whitespace(img, bounds)
+        l, t, r, b = bounds
+        def shrink(val): return val - (MAX_PAD - TARGET_PAD) if val > MAX_PAD else 0
+        new_l = min(max(0, shrink(l)), w - 1)
+        new_t = min(max(0, shrink(t)), h - 1)
+        new_r = min(max(0, shrink(r)), w - 1)
+        new_b = min(max(0, shrink(b)), h - 1)
+        crop_left = new_l
+        crop_top = new_t
+        crop_right = max(crop_left + 1, w - new_r)
+        crop_bottom = max(crop_top + 1, h - new_b)
+        img = img.crop((crop_left, crop_top, crop_right, crop_bottom))
         summary_parts.append(f"trimmed transparent padding {bounds} to {TARGET_PAD}px")
 
-    if not summary_parts:
-        log_debug(f"✅ {file_page.title()} OK (size: {img.size}, padding: {bounds})")
-        return
-
-    upload_overwrite(file_page, img, "; ".join(summary_parts))
+    if summary_parts:
+        upload_overwrite(file_page, img, "; ".join(summary_parts))
+    else:
+        log_debug(f"✅ {title} passed all checks after full inspection")
 
 def main():
-    category = "Sun Haven assets"
-    cat = pywikibot.Category(site, f"Category:{category}")
+    cat = pywikibot.Category(site, f"Category:{CATEGORY_NAME}")
     pages = list(cat.articles(namespaces="File"))
-    log_debug(f"🗂️ Found {len(pages)} files in '{category}'")
+    log_debug(f"🗂️ Found {len(pages)} files in '{CATEGORY_NAME}'")
 
-    for i, file_page in enumerate(pages, 1):
-        log_debug(f"\n--- [{i}/{len(pages)}] {file_page.title()} ---")
+    filtered_pages = []
+
+    for page in pages:
+        title = page.title(with_ns=False)
+        if START_AT_LETTER:
+            first_char = title.lstrip().upper()[:1]
+            if first_char < START_AT_LETTER.upper():
+                continue
+        filtered_pages.append(page)
+
+    log_debug(f"▶️ Starting from letter '{START_AT_LETTER}' — {len(filtered_pages)} files remaining")
+
+    for i, file_page in enumerate(filtered_pages, 1):
+        log_debug(f"\n--- [{i}/{len(filtered_pages)}] {file_page.title()} ---")
         process_file(file_page)
+
+        if i % 250 == 0:
+            log_debug(f"🔄 Progress: {i}/{len(filtered_pages)} images processed")
+
         time.sleep(SLEEP_INTERVAL)
 
 if __name__ == "__main__":
