@@ -78,7 +78,7 @@ def build_history_section(display_name):
 def build_media_trivia_comment():
     return """<!--
 ==Media==
-<gallery widths=\"200\" bordercolor=\"transparent\" spacing=\"small\" captionalign=\"center\">
+<gallery widths=\"150\" bordercolor=\"transparent\" spacing=\"small\" captionalign=\"center\">
 File:filename.png|File Description
 </gallery>
 
