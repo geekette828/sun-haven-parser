@@ -32,13 +32,10 @@ def process_items(test_items=None):
 
     if test_items is None:
         test_items = [
-            "Elixir of Arcane Might",
-            "Iron Ring",
-            "Candy Corn Fruit Pop",
-            "Watery Protector's Potion",
-            "Carrot Juice",
-            "Apple Juice",
-            "Candied Yams"
+            "Peanuts",
+            "Dragon Scale",
+            "Log",
+            "Citrus Star Fruit"
         ]
     logger.info(f"Test items: {test_items}")
 

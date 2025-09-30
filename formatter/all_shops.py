@@ -104,5 +104,18 @@ def main():
 
     print("Shops file generated successfully.")
 
+    # after computing paths in main()
+    print("🔍 reading:", os.path.abspath(shop_data_path))
+    print("📝 writing:", os.path.abspath(output_file_path))
+
+    shop_data = json_utils.load_json(shop_data_path) or []
+    if isinstance(shop_data, dict) and isinstance(shop_data.get("shops"), list):
+        shop_data = shop_data["shops"]
+
+    print(f"📦 shops discovered: {len(shop_data)}")
+    print("   sample:", [s.get("shop_name") for s in shop_data[:10]])
+    print("   generals:", [s.get("shop_name") for s in shop_data if 'general' in str(s.get('shop_name','')).lower()][:10])
+
+
 if __name__ == "__main__":
     main()

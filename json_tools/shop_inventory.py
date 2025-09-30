@@ -1,10 +1,11 @@
 import os
 import sys
+import re
+import json
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import config.constants as constants
-import json
-import re
 
 # Define paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
@@ -29,9 +30,13 @@ def extract_guid(meta_file_path):
 
 # Function to parse asset file
 def parse_asset_file(asset_path):
+    base = os.path.basename(asset_path).replace(".asset", "")
+    # remove "...MerchantTable" or plain "...Table" suffixes
+    clean = re.sub(r'(?:Merchant)?Table$', '', base, flags=re.IGNORECASE)
+
     shop_data = {
         "file_name": os.path.basename(asset_path),
-        "shop_name": os.path.basename(asset_path).replace("MerchantTable", "").replace(".asset", "").strip("_"),
+        "shop_name": clean.strip("_"),
         "guid": extract_guid(asset_path + ".meta"),
         "starting_items": [],
         "random_items": []
@@ -77,16 +82,18 @@ def parse_asset_file(asset_path):
 
     return shop_data
 
-# Gather all MerchantTable.asset files
+# Gather all relevant .asset files
 shop_list = []
 for file_name in os.listdir(input_directory):
-    if (
-        file_name.endswith(".asset")
-        and (
-            ("merchant" in file_name.lower() and not file_name[0].isdigit()) or
-            any(file_name.startswith(edge_case) for edge_case in EDGE_CASE_SHOP_NAMES)
-        )
-    ):
+    if not file_name.endswith(".asset"):
+        continue
+
+    lower = file_name.lower()
+
+    is_merchant_like = ("merchant" in lower and not file_name[0].isdigit())
+    is_generalstore = "generalstore" in lower
+
+    if is_merchant_like or is_generalstore or any(file_name.startswith(edge) for edge in EDGE_CASE_SHOP_NAMES):
         file_path = os.path.join(input_directory, file_name)
         shop_data = parse_asset_file(file_path)
         shop_list.append(shop_data)

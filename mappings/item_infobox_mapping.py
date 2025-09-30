@@ -279,6 +279,12 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
     elif subtype in ["Tool", "Weapon"]:
         lines.append(f"|requirement = {FIELD_COMPUTATIONS['requirement'](item)}")
 
+    # Add conditional fields before the final braces
+    if str(item.get("isAnimalProduct", 0)) == "1":
+        lines.append("|topShelf = true")
+    if str(item.get("isForageable", 0)) == "1":
+        lines.append("|rareFinds = true")
+
     # Close the template
     if lines:
         lines[-1] = lines[-1] + "  }}"
