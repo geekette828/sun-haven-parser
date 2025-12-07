@@ -93,6 +93,7 @@ def main():
             if idx % max(total // 10, 1) == 0:
                 percent = (number_processed / total) * 100
                 print(f"      🔄 {number_processed}/{total} processed images — ({percent:.1f}%).")
+                time.sleep(3)
 
         print(f"✅ Display images uploads complete: {actual_new_uploads}/{total} pages processed.")
 

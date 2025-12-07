@@ -26,8 +26,11 @@ MIN_DIM = 300
 MAX_PAD = 10
 TARGET_PAD = 3
 SLEEP_INTERVAL = constants.PWB_SETTINGS["SLEEP_INTERVAL"]
-CATEGORY_NAME = "Sun Haven assets"
-START_AT_LETTER = "M"  # Leave as 'None' to disable filtering
+CATEGORY_NAME = "Crop stage images"
+START_AT_LETTER = "None"  # Leave as 'None' to disable filtering
+
+# NEW: Toggle trimming of transparent whitespace
+REMOVE_TRANSPARENT_WHITESPACE = False  # set to False to disable trimming and only scale. Set to True to do both.
 
 def log_debug(msg):
     file_utils.append_line(debug_log_path, msg)
@@ -100,7 +103,12 @@ def upload_overwrite(file_page, img, summary):
         file_page.upload(temp_path, comment=summary, ignore_warnings=True)
         log_debug(f"📝 Overwrote {file_page.title()} - {summary}")
     except Exception as e:
-        log_debug(f"❌ Upload failed for {file_page.title()}: {e}")
+        err = str(e)
+        log_debug(f"❌ Upload failed for {file_page.title()}: {err}")
+        # NEW: detect missing login / user rights issue
+        if "user right" in err.lower() or "does not have required user right" in err.lower():
+            print("\n🚨 ERROR: Not logged in or missing upload rights. Please run `pwb.py login` first.\n")
+            sys.exit(1)  # stop script immediately
     finally:
         try:
             os.remove(temp_path)
@@ -142,25 +150,30 @@ def process_file(file_page):
     w, h = img.size
     summary_parts = []
 
+    # Scaling (always considered if smaller than MIN_DIM)
     if w < MIN_DIM and h < MIN_DIM:
         img = scale_image(img)
         summary_parts.append(f"scaled from {w}x{h}")
         w, h = img.size  # update after scaling
 
-    bounds = get_transparent_bounds(img)
-    if any(p > MAX_PAD for p in bounds):
-        l, t, r, b = bounds
-        def shrink(val): return val - (MAX_PAD - TARGET_PAD) if val > MAX_PAD else 0
-        new_l = min(max(0, shrink(l)), w - 1)
-        new_t = min(max(0, shrink(t)), h - 1)
-        new_r = min(max(0, shrink(r)), w - 1)
-        new_b = min(max(0, shrink(b)), h - 1)
-        crop_left = new_l
-        crop_top = new_t
-        crop_right = max(crop_left + 1, w - new_r)
-        crop_bottom = max(crop_top + 1, h - new_b)
-        img = img.crop((crop_left, crop_top, crop_right, crop_bottom))
-        summary_parts.append(f"trimmed transparent padding {bounds} to {TARGET_PAD}px")
+    # Optional trimming (gated by toggle)
+    if REMOVE_TRANSPARENT_WHITESPACE:
+        bounds = get_transparent_bounds(img)
+        if any(p > MAX_PAD for p in bounds):
+            l, t, r, b = bounds
+            def shrink(val): return val - (MAX_PAD - TARGET_PAD) if val > MAX_PAD else 0
+            new_l = min(max(0, shrink(l)), w - 1)
+            new_t = min(max(0, shrink(t)), h - 1)
+            new_r = min(max(0, shrink(r)), w - 1)
+            new_b = min(max(0, shrink(b)), h - 1)
+            crop_left = new_l
+            crop_top = new_t
+            crop_right = max(crop_left + 1, w - new_r)
+            crop_bottom = max(crop_top + 1, h - new_b)
+            img = img.crop((crop_left, crop_top, crop_right, crop_bottom))
+            summary_parts.append(f"trimmed transparent padding {bounds} to {TARGET_PAD}px")
+    else:
+        log_debug(f"↪️ Trim disabled — skipping whitespace removal for {title}")
 
     if summary_parts:
         upload_overwrite(file_page, img, "; ".join(summary_parts))

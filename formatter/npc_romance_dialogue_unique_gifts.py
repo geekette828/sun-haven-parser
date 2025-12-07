@@ -70,7 +70,7 @@ def extract_unique_gifts(lines):
             if stripped.startswith("response:") and current_id:
                 response = text_utils.clean_dialogue(stripped.split(":", 1)[1].strip())
                 item_name = id_to_name.get(current_id, f"[Unknown {current_id}]")
-                rows.append(f"| [[{item_name}]] || '''{response}'''\n|-")
+                rows.append(f"| {{{{icon|{item_name} }}}} || {response}\n|-")
                 current_id = None
     return rows
 

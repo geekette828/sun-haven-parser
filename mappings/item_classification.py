@@ -17,8 +17,8 @@ def classify_item(item):
           then itemType = "Equipment", subtype = "Weapon", category = "Sword".
       - If the item name contains "crossbow" and useDescription is exactly "(Left click to fire)",
           then itemType = "Equipment", subtype = "Weapon", category = "Crossbow".
-      - If the item name contains "staff" or "staves" and the description includes
-          "when selected on your toolbelt, this staff grants" (case-insensitive),
+      - If the item name contains "staff" or "staves" and the description in
+        lower case includes "when selected on your toolbelt, this staff grants",
           then itemType = "Equipment", subtype = "Weapon", category = "Staff".
 
     Tool classification:
@@ -39,7 +39,7 @@ def classify_item(item):
     
     Forageable classification:
       - If isForageable is 1:
-            * If foodStat is empty → itemType = "Forageables", subtype = "Resources", category = "".
+            * If foodStat is empty → itemType = "Item", subtype = "Forageables", category = "Resources".
             * If foodStat is non-empty → itemType = "Forageables", subtype = "Food", category = "".
     
     Fish classification:
@@ -53,7 +53,8 @@ def classify_item(item):
     Furniture classification:
       - If useDescription is exactly "(Left click to place)":
           then itemType = "Furniture" and subtype is determined by key phrases in the name.
-          (For example, if name contains "end table" or "nightstand", subtype = "Nightstand"; if "bed", then "Bed"; etc.)
+          (For example, if name contains "end table" or "nightstand", subtype = "Nightstand"; if "bed", then
+           subtype is "Bed"; etc.)
           Category remains blank.
     
     Equipment fallback classification:
@@ -68,23 +69,28 @@ def classify_item(item):
           * Else if name contains any of "leg", "legs", "shoes", "pants", then return "Equipment", "Armor", "Legs".
           * Else if name contains any of "cape", "wings", "back", then return "Equipment", "Armor", "Cape".
       - If stats is empty, apply Clothing rules:
-          * If name contains any of "hat", "crown", "headband", "headphones", "hood", "goggles", "tiara", "helmet", then return "Equipment", "Clothing", "Hat".
+          * If name contains any of "hat", "crown", "headband", "headphones", "hood", "goggles", "tiara",
+            "helmet", "head scarf", "beanie", "halo", "helm", then return "Equipment", "Clothing", "Hat".
           * Else if name contains "wig", then return "Equipment", "Clothing", "Wig".
           * Else if name contains "dress" or "robe", then return "Equipment", "Clothing", "Dress".
-          * Else if name contains any of "chest", "chestplate", "chest plate", "shirt", "tank top", "hoodie", "jacket", "crop top", "sweater", "torso", "costume", "outfit", "vest", "coat", "tee", "t-shirt", then return "Equipment", "Clothing", "Shirt".
+          * Else if name contains any of "chest", "gown", "toga", "kimono", "chestplate", "chest plate", 
+            "shirt", "tank top", "hoodie", "jacket", "crop top", "sweater", "torso", "costume", "outfit",
+            "vest", "coat", "tee", "t-shirt", "blouse", "suit", "cover up", then return "Equipment", "Clothing", "Shirt".
           * Else if name contains any of "gloves", "gauntlets", then return "Equipment", "Clothing", "Gloves".
-          * Else if name contains "cape", then return "Equipment", "Clothing", "Cape".
+          * Else if name contains any of "cape", "wings", "tail", then return "Equipment", "Clothing", "Cape".
           * Else if name contains any of "pants", "slacks", "shoes", "boots", "greaves", then return "Equipment", "Clothing", "Pants".
           * Else if name contains "shorts", then return "Equipment", "Clothing", "Shorts".
           * Else if name contains any of "skirt", "skirts", then return "Equipment", "Clothing", "Skirt".
-    
-    If no rule applies, returns empty strings.
     """
-    use_desc = item.get("useDescription", "")
-    desc = (item.get("description") or "").strip()
-    stats = item.get("stats", [])
-    name = item.get("Name", "").lower()
-    foodStat = item.get("foodStat", [])
+
+    raw_name = item.get("name") or item.get("Name") or ""
+    name = str(raw_name).lower()
+
+    desc = item.get("description") or item.get("Description") or ""
+    use_desc = item.get("useDescription") or item.get("UseDescription") or ""
+
+    stats = item.get("stats", "")
+    foodStat = item.get("foodStat", "")
     isForageable = item.get("isForageable", 0)
     isPotion = item.get("isPotion", 0)
     isMeal = item.get("isMeal", 0)
@@ -130,8 +136,10 @@ def classify_item(item):
     # 4. Forageable classification.
     if isForageable == 1:
         if not foodStat:
-            return "Forageables", "Resources", ""
+            # NON-FOOD forageables → Item + Forageables/Resources
+            return "Item", "Forageables", "Resources"
         else:
+            # FOOD forageables → Forageables/Food (mapped to Consumable infobox later)
             return "Forageables", "Food", ""
 
     # 5. Fish classification.
@@ -140,13 +148,18 @@ def classify_item(item):
 
     # 6. Consumable classification.
     if isMeal == 1 or (isPotion == 0 and isForageable == 0 and foodStat):
+        if "tome" in name.lower():
+            return "Consumable", "Tome", ""
+        if "jam" in name.lower():
+            return "Consumable", "Jam", ""
         return "Consumable", "Food", ""
+
     if isPotion == 1:
         return "Consumable", "Potion", ""
 
     # 7. Record classification.
     if use_desc == "(Use on record player to play)":
-        return "Record", "", ""
+        return "Item", "Record", ""
 
     # 8. Mount classification.
     if use_desc == "(Left click to summon/unsummon mount)":
@@ -154,15 +167,15 @@ def classify_item(item):
 
     # 9. House Customization
     if desc.startswith("Customizes your house's door in a "):
-        return "Building", "House Customization", "Door"
+        return "Item", "House Customization", "Door"
     if desc.startswith("Customizes your house's patio in a "):
-        return "Building", "House Customization", "Patio"
+        return "Item", "House Customization", "Patio"
     if desc.startswith("Customizes your house's roof in a "):
-        return "Building", "House Customization", "Roof"
+        return "Item", "House Customization", "Roof"
     if desc.startswith("Customizes your house's walls in a "):
-        return "Building", "House Customization", "Walls"
+        return "Item", "House Customization", "Walls"
     if desc.startswith("Customizes your house's windows in a "):
-        return "Building", "House Customization", "Windows"
+        return "Item", "House Customization", "Windows"
 
     # 10. Flooring
     if use_desc == "(Left click to place path on farm)":
@@ -190,8 +203,12 @@ def classify_item(item):
             return "Furniture", "Chair", ""
         if "chest" in name:
             return "Furniture", "Chest", ""
+        if any(k in name for k in ["Fence", "Fences"]):
+            return "Furniture", "Fence", ""
         if "fireplace" in name:
             return "Furniture", "Fireplace", ""
+        if "gate" in name:
+            return "Furniture", "Fence Gate", ""
         if "painting" in name:
             return "Furniture", "Painting", ""
         if any(k in name for k in ["statue", "sculpture", "model", "column"]):
@@ -204,6 +221,8 @@ def classify_item(item):
             return "Furniture", "Plushie", ""
         if any(k in name for k in ["rug", "mat", "doormat"]):
             return "Furniture", "Rug", ""
+        if "shelf" in name:
+            return "Furniture", "Shelf", ""
         if "table" in name:
             return "Furniture", "Table", ""
         if any(k in name for k in ["wardrobe", "dresser"]):
@@ -233,7 +252,7 @@ def classify_item(item):
         if any(k in name for k in ["cape", "wings", "back"]):
             return "Equipment", "Armor", "Cape"
     else:
-        if any(k in name for k in ["hat", "crown", "headband", "headphones", "hood", "goggles", "tiara", "helmet", "head scarf", "beanie", "halo", "helm"]):
+        if any(k in name for k in ["hat", "cap", "crown", "headband", "headphones", "hood", "goggles", "tiara", "helmet", "head scarf", "beanie", "halo", "helm"]):
             return "Equipment", "Clothing", "Hat"
         if "wig" in name:
             return "Equipment", "Clothing", "Wig"

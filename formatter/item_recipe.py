@@ -32,17 +32,27 @@ def get_recipe_markup_for_item(item):
     name = item.get("name") or item.get("Name", "")
     recipes = get_recipes_by_output_name(name)
 
-    included = []
-    for r in recipes:
-        workbench = normalize_workbench(r.get("workbench", ""))
-        if workbench == "Unknown":
-            # Log the unknown workbench case
-            with open(debug_log_path, "a", encoding="utf-8") as logf:
-                logf.write(f"{name} - RecipeID: {r.get('recipeID', '?')} - RawWorkbench: {r.get('workbench', '')}\n")
-            continue
-        included.append(r)
+    valid_recipes = []
+    unknown_recipes = []
 
-    formatted = [format_recipe(r) for r in included]
+    for r in recipes:
+        raw_workbench = r.get("workbench", "")
+        workbench = normalize_workbench(raw_workbench)
+
+        if workbench == "Unknown":
+            # Always log unknown workbenches
+            with open(debug_log_path, "a", encoding="utf-8") as logf:
+                logf.write(f"{name} - RecipeID: {r.get('recipeID', '?')} - RawWorkbench: {raw_workbench}\n")
+
+            unknown_recipes.append(r)
+            continue
+
+        valid_recipes.append(r)
+
+    # If we found ANY valid recipes, suppress unknown ones entirely
+    recipes_to_use = valid_recipes if valid_recipes else unknown_recipes
+
+    formatted = [format_recipe(r) for r in recipes_to_use]
     formatted = [f for f in formatted if f.strip()]  # Remove blanks
 
     return "\n".join(formatted) if formatted else "{{Recipe/none}}"

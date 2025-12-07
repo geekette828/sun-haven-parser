@@ -21,7 +21,7 @@ def build_mount_section(item):
     _, subtype, _ = classify_item(item)
     if subtype.lower() != "mount":
         return ""
-    title = item.get("name", "ITEM NAME")
+    title = item.get("Name") or item.get("name") or "ITEMNAME"
     base_name = title.rsplit(" Whistle", 1)[0]
     if "mount" not in base_name.lower():
         base_name += " Mount"
@@ -46,7 +46,7 @@ def build_wallpaper_flooring_display(item, display_name):
 
 def build_house_display_section(item, display_name):
     itemType, subtype, category = classify_item(item)
-    if itemType != "Building" or subtype != "House Customization":
+    if itemType != "Item" or subtype != "House Customization":
         return ""
 
     base = display_name.replace(" ", "_")
@@ -88,12 +88,16 @@ File:filename.png|File Description
 
 def create_item_page(item, display_name=None):
     classification = classify_item(item)
-    infobox = format_infobox(item, classification, display_name or item.get("name", "ITEM NAME"))
+    itemType, subtype, category = classification
+
+    display_title = display_name or item.get("name", "ITEMNAME")
+
+    infobox = format_infobox(item, classification, display_title)
     computed = parse_infobox(infobox)
-    summary = create_item_summary(item, computed, display_name)
-    house_display = build_house_display_section(item, display_name).strip()
-    wallpaper_floor_display = build_wallpaper_flooring_display(item, display_name).strip()
-    mount_section = build_mount_section(item).strip()
+    summary = create_item_summary(item, computed, display_title)
+    house_display = build_house_display_section(item, display_title).strip()
+    wallpaper_floor_display = build_wallpaper_flooring_display(item, display_title).strip()
+    mount_section = build_mount_section(item, display_title).strip()
     recipe_markup = get_recipe_markup_for_item(item)
     navbox = create_item_navbox(item)
 
@@ -102,7 +106,27 @@ def create_item_page(item, display_name=None):
         if INCLUDE_UPCOMING_BANNER else ""
     )
 
-    # Build core page content with consistent line spacing
+    is_fish = (
+        (itemType or "").lower() == "fish"
+        or (subtype or "").lower() == "fish"
+    )
+
+    fish_block = (
+        f"""
+===Fished From===
+Fish availability varies by location and season. The minimum and maximum spawn chances are based on a fishing level of 0 (with no skills) and level 70 (with all relevant skills), respectively. For more information on how these values are calculated, see the [[Fishing/Spawn Chance|Fishing Calculations]] page.
+{{{{Fish locations
+|name = {display_title}
+|1_location = 
+   |1_season = 
+   |1_min = 
+   |1_max = 
+}}}}
+
+"""
+        if is_fish else ""
+    )
+
     page_template = f"""{banner}{infobox}\n\n{summary}"""
 
     if house_display:
@@ -115,7 +139,7 @@ def create_item_page(item, display_name=None):
     page_template += f"""
 
 ==Acquisition==
-===Purchased From===
+{fish_block}===Purchased From===
 {{{{Shop availability}}}}
 
 ===Crafting===
@@ -143,9 +167,7 @@ def create_item_page(item, display_name=None):
 """
 
     if INCLUDE_HISTORY_SECTION:
-        if display_name is None:
-            display_name = item.get("name", "ITEM NAME")
-        page_template += "\n" + build_media_trivia_comment() + "-->\n" + build_history_section(display_name) + "\n"
+        page_template += "\n" + build_media_trivia_comment() + "-->\n" + build_history_section(display_title) + "\n"
     else:
         page_template += build_media_trivia_comment() + "==History==\n*{{History|x.x|Description of change}}-->"
 

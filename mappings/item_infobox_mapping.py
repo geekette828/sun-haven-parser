@@ -93,32 +93,56 @@ def compute_statInc(item):
 
     # Handle foodStat
     for stat in item.get("foodStat", []):
-        if stat.get("increase") == "999":
+        increase_raw = stat.get("increase")
+        if increase_raw is None:
+            continue
+        # Skip sentinel
+        if str(increase_raw) == "999":
             continue
         stat_id = int(stat.get("stat", -1))
         stat_name = constants.STAT_TYPE_MAPPING.get(stat_id, f"Stat{stat_id}")
-        increase = int(stat.get("increase", 0))
+        increase = int(increase_raw)
         inc_text = constants.FOOD_STAT_INCREASES.get(increase, f"+{increase}")
         parts.append(f"{stat_name}»({inc_text})")
 
     # Handle statBuff
     for buff in item.get("statBuff", []):
+        value_raw = buff.get("value")
+        if value_raw is None:
+            continue
+        # Skip sentinel
+        if str(value_raw) == "999":
+            continue
+        value = float(value_raw)
+        if value == 999:
+            continue
         stat_type = int(buff.get("statType", -1))
-        value = float(buff.get("value") or 0)
-        duration = int(buff.get("duration") or 0)
         stat_name = constants.STAT_TYPE_MAPPING.get(stat_type, f"Stat{stat_type}")
-        value_text = f"{int(value * 100)}%" if value <= 1 else str(int(value))
+        duration = int(buff.get("duration") or 0)
+        value_text = (
+            f"{int(value * 100)}%" if value <= 1 else str(int(value))
+        )
         minutes = duration // 60
         parts.append(f"{stat_name}«{value_text}»({minutes}m)")
 
     # Handle maxStats
     for max_stat in item.get("maxStats", []):
+        value_raw = max_stat.get("value")
+        if value_raw is None:
+            continue
+        # Skip sentinel
+        if str(value_raw) == "999":
+            continue
+        value = int(value_raw)
+        if value == 999:
+            continue
         stat_type = int(max_stat.get("statType", -1))
-        value = int(max_stat.get("value", 0))
         stat_name = constants.STAT_TYPE_MAPPING.get(stat_type, f"Stat{stat_type}")
         parts.append(f"{stat_name}»(+{value})")
 
-    return "; ".join(parts)
+    # Final output: return blank if nothing valid
+    return "; ".join(parts) if parts else ""
+
 
 def compute_organic(item):
     raw = item.get("isFruit", "")
@@ -201,15 +225,74 @@ FIELD_COMPUTATIONS: Dict[str, Callable[[dict], str]] = {
     "isRotatable": compute_is_rotatable,
 }
 
+def _choose_infobox(itemType: str, subtype: str, category: str) -> Tuple[str, bool]:
+    """
+    Decide which infobox template to use based on classification, and whether the
+    result should be flagged for manual review.
+
+    Returns:
+      (template_name, needs_review_flag)
+    """
+    # Animal items → Animal infobox.
+    if itemType == "Animal":
+        return "Animal infobox", False
+
+    # Equipment vs Clothing.
+    if itemType == "Equipment":
+        if subtype == "Clothing":
+            # Clothing subset uses Clothing infobox.
+            return "Clothing infobox", False
+        # Weapons, Tools, Armor, Accessories → Equipment infobox.
+        return "Equipment infobox", False
+
+    # Furniture (including flooring, wallpaper, decor).
+    if itemType == "Furniture":
+        return "Furniture infobox", False
+
+    # Fish.
+    if itemType == "Fish":
+        return "Fish infobox", False
+
+    # Consumables (meals, potions, non-forageable food).
+    if itemType == "Consumable":
+        return "Consumable infobox", False
+
+    # FOOD Forageables → Consumable infobox.
+    if itemType == "Forageables" and subtype == "Food":
+        return "Consumable infobox", False
+
+    # Generic Item infobox family (Mounts, Records, House Customization, non-food forageables).
+    if itemType == "Item":
+        known_item_subtypes = {
+            "Mount",
+            "Record",
+            "House Customization",
+            "Forageables",  # Non-food forageables become Item/Forageables/Resources
+        }
+        if subtype in known_item_subtypes:
+            return "Item infobox", False
+        # Unknown Item subtype → still Item infobox, but mark for review.
+        return "Item infobox", True
+
+    # Anything else (including empty classification or legacy "Building") →
+    # fall back to Item infobox and flag for review.
+    return "Item infobox", True
+
 def format_infobox(item: dict, classification: Tuple[str, str, str], title: str) -> str:
     """
-    Generates the complete Item infobox wikitext based on FIELD_MAP and FIELD_COMPUTATIONS.
+    Generates the complete infobox wikitext based on FIELD_MAP and FIELD_COMPUTATIONS.
+    Chooses the proper infobox template (Animal / Equipment / Clothing / Furniture /
+    Fish / Consumable / Item) based on the classification tuple.
     """
     itemType, subtype, category = classification
 
-    lines = ["{{Item infobox"]
+    # Decide which infobox to use and whether this needs a review category.
+    template_name, needs_review = _choose_infobox(itemType, subtype, category)
 
-    # Core Fields
+    # Start template.
+    lines = [f"{{{{{template_name}"]
+
+    # Common core fields (shared across all infoboxes)
     sell = FIELD_COMPUTATIONS["sell"](item)
     if sell:
         lines.append(f"|sell = {sell}")
@@ -224,23 +307,73 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
         if value:
             lines.append(f"|{key} = {value}")
 
-    # Classification
-    lines.append("<!-- Item Classification -->")
-    lines.append(f"|itemType = {itemType}")
-    lines.append(f"|subtype = {subtype}")
-    lines.append(f"|category = {category}")
+    # Classification fields per-infobox
+    dlc_value = FIELD_MAP["dlc"][1](item.get(FIELD_MAP["dlc"][0], 0))
 
-    dlc = FIELD_MAP["dlc"][1](item.get(FIELD_MAP["dlc"][0], 0))
-    lines.append(f"|dlc = {dlc}")
+    # Item infobox keeps the full legacy classification block.
+    if template_name == "Item infobox":
+        lines.append("<!-- Item Classification -->")
+        lines.append(f"|itemType = {itemType}")
+        lines.append(f"|subtype = {subtype}")
+        lines.append(f"|category = {category}")
+        lines.append(f"|dlc = {dlc_value}")
 
-    # Close infobox for pages that dont use the item data section.
-    if itemType in ["Building"] or subtype in ["Pet", "Wild Animal", "Mount"]: 
-        lines[-1] = lines[-1] + "  }}"
-        return "\n".join(lines)  
+    # Animal infobox: subtype + dlc.
+    elif template_name == "Animal infobox":
+        lines.append("<!-- Item Classification -->")
+        if subtype:
+            lines.append(f"|subtype = {subtype}")
+        lines.append(f"|dlc = {dlc_value}")
 
-    # Data section
+    # Equipment infobox: subtype, category, dlc.
+    elif template_name == "Equipment infobox":
+        lines.append("<!-- Item Classification -->")
+        if subtype:
+            lines.append(f"|subtype = {subtype}")
+        if category:
+            lines.append(f"|category = {category}")
+        lines.append(f"|dlc = {dlc_value}")
+
+    # Clothing infobox: category, dlc.
+    elif template_name == "Clothing infobox":
+        lines.append("<!-- Item Classification -->")
+        if category:
+            lines.append(f"|category = {category}")
+        lines.append(f"|dlc = {dlc_value}")
+
+    # Furniture infobox: subtype, category, dlc.
+    elif template_name == "Furniture infobox":
+        lines.append("<!-- Item Classification -->")
+        if subtype:
+            lines.append(f"|subtype = {subtype}")
+        if category:
+            lines.append(f"|category = {category}")
+        lines.append(f"|dlc = {dlc_value}")
+
+    # Fish and Consumable infoboxes currently don’t have dlc in the templates you sent.
+    # We only add classification if it makes sense.
+    elif template_name == "Consumable infobox":
+        lines.append("<!-- Item Classification -->")
+        if subtype:
+            lines.append(f"|subtype = {subtype}")
+        if category:
+            lines.append(f"|category = {category}")
+        # no dlc field here by default
+
+    # Early close for items that don’t use data section
+    if subtype in ["Pet", "Wild Animal", "Mount", "Record", "House Customization"]:
+        # Close current last line with braces and return.
+        if lines:
+            lines[-1] = lines[-1] + "  }}"
+        result = "\n".join(lines)
+        if needs_review:
+            result += "\n[[Category:Review item infobox]]"
+        return result
+
+    # Data section (keyed on itemType/subtype)
     lines.append("<!-- Item Data-->")
 
+    # Furniture data → placementType, isRotatable, set
     if itemType == "Furniture":
         placement = ""
         if str(item.get("placeableOnTables", 0)) == "1":
@@ -253,10 +386,14 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
         rotatable = "True" if item.get("canRotate") is True else "False"
         lines.append(f"|isRotatable = {rotatable}")
         lines.append("|set = ")
+
+    # Barn Animal data → region, produces, capacity
     elif subtype == "Barn Animal":
         lines.append("|region = ")
         lines.append("|produces = ")
         lines.append("|capacity = ")
+
+    # Potion / Food / Fish data
     elif subtype == "Potion":
         lines.append(f"|restores = {FIELD_COMPUTATIONS['restores'](item)}")
         lines.append(f"|statInc = {FIELD_COMPUTATIONS['statInc'](item)}")
@@ -270,6 +407,8 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
         lines.append("|region = ")
         lines.append(f"|season = {FIELD_COMPUTATIONS['season'](item)}")
         lines.append(f"|exp = {FIELD_COMPUTATIONS['exp'](item)}")
+
+    # Clothing / Armor / Accessory / Weapon / Tool data
     elif subtype == "Clothing":
         lines.append("|set = ")
     elif subtype in ["Armor", "Accessory"]:
@@ -279,13 +418,17 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
     elif subtype in ["Tool", "Weapon"]:
         lines.append(f"|requirement = {FIELD_COMPUTATIONS['requirement'](item)}")
 
-    # Add conditional fields before the final braces
+    # Flags shared with Consumable / Forageable behavior
+    # (topShelf / rareFinds) – appear on Consumable & Item infoboxes
     if str(item.get("isAnimalProduct", 0)) == "1":
         lines.append("|topShelf = true")
     if str(item.get("isForageable", 0)) == "1":
         lines.append("|rareFinds = true")
 
-    # Close the template
+    # Close template and optionally add review category
     if lines:
         lines[-1] = lines[-1] + "  }}"
-    return "\n".join(lines)
+    result = "\n".join(lines)
+    if needs_review:
+        result += "\n[[Category:Review item infobox]]"
+    return result

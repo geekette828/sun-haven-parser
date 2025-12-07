@@ -67,8 +67,15 @@ def find_image_file(style, type_lc, index):
 
 def build_upload_name(style, type_uc, index):
     if type_uc == "Patio":
-        return f"{style} Patio1.png"
-    return f"{style} {type_uc}{index + 1}.png"
+        return f"{style} Patio{index + 1}.png"
+
+    # Use plural for file names where appropriate to match page display
+    if type_uc in ("Wall", "Window"):
+        base_type = type_uc + "s"
+    else:
+        base_type = type_uc
+
+    return f"{style} {base_type}{index + 1}.png"
 
 def process_page(page, title):
     style, type_uc = extract_style_and_type(title)
@@ -114,10 +121,17 @@ def process_page(page, title):
     if uploaded_or_skipped == expected_count:
         try:
             text = page.text
-            if "[[Category:House images needed]]" in text:
-                new_text = text.replace("[[Category:House images needed]]", "").strip()
-                page.text = new_text
+
+            # Remove [[Category:House images needed]] with any optional sortkey, wherever it appears
+            pattern = r'\[\[\s*[Cc]ategory\s*:\s*House images needed\s*(\|[^]]*)?\s*\]\]'
+            new_text, count = re.subn(pattern, '', text)
+
+            if count > 0:
+                page.text = new_text.strip()
                 page.save(summary="Remove House images needed category (images uploaded)")
+            else:
+                image_utils.log_debug(f"No removable House images needed category found on {title}", debug_log_path)
+
             return True
         except Exception as e:
             image_utils.log_debug(f"Failed to remove category for {title}: {e}", debug_log_path)

@@ -54,7 +54,7 @@ def get_base_and_variant(name):
 def categorize_items(item_list):
     categorized = defaultdict(set)
     for item in item_list:
-        base_name, variant = get_base_and_variant(item)
+        base_name, variant = split_base_and_variant_display(item)
         if variant:
             categorized[base_name].add(variant)
         elif not re.search(r'\d+$', item):
@@ -81,9 +81,26 @@ def load_json_items():
 
     return name_to_filename
 
+def split_base_and_variant_display(name):
+    """
+    Like get_base_and_variant, but preserves original capitalization
+    for output. Works directly on the original string.
+    """
+    original = name.strip()
+    # Drop trailing _1 / _2 / " 1" / " 2" style suffixes, but keep case
+    no_suffix = re.sub(r'[_ ]\d+$', '', original)
+
+    match = re.search(r'^(.*?)\s*\((.*?)\)\s*(.*)$', no_suffix)
+    if match:
+        base = f"{match.group(1).strip()} {match.group(3).strip()}".strip()
+        variant = match.group(2).strip()
+        return base, variant
+
+    return no_suffix, None
+
 # Step 1: Extract wiki pages that transclude infobox templates 
 def get_infobox_pages():
-    templates = ["Item infobox", "Agriculture infobox"]
+    templates = ["Item infobox", "Agriculture infobox", "Animal infobox", "Clothing infobox", "Consumable infobox", "Equipment infobox", "Fish infobox", "Furniture infobox"]
     wiki_names = set()
     with open(infobox_txt_path, "w", encoding="utf-8") as txt_file:
         for template in templates:
@@ -94,6 +111,19 @@ def get_infobox_pages():
                 wiki_names.add(title.lower())
     print(f"Finished gathering {len(wiki_names)} normalized wiki page names.")
     return wiki_names
+
+def get_all_mainspace_titles():
+    """
+    Gather all titles in mainspace (including redirects) once,
+    so existence checks are done locally instead of via per-item API calls.
+    """
+    print("Gathering all mainspace page titles (including redirects)...")
+    all_titles = set()
+    # filterredir=None (or omitted) -> both normal pages and redirects
+    for page in site.allpages(namespace=0, content=False):
+        all_titles.add(page.title().strip().lower())
+    print(f"Finished gathering {len(all_titles)} mainspace titles.")
+    return all_titles
 
 # Step 2: Compare JSON to infobox list
 def compare_infobox_to_json(wiki_names, json_items):
@@ -107,66 +137,7 @@ def compare_infobox_to_json(wiki_names, json_items):
     print("Finished comparing the wiki page names to the json")
     return both, wiki_only, json_only
 
-# Step 3: Check for pages/redirects for JSON-only names
-def recheck_jsononly_against_wiki(json_items, json_only):
-    recovered = set()
-    to_check = [
-        name for name in json_items
-        if get_base_and_variant(name)[0] in json_only
-    ]
-
-    print("Beginning the comparison between the left over json names and the wiki")
-
-    def chunked(iterable, size):
-        it = iter(iterable)
-        while True:
-            chunk = list(islice(it, size))
-            if not chunk:
-                break
-            yield chunk
-
-    batch_size = 20
-    last_percent = -1
-    total = len(to_check)
-
-    for idx, batch in enumerate(chunked(to_check, batch_size)):
-        pages = [pywikibot.Page(site, name) for name in batch]
-
-        while True:
-            try:
-                preloaded = site.preloadpages(pages)
-                for original, page in zip(batch, preloaded):
-                    if page.exists():
-                        recovered.add(get_base_and_variant(original)[0])
-                break
-            except pywikibot.exceptions.APIError as e:
-                if 'ratelimited' in str(e).lower():
-                    print(f"⚠️ Rate limited. Sleeping for {batch_size} seconds...")
-                    time.sleep(batch_size)
-                    batch_size = min(batch_size * 2, 60)
-                else:
-                    raise
-
-        time.sleep(0.1)
-
-        progress = min((idx + 1) * batch_size, total)
-        percent = int((progress / total) * 100)
-        if percent % 25 == 0 and percent != last_percent:
-            print(f"Comparison progress: {progress}/{total} -- {percent}%")
-            last_percent = percent
-
-    print("Completed the comparison between the left over json names and the wiki")
-
-    os.makedirs(debug_log_path, exist_ok=True)
-    recovered_log_path = os.path.join(debug_log_path, "MissingDataCheck_recoveredRedirects.txt")
-    with open(recovered_log_path, "w", encoding="utf-8") as f:
-        for item in sorted(recovered):
-            f.write(f"{item}\n")
-
-    json_only -= recovered
-    return recovered, json_only
-
-# Step 4: Categorize and Write Output Files
+# Step 3: Categorize and Write Output Files
 def write_outputs(json_items, wiki_names, both, wiki_only, json_only):
     json_names = list(json_items.keys())
 
@@ -198,7 +169,28 @@ def write_outputs(json_items, wiki_names, both, wiki_only, json_only):
 # Main
 json_items = load_json_items()
 wiki_names = get_infobox_pages()
-both, wiki_only, json_only = compare_infobox_to_json(wiki_names, json_items)
-recovered, json_only = recheck_jsononly_against_wiki(json_items, json_only)
-both |= recovered
+all_main_titles = get_all_mainspace_titles()
+
+# Base-name sets
+wiki_base_names = {get_base_and_variant(name)[0] for name in wiki_names}
+json_base_names = {get_base_and_variant(name)[0] for name in json_items}
+all_main_base_names = {get_base_and_variant(title)[0] for title in all_main_titles}
+
+# Items with an infobox and a JSON entry
+both = wiki_base_names & json_base_names
+
+# Items that have an infobox but no JSON entry
+wiki_only = wiki_base_names - json_base_names
+
+# JSON items whose base name exists on the wiki (page or redirect),
+# but do NOT have an infobox
+json_with_page_no_infobox = (json_base_names & all_main_base_names) - wiki_base_names
+
+# JSON items whose base name does not exist as any page/redirect
+json_only = json_base_names - all_main_base_names
+
+print("Finished comparing the wiki page names, JSON, and overall wiki titles.")
+
 write_outputs(json_items, wiki_names, both, wiki_only, json_only)
+print("✅ Completed missing data check.")
+
