@@ -50,26 +50,75 @@ def load_json(
     return data
 
 
+def ensure_parent_dir(filepath: str) -> None:
+    """
+    Create parent directories if filepath includes them.
+    Safe when filepath is just a filename (no directory).
+    """
+    parent = os.path.dirname(filepath)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
 def write_json(
     data,
     filepath,
     indent=4,
     ensure_ascii=False,
-    encoding='utf-8'
+    encoding='utf-8',
+    sort_keys=False
 ):
     """
     Write JSON data to a file, creating parent directories as needed.
 
-    Args:
-        data (Any): JSON-serializable object.
-        filepath (str): Destination file path.
-        indent (int): Number of spaces for indentation.
-        ensure_ascii (bool): Whether to escape non-ASCII characters.
-        encoding (str): File encoding.
+    Added:
+      - safe parent dir creation when filepath has no directory
+      - optional sort_keys for deterministic output
     """
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    ensure_parent_dir(filepath)
     with open(filepath, 'w', encoding=encoding) as f:
-        json.dump(data, f, indent=indent, ensure_ascii=ensure_ascii)
+        json.dump(data, f, indent=indent, ensure_ascii=ensure_ascii, sort_keys=sort_keys)
+
+
+def apply_to_strings(obj, fn):
+    """
+    Recursively apply a transform function to every string in a JSON-serializable structure.
+    Useful for post-processing text fields across multiple output JSON files.
+    """
+    if isinstance(obj, str):
+        return fn(obj)
+    if isinstance(obj, list):
+        return [apply_to_strings(v, fn) for v in obj]
+    if isinstance(obj, dict):
+        return {k: apply_to_strings(v, fn) for k, v in obj.items()}
+    return obj
+
+
+def sort_nested(obj, key_fn=None):
+    """
+    Recursively sort dictionaries by key (returns new objects).
+    Useful when you want stable diffs across runs.
+    """
+    if key_fn is None:
+        key_fn = lambda s: str(s).lower()
+
+    if isinstance(obj, dict):
+        return {k: sort_nested(obj[k], key_fn) for k in sorted(obj.keys(), key=key_fn)}
+    if isinstance(obj, list):
+        return [sort_nested(v, key_fn) for v in obj]
+    return obj
+
+
+def load_json_or_default(
+    filepath,
+    default,
+    **kwargs
+):
+    """
+    Wrapper around load_json() that returns a default if load fails.
+    """
+    data = load_json(filepath, **kwargs)
+    return default if data is None else data
 
 
 def safe_json_parse(json_string):

@@ -1,9 +1,9 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import textwrap
-from formatter.quest_infobox import resolve_quest_type
+from formatter.page_section.quest_infobox import resolve_quest_type
 from utils import text_utils
 
 def create_quest_summary(quest, npc="", bulletin="", end_text=""):

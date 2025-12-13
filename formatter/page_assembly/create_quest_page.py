@@ -4,9 +4,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from utils import json_utils, file_utils
 from mappings.quest_mapping import extract_quest_context
-from formatter.quest_infobox import create_quest_infobox, load_item_lookup, build_guid_lookup, resolve_quest_type
-from formatter.quest_summary import create_quest_summary
-from formatter.quest_sections import (
+from formatter.page_section.quest_infobox import create_quest_infobox, load_item_lookup, build_guid_lookup, resolve_quest_type
+from formatter.page_section.quest_summary import create_quest_summary
+from formatter.page_section.quest_sections import (
     create_quest_overview_box,
     create_quest_overview_steps_box,
     create_quest_step_list,

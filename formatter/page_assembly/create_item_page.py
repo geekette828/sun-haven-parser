@@ -6,9 +6,9 @@ import config.constants as constants
 from utils import json_utils, file_utils
 from utils.text_utils import clean_whitespace
 from mappings.item_infobox_mapping import format_infobox
-from formatter.item_summary import create_item_summary, parse_infobox
-from formatter.navbox import create_item_navbox
-from formatter.item_recipe import get_recipe_markup_for_item
+from formatter.page_section.item_summary import create_item_summary, parse_infobox
+from formatter.page_section.navbox import create_item_navbox
+from formatter.page_section.item_recipe import get_recipe_markup_for_item
 from mappings.item_classification import classify_item
 
 INCLUDE_HISTORY_SECTION = True  # Toggle for showing ==History== section
@@ -17,7 +17,8 @@ INCLUDE_UPCOMING_BANNER = True
 def normalize_name(name):
     return clean_whitespace(name).lower()
 
-def build_mount_section(item):
+def build_mount_section(item, display_title=None):
+    name = display_title or item.get("Name", "")
     _, subtype, _ = classify_item(item)
     if subtype.lower() != "mount":
         return ""
@@ -69,7 +70,7 @@ def build_house_display_section(item, display_name):
     )
 
 def build_history_section(display_name):
-    patch = constants.PATCH_VERSION
+    patch = constants.PATCH_VERSION.replace("PBE ", "").strip()
     return (
         f"==History==\n"
         f"*{{{{History|{patch}|[[{display_name}]] added to the game.}}}}\n"
@@ -102,7 +103,7 @@ def create_item_page(item, display_name=None):
     navbox = create_item_navbox(item)
 
     banner = (
-        f"{{{{upcoming|First appeared in the game files in PBE patch {constants.PATCH_VERSION}.}}}}\n"
+        f"{{{{upcoming|First appeared in the game files in patch {constants.PATCH_VERSION}.}}}}\n"
         if INCLUDE_UPCOMING_BANNER else ""
     )
 

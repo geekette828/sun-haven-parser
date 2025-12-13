@@ -1,10 +1,13 @@
 ROOT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser"
-INPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_input/x.x"
 IMAGE_INPUT_DIRECTORY = r"YOUR PATH/TO/IMAGES/"
-OUTPUT_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/_output/x.x"
 DEBUG_DIRECTORY = r"YOUR PATH/TO/Sun Haven Parser/.hidden/debug_output"
 
 PATCH_VERSION = "x.x.x"  # Whatever is current
+PREVIOUS_PATCH = "x.x.x" # Whatever was last, used for the compare patches functionality
+
+INPUT_DIRECTORY = f"{ROOT_DIRECTORY}/_input/{PATCH_VERSION} Assets"
+OUTPUT_DIRECTORY = f"{ROOT_DIRECTORY}/_output/{PATCH_VERSION}"
+PREVIOUS_OUTPUT_DIRECTORY = f"{ROOT_DIRECTORY}/_output/{PREVIOUS_PATCH}"
 
 PWB_SETTINGS = {
     "BATCH_SIZE": 50,

@@ -108,6 +108,7 @@ def extract_attributes(asset_file):
         "ID": None,
         "description": None,
         "useDescription": None,
+        "helpDescription": None,
         "stackSize": None,
         "canSell": None,
         "sellPrice": None,
@@ -170,6 +171,9 @@ def extract_attributes(asset_file):
 
             if match := re.match(r'useDescription:\s*(.+)', line):
                 attributes["useDescription"] = match.group(1).strip()
+
+            if match := re.match(r'helpDescription:\s*(.+)', line):
+                attributes["helpDescription"] = match.group(1).strip()
 
             if line.startswith("description:"):
                 parts = line.split(":", 1)

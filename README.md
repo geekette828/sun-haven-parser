@@ -7,6 +7,10 @@ Sun Haven Parser/
 ├── _output/
 ├── _input/
 │
+├── analysis/
+│   ├── compare_patch_item_descriptions.py
+│   └── compare_patch_item_pages.py
+│
 ├── config/
 │   ├── constants.example.py
 │   └── skip_items.py
@@ -30,18 +34,22 @@ Sun Haven Parser/
 │
 ├── formatter/                    → Scripts in this directory will format data for wiki consumption.
 │   ├── page_assembly
-│   │   ├── create_item_page.py   → Uses item_infobox, item_recipe, item_summary, navbox scripts to build item pages.
-│   │   └── create_quest_page.py   
+│   │   ├── create_item_page.py       → Uses item_infobox, item_recipe, item_summary, navbox scripts to build item pages.
+│   │   └── create_quest_page.py
+│   ├── page_section
+│   │   ├── item_infobox.py           → Creates a formatted item infobox from the json data.
+│   │   ├── item_recipe.py            → Creates a formatted recipe template from the json data.
+│   │   ├── item_summary.py           → Creates a formatted summary from category data.
+│   │   ├── navbox.py                 → Assigns a navbox type based on category data.
+│   │   ├── quest_infobox.py          → Creates a formatted quest infobox from the json data.
+│   │   ├── quest_sections.py         → Assigns certain quest page sections to different quest types.
+│   │   └── quest_summary.py          → Creates a formatted summary from quest type data.
 │   ├── all_dialogue.py           → Creates a directory of all dialgoue for all NPCs.
 │   ├── all_item_descriptions.py  → Creates the format for `Module:Description`.
 │   ├── all_monster_drops.py      → A list of all drops and % to drop item from monsters.
 │   ├── all_npc_names.py          → A list of all NPCs that have speaking lines.
 │   ├── all_recipes.py            → A list of all recipies, in the `Template:Recipie` format in one output.
 │   ├── all_shops.py              → Formats all shop inventory sections.
-│   ├── item_infobox.py           → Creates a formatted item infobox from the json data.
-│   ├── item_recipe.py            → Creates a formatted recipe template from the json data.
-│   ├── item_summary.py           → Creates a formatted summary from category data.
-│   ├── navbox.py                 → Assigns a navbox type based on category data.
 │   ├── quest_infobox.py          → Creates a formatted quest infobox from the json data.
 │   ├── quest_sections.py         → Assigns certain quest page sections to different quest types.
 │   └── quest_summary.py          → Creates a formatted summary from quest type data.
@@ -143,7 +151,9 @@ Unity Project Export
     │   ├── TimeManager
     │   ├── UnityConnectSettings    
     │   ├── VFXManager
-    │   ├────── 
+    │   ├──────────────
+    │   ├── English.PREFAB          # This holds the actual in-game names of items, along with dialogue
+    │   ├── English.prefab.META     # This is required for mapping purposes
     │   └── A Bunch of other .asset and .meta files    
     ├── Assembilies
     └── Scripts
