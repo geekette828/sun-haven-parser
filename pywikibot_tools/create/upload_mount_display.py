@@ -29,6 +29,15 @@ used_images = set()
 def normalize_name(name):
     return re.sub(r'[^a-z0-9]', '', name.lower())
 
+def ensure_mount_suffix(name):
+    """
+    Ensure the string ends with ' Mount' (case-insensitive), without duplicating it.
+    """
+    name = (name or "").strip()
+    if re.search(r'\bmount\s*$', name, flags=re.IGNORECASE):
+        return name
+    return f"{name} Mount"
+
 def update_gallery_section(wikitext):
     """
     Remove only the placeholder line:
@@ -117,11 +126,9 @@ def process_page(title, text, item_data):
     display_base = title.replace(" Whistle", "").strip()
     side_display_path = None
 
-    # Exact-case match first, then case-insensitive fallback.
     side_display_candidate = f"{display_base}_Display_0.png"
     files = os.listdir(image_input_directory)
 
-    # Exact match (case-sensitive)
     if side_display_candidate in files and side_display_candidate not in used_images:
         side_display_path = os.path.join(image_input_directory, side_display_candidate)
         used_images.add(side_display_candidate)
@@ -130,7 +137,6 @@ def process_page(title, text, item_data):
             debug_log_path
         )
     else:
-        # Case-insensitive match
         for f in files:
             if f.lower() == side_display_candidate.lower() and f not in used_images:
                 side_display_path = os.path.join(image_input_directory, f)
@@ -142,20 +148,22 @@ def process_page(title, text, item_data):
                 break
 
     if side_display_path:
-        # Use the existing pipeline but feed the same image as back+front
         side_back = side_display_path
         side_front = side_display_path
     else:
-        # Fall back to the original composite-from-layers behavior
         side_back, side_front, _ = get_best_image_pair(name, asset_name, is_front=False)
 
     front_out = f"{display_base}_Front.png"
-    side_out = f"{display_base}.png"
-    caption = f"[[{title}|{display_base}]]"
 
-    for label, back, front, output, extra_cats in [
-        ("Front", front_back, front_front, front_out, ["Mount images"]),
-        ("Side", side_back, side_front, side_out, ["Mount images"] + (["DLC mount images"] if is_dlc else []))
+    side_display_base = ensure_mount_suffix(display_base)
+    side_out = f"{side_display_base}.png"
+
+    front_caption = f"[[{title}|{display_base}]]"
+    side_caption = f"[[{title}|{side_display_base}]]"
+
+    for label, back, front, output, caption_text, extra_cats in [
+        ("Front", front_back, front_front, front_out, front_caption, ["Mount images"]),
+        ("Side", side_back, side_front, side_out, side_caption, ["Mount images"] + (["DLC mount images"] if is_dlc else []))
     ]:
         if not back or not front:
             write_debug_log(
@@ -172,7 +180,7 @@ def process_page(title, text, item_data):
             image_utils.upload_image(
                 img,
                 output,
-                caption_text=caption,
+                caption_text=caption_text,
                 categories=extra_cats,
                 debug_path=debug_log_path,
                 upload_comment="Mount display image upload."
@@ -192,7 +200,6 @@ def process_page(title, text, item_data):
         )
         return None, None
 
-    # Only remove the placeholder "Mount image needed [[Category:Mount image needed]]" line.
     new_text = update_gallery_section(text)
     return title, new_text
 

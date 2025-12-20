@@ -12,39 +12,46 @@ from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 from pywikibot_tools.core import item_infobox_core
 from utils import file_utils, text_utils
 
-SKIP_VARIANTS_BASE = False       # Skip pages that are base names of variant groups
+SKIP_VARIANTS_BASE = True       # Skip pages that are base names of variant groups
 DRY_RUN = True                  # No actual edits
 ADD_HISTORY = False              # Add a history bullet if changes were made
 
 TEST_RUN = False                # Only process test pages
 TEST_PAGES = ["Leaf Wrapped Tiger Trout"]
 
-json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
+JSON_FILE = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
+OUTPUT_FILE = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "pywikibot", "item_infobox_update.txt")
 debug_log_path = os.path.join(constants.DEBUG_DIRECTORY, "pywikibot", "item_infobox_update_debug.txt")
 
+file_utils.ensure_dir_exists(os.path.dirname(OUTPUT_FILE))
 file_utils.ensure_dir_exists(os.path.dirname(debug_log_path))
 
 BATCH_SIZE = constants.PWB_SETTINGS["BATCH_SIZE"]
 SLEEP_INTERVAL = constants.PWB_SETTINGS["SLEEP_INTERVAL"]
-KEYS_TO_CHECK = item_infobox_core.KEYS_TO_CHECK
 
 site = pywikibot.Site()
-pages = item_infobox_core.get_infobox_pages(TEST_RUN, TEST_PAGES)
-data = item_infobox_core.load_normalized_json(json_file_path)
 
-json_keys_set = set(data.keys())
+
+def fetch_pages(titles):
+    page_texts = {}
+    page_objs = [pywikibot.Page(site, t) for t in titles]
+    for page in site.preloadpages(page_objs):
+        page_texts[page.title()] = page.text or ""
+    return page_texts
+
+
+pages = item_infobox_core.get_infobox_pages(TEST_RUN, TEST_PAGES)
+data = item_infobox_core.load_normalized_json(JSON_FILE)
+
 debug_lines = []
 updated = []
 skipped = []
+change_lines = []
+
 
 def apply_diffs_with_regex(text, diffs):
     parsed = mwparserfromhell.parse(text)
-    infobox = None
-
-    for template in parsed.filter_templates():
-        if template.name.strip().lower() == "item infobox":
-            infobox = template
-            break
+    infobox = item_infobox_core.find_infobox_template(parsed)
 
     if not infobox:
         return text
@@ -52,7 +59,6 @@ def apply_diffs_with_regex(text, diffs):
     template_str = str(infobox)
     lines = template_str.strip().splitlines()
 
-    # Track whether we saw '}}' as a standalone line or merged
     closing_line_index = -1
     closing_inline = False
 
@@ -71,13 +77,12 @@ def apply_diffs_with_regex(text, diffs):
         if field == "name":
             continue
 
-        if field == "dlc" and expected.lower() in ["false", "no", "0"]:
+        if field == "dlc" and str(expected).lower() in ["false", "no", "0"]:
             continue
 
         line_value = f"|{field} = {expected}"
 
         if field in existing_fields:
-            idx = existing_fields[field]
             for i, line in enumerate(lines):
                 if re.match(rf"^\|\s*{re.escape(field)}\s*=", line):
                     lines[i] = line_value
@@ -86,14 +91,11 @@ def apply_diffs_with_regex(text, diffs):
             insert_idx = closing_line_index if closing_line_index != -1 else len(lines)
             lines.insert(insert_idx, line_value)
             if closing_inline:
-                # Fix split closing brace line
                 lines[insert_idx + 1:] = ["}}"]
 
-    # Final fix to ensure we have a closing }}
     if not any(line.strip() == "}}" or line.strip().endswith("}}") for line in lines):
         lines.append("}}")
 
-    # Rebuild infobox and substitute back into full page text
     updated_template = "\n".join(lines)
     text = text.replace(template_str, updated_template)
     return text
@@ -101,7 +103,7 @@ def apply_diffs_with_regex(text, diffs):
 
 for i in range(0, len(pages), BATCH_SIZE):
     batch = pages[i:i + BATCH_SIZE]
-    page_texts = item_infobox_core.fetch_pages(batch)
+    page_texts = fetch_pages(batch)
 
     for title in batch:
         text = page_texts.get(title, "")
@@ -129,11 +131,28 @@ for i in range(0, len(pages), BATCH_SIZE):
             continue
 
         diffs, wiki_params = item_infobox_core.compare_page_to_json(
-            title, text, data[item_key], KEYS_TO_CHECK, skip_fields_map=SKIP_FIELDS
+            title,
+            text,
+            data[item_key],
+            None,
+            skip_fields_map=SKIP_FIELDS,
+            all_data=data,
         )
+
+        missing_seed = wiki_params.get(item_infobox_core.AGRI_MISSING_SEED_KEY, "")
+        if missing_seed:
+            debug_lines.append(
+                f"[AGRI NO SEED JSON] {title} - seed='{missing_seed}' (seed-derived fields left as-is on wiki)"
+            )
+
         if not diffs:
             debug_lines.append(f"[NO CHANGE] {title}")
             continue
+        
+        change_lines.append(f"{title}")
+        for field, expected, actual in diffs:
+            change_lines.append(f"* {field}: actual:'{actual}' → expected:'{expected}'")
+        change_lines.append("")  # blank line between pages
 
         new_text = apply_diffs_with_regex(text, diffs)
         page = pywikibot.Page(site, title)
@@ -143,8 +162,8 @@ for i in range(0, len(pages), BATCH_SIZE):
                 if ADD_HISTORY:
                     from utils.history_utils import append_history_entry
                     changed_fields = [field for field, _, _ in diffs]
-                    summary = f"Updated infobox fields: {', '.join(changed_fields)}"
-                    patch = constants.PATCH_VERSION
+                    summary = f"Updated {title} infobox fields: {', '.join(changed_fields)}"
+                    patch = constants.PATCH_VERSION.replace("PBE ", "").strip()
                     new_text = append_history_entry(new_text, summary, patch)
 
                 page.text = new_text
@@ -152,6 +171,7 @@ for i in range(0, len(pages), BATCH_SIZE):
 
                 if not TEST_RUN:
                     time.sleep(SLEEP_INTERVAL)
+
             updated.append(title)
             status = "DRY RUN" if DRY_RUN else "UPDATED"
             debug_lines.append(f"[{status}] {title}")
@@ -163,11 +183,15 @@ for i in range(0, len(pages), BATCH_SIZE):
 
     if i // BATCH_SIZE % 10 == 0:
         percent = round(((i + BATCH_SIZE) / len(pages)) * 100, 1)
-        print(f"     🔄 Updated {i + BATCH_SIZE} of {len(pages)} pages ({percent}% complete). Sleeping {SLEEP_INTERVAL} seconds.")
+        print(
+            f"     🔄 Updated {i + BATCH_SIZE} of {len(pages)} pages ({percent}% complete). Sleeping {SLEEP_INTERVAL} seconds."
+        )
         if not TEST_RUN:
             time.sleep(SLEEP_INTERVAL)
 
 with open(debug_log_path, "w", encoding="utf-8") as dbg:
     dbg.write("\n".join(debug_lines))
+with open(OUTPUT_FILE, "w", encoding="utf-8") as out:
+    out.write("\n".join(change_lines))
 
 print(f"✅ Infobox update complete. {len(updated)} updated, {len(skipped)} skipped.")

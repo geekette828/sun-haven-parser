@@ -40,6 +40,7 @@ SKIP_FIELDS = {
 SKIP_ITEMS are pages we want to ignore.
 '''
 SKIP_ITEMS = [
+    "11043",
     "Ocean Treasure Chest",
     "aegis",
     "adamant ore node",
@@ -198,6 +199,7 @@ SKIP_ITEMS = [
     "money bag forageable",
     "moneybundle",
     "monster furniture table",
+    "moon fruit",
     "moon print gift",
     "music note gift",
     "nathaniel chest",

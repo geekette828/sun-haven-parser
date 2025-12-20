@@ -55,7 +55,7 @@ def create_quest_infobox(quest, item_lookup, next_lookup):
     quest_name = quest.get("questName", "Unknown Quest")
     time_limit = quest.get("daysToDo", -1)
     time_str = "Unlimited" if time_limit == -1 else f"{time_limit} days"
-    objective = text_utils.clean_text(quest.get("questDescription", ""))
+    objective = text_utils.clean_game_dialogue(quest.get("questDescription", ""))
     npc = quest.get("npcToTurnInTo", "")
     next_quest = quest.get("nextQuest", {})
     next_name = next_lookup.get(next_quest.get("guid", ""), next_quest.get("guid", "None")) if isinstance(next_quest, dict) else ""
@@ -67,20 +67,20 @@ def create_quest_infobox(quest, item_lookup, next_lookup):
     quest_type = resolve_quest_type(quest)
 
     return f"""{{{{Quest infobox
-|name      = {quest_name}
+|title = {quest_name}
 |objective = {objective}
-|type      = {quest_type}
-|time      = {time_str}
-|npc       = {npc}
-|location  = 
-|prereq    = 
+|type = {quest_type}
+|time = {time_str}
+|npc = {npc}
+|location = 
+|prereq = 
 <!-- Quest Requirements and Rewards -->
-|requires  = {requires}
-|rewards   = {rewards}
-|bonus     = {bonus}
+|requires = {requires}
+|rewards = {rewards}
+|bonus = {bonus}
 <!-- Quest Chronology -->
-|prev      = 
-|next      = {next_name} }}}}\n"""
+|prev = 
+|next = {next_name} }}}}\n"""
 
 def build_guid_lookup(quest_data):
     lookup = {}

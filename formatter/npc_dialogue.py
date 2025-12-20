@@ -21,10 +21,9 @@ sys.stdout.reconfigure(encoding="utf-8")
 import config.constants as constants
 from utils import json_utils
 
-
+# Paths
 INPUT_JSON_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "npc_one_liners.json")
 OUTPUT_FOLDER = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "NPC Dialogue")
-
 
 INVALID_FILENAME_CHARS = r'<>:"/\|?*'
 SEASONS = ["Spring", "Summer", "Fall", "Winter"]

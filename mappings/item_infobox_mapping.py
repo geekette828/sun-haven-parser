@@ -133,16 +133,27 @@ def compute_statInc(item):
         # Skip sentinel
         if str(value_raw) == "999":
             continue
-        value = int(value_raw)
-        if value == 999:
+
+        try:
+            value_f = float(value_raw)
+        except (TypeError, ValueError):
             continue
+
+        if value_f == 999:
+            continue
+
+        # Format: keep ints as "1", decimals as "1.75" / "0.01"
+        if value_f.is_integer():
+            value_text = str(int(value_f))
+        else:
+            value_text = str(round(value_f, 2)).rstrip("0").rstrip(".")
+
         stat_type = int(max_stat.get("statType", -1))
         stat_name = constants.STAT_TYPE_MAPPING.get(stat_type, f"Stat{stat_type}")
-        parts.append(f"{stat_name}»(+{value})")
+        parts.append(f"{stat_name}»+{value_text}")
 
     # Final output: return blank if nothing valid
     return "; ".join(parts) if parts else ""
-
 
 def compute_organic(item):
     raw = item.get("isFruit", "")
@@ -177,6 +188,13 @@ def compute_effect(item):
             continue
     return "; ".join(effects)
 
+def compute_uniformity(item):
+    raw = item.get("armorSet", "")
+    try:
+        return "False" if int(raw) == 0 else "True"
+    except:
+        return ""
+    
 def compute_requirement(item, classification):
     required_level = item.get("requiredLevel")
     if not required_level:
@@ -223,6 +241,7 @@ FIELD_COMPUTATIONS: Dict[str, Callable[[dict], str]] = {
     "requirement": lambda item: compute_requirement(item, classify_item(item)),
     "placementType": compute_placement_type,
     "isRotatable": compute_is_rotatable,
+    "uniformity":compute_uniformity,
 }
 
 def _choose_infobox(itemType: str, subtype: str, category: str) -> Tuple[str, bool]:
@@ -412,9 +431,10 @@ def format_infobox(item: dict, classification: Tuple[str, str, str], title: str)
     elif subtype == "Clothing":
         lines.append("|set = ")
     elif subtype in ["Armor", "Accessory"]:
-        lines.append("|set = ")
         lines.append(f"|effect = {compute_effect(item)}")
         lines.append(f"|requirement = {FIELD_COMPUTATIONS['requirement'](item)}")
+        lines.append("|set = ")
+        lines.append(f"|uniformity = {FIELD_COMPUTATIONS['uniformity'](item)}")
     elif subtype in ["Tool", "Weapon"]:
         lines.append(f"|requirement = {FIELD_COMPUTATIONS['requirement'](item)}")
 

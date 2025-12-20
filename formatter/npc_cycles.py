@@ -24,10 +24,9 @@ sys.stdout.reconfigure(encoding="utf-8")
 import config.constants as constants
 from utils import json_utils
 
-
+# Paths
 INPUT_JSON_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "npc_cycles.json")
 OUTPUT_FOLDER = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "NPC Dialogue")
-
 QUEST_JSON_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "quest_data_BB_SQ.json")
 
 EMOTION_MAP = {

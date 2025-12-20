@@ -127,9 +127,10 @@ def extract_attributes(asset_file):
         "isPotion": None,
         "hasSetSeason": None,
         "setSeason": None,
-        "experience": None,
+        "exp": None,
         "health": None,
         "mana": None,
+        "armorSet": None,
         "requiredLevel": None,
         "stats": [],
         "maxStats": [],
@@ -158,7 +159,7 @@ def extract_attributes(asset_file):
         for line in lines:
             line = line.strip()
 
-            if match := re.match(r'^(health|mana|requiredLevel|stackSize|sellPrice|orbsSellPrice|ticketSellPrice|rarity|hearts|decorationType|hasSetSeason|setSeason|experience):\s*([\d.]+)', line):
+            if match := re.match(r'^(health|mana|requiredLevel|stackSize|sellPrice|orbsSellPrice|ticketSellPrice|rarity|hearts|decorationType|hasSetSeason|setSeason|armorSet|exp):\s*([\d.]+)', line):
                 key, value = match.groups()
                 attributes[key] = parse_number(value)
 

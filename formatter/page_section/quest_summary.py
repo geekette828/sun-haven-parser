@@ -10,8 +10,8 @@ def create_quest_summary(quest, npc="", bulletin="", end_text=""):
     quest_type = resolve_quest_type(quest).lower()
     region = quest.get("region", "").strip()
     name = quest.get("questName", "Unnamed Quest")
-    objective = text_utils.clean_text(quest.get("questDescription", ""))
-    description = text_utils.clean_text(quest.get("bulletinBoardDescription", ""))
+    objective = text_utils.clean_game_dialogue(quest.get("questDescription", ""))
+    description = text_utils.clean_game_dialogue(quest.get("bulletinBoardDescription", ""))
     chat = f"{{{{Chat|{npc}|{end_text}}}}}"
 
     if "romance" in quest_type:
@@ -24,13 +24,16 @@ def create_quest_summary(quest, npc="", bulletin="", end_text=""):
 
     elif quest_type in ["bulletin", "bulletin board"]:
         region_map = {
+            "sun haven": "[[Sun Haven Bulletin Board|Sun Haven bulletin board]]",
             "nel'vari": "[[Nel'Vari Bulletin Board|Nel'Vari bulletin board]]",
             "withergate": "[[Withergate Bulletin Board|Withergate bulletin board]]",
             "brinestone deeps": "[[Brinestone_Deeps_Bulletin_Board|Brinestone Deeps bulletin board]]",
+            "the great city": "[[The Great City Bulletin Board|The Great City bulletin board]]",
+            #[[UNKNOWN Bulletin Board|UNKNOWN bulletin board]]
         }
-        board_location = region_map.get(region.lower(), "[[Sun Haven Bulletin Board|Sun Haven bulletin board]]")
+        board_location = region_map.get(region.lower(), "[[UNKNOWN Bulletin Board|UNKNOWN bulletin board]]")
 
-        return f"'''{name}''' is a [[Quests|quest]] that has the chance to be available at the {board_location}. The objective of this quest is to {objective}."
+        return f"'''{name}''' is a [[Quests|quest]] that has the chance to be available at the {board_location}."
 
     elif quest_type == "character":
         return f"'''{name}''' is a [[Quests#Character Quests|character quest]] that can become available after the player marries [[{npc}]]."

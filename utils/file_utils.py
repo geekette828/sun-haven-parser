@@ -3,6 +3,7 @@ This python utility pulls together functions around read/write with logs or stru
 """
 
 import os
+import re
 
 def read_file_lines(filepath, encoding='utf-8'):
     """Read all lines from a text file."""
@@ -29,3 +30,13 @@ def ensure_dir_exists(path):
 def write_debug_log(message, debug_path, encoding='utf-8'):
     """Write a debug message to a log file."""
     append_line(debug_path, message, encoding=encoding)
+
+
+INVALID_FILENAME_CHARS = r'[<>:"/\\|?*]'
+
+def sanitize_filename(name: str, replacement: str = "") -> str:
+    """
+    Remove characters that are invalid in Windows filenames.
+    Does NOT alter wiki titles — only filesystem paths.
+    """
+    return re.sub(INVALID_FILENAME_CHARS, replacement, name).strip()

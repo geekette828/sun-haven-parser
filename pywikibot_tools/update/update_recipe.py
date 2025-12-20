@@ -19,8 +19,8 @@ SKIP_SKILL_TOMES = True         # Skip items that have the words "Skill Tome" in
 DRY_RUN = False                 # No actual edits
 ADD_HISTORY = True              # Add a history bullet if changes were made
 
-TEST_RUN = False                # Only process test pages
-TEST_PAGES = ["Elven Wood End Table"]
+TEST_RUN = True                # Only process test pages
+TEST_PAGES = ["Deadwood Lamp", "Dynus Lamp", "Monstrous Window"]
 
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
 debug_log_path = os.path.join(".hidden", "debug_output", "pywikibot", "recipe_update_debug.txt")
@@ -176,7 +176,7 @@ for i in range(0, len(pages), BATCH_SIZE):
                                 from utils.history_utils import append_history_entry
                                 product = mapped.get("product", title)
                                 summary = f"[[{product}]] can now be crafted."
-                                patch = constants.PATCH_VERSION
+                                patch = constants.PATCH_VERSION.replace("PBE ", "").strip()
                                 text = append_history_entry(text, summary, patch)
                             page.text = text
                             page.save(summary="Adding recipe to craft item.")
@@ -252,8 +252,8 @@ for i in range(0, len(pages), BATCH_SIZE):
                     if ADD_HISTORY:
                         from utils.history_utils import append_history_entry
                         changed_fields = [field for field, _, _ in non_skipped_diffs]
-                        summary = f"Updated recipe fields: {', '.join(changed_fields)}"
-                        patch = constants.PATCH_VERSION
+                        summary = f"Updated {title} recipe fields: {', '.join(changed_fields)}"
+                        patch = constants.PATCH_VERSION.replace("PBE ", "")
                         new_text = append_history_entry(new_text, summary, patch)
 
                     summary = f"Updating {', '.join([f for f, _, _ in non_skipped_diffs])}."

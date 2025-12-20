@@ -32,13 +32,7 @@ def process_items(test_items=None):
 
     if test_items is None:
         test_items = [
-            "a witch's guide to potioncraft",
-            "albascroll sashimi",
-            "almond croissant",
-            "bear-y cute burger",
-            "elyssia record",
-            "Elyssia Wedding Ring",
-            "elyssia's dragon scale"
+            "Adamant Helmet",
         ]
     logger.info(f"Test items: {test_items}")
 

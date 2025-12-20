@@ -1,8 +1,11 @@
 import os
+import re
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+import config.constants as constants
 from utils import json_utils, file_utils
+from utils.file_utils import sanitize_filename
 from mappings.quest_mapping import extract_quest_context
 from formatter.page_section.quest_infobox import create_quest_infobox, load_item_lookup, build_guid_lookup, resolve_quest_type
 from formatter.page_section.quest_summary import create_quest_summary
@@ -38,7 +41,6 @@ def create_quest_page(quest, npc="", bulletin="", end_text=""):
     elif quest_type in ["bulletin", "bulletin board"]:
         sections.extend([
             create_quest_overview_box(quest),
-            create_quest_step_list(quest),
             create_quest_bb_description(quest),
             create_quest_complete_text(quest),
             create_hidden_block(quest)
@@ -47,7 +49,6 @@ def create_quest_page(quest, npc="", bulletin="", end_text=""):
     elif quest_type == "character":
         sections.extend([
             create_quest_overview_box(quest),
-            create_quest_step_list(quest),
             create_quest_description(quest),
             create_quest_dialogue(quest),
             create_hidden_block(quest)
@@ -81,19 +82,22 @@ def main():
     all_quests.update({q["questName"]: q for section in bulletin_quests.values() for q in section})
 
     test_items = [
-        "DarkWaters1Quest",
-        "Claude Wants Soup!",
-        "Pirate's Compass",
-        "Bad Wing Day",
-        "Second Date With Claude",
+        "Toil for the Oil", "Tome Task", "Trainee Troubles", "Treat Delivery", "Warcaster's Crystals", "When Fish Fly"
     ]
 
     for name, quest in all_quests.items():
         if len(sys.argv) > 1 or name in test_items:
+            def sanitize_filename(s: str, replacement: str = "") -> str:
+                # Windows-invalid: <>:"/\|?*
+                return re.sub(r'[<>:"/\\|?*]', replacement, s).strip()
+
             page_text = create_quest_page(quest)
-            filename = os.path.join(output_dir, f"_TEST_{name}_Page.txt")
+
+            safe_name = sanitize_filename(name)  # ✅ sanitize the quest name used in the filename
+            filename = os.path.join(output_dir, f"_TEST_{safe_name}.txt")
+
             file_utils.write_lines(filename, [page_text])
-            print(f"✔ Created: {filename}")
+            print(f"✔ Created: {filename}  (page title: {name})")
 
 if __name__ == "__main__":
     main()

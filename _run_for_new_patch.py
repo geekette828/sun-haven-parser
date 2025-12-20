@@ -19,10 +19,12 @@ script_order = [
     "formatter/all_monster_drops.py",
     "formatter/all_enemy_infoboxes.py",
     "formatter/all_npc_names.py",
-    "formatter/npc_dialogue.py",
+    "formatter/npc_cycles.py",
+    "formatter/npc_one_liners.py",
     "formatter/npc_romance_dialogue_unique_gifts.py",
     "formatter/npc_romance_gift_preferences.py",
     "formatter/npc_walk_schedule.py",
+    "formatter/npc_wedding_cutscene.py",
     "formatter/all_cutscenes.py",
 ]
 
@@ -33,6 +35,12 @@ pwb_scripts = [
     r"N:\Sun Haven Parser\pywikibot_tools\validators\missing_quests.py",
     r"N:\Sun Haven Parser\pywikibot_tools\validators\missing_recipe_template.py",
     r"N:\Sun Haven Parser\pywikibot_tools\validators\missing_item_images.py",
+]
+
+# Phase 3 - Analysis Scripts
+analysis_order = [
+    "analysis/compare_patch_item_descriptions.py",
+    "analysis/compare_patch_item_pages.py",
 ]
 
 def run_scripts(script_list):
@@ -84,6 +92,31 @@ def run_pwb_scripts(pwb_list):
             print(f"❌ Exception while running Pywikibot script {script}: {e}")
             break
 
+def run_analysis(analysis_list):
+    for script in analysis_list:
+        if not os.path.exists(script):
+            print(f"⚠ Script not found: {script}")
+            break
+
+        print(f"\n▶ Running {script}")
+        try:
+            process = subprocess.Popen(
+                ["python", script],
+                universal_newlines=True,
+                encoding='utf-8',
+                errors='replace'
+            )
+            process.wait()
+            if process.returncode == 0:
+                print(f"✅ {script} completed successfully.\n")
+            else:
+                print(f"❌ Error running {script} (exit code {process.returncode})")
+                break
+        except Exception as e:
+            print(f"❌ Exception while running {script}: {e}")
+            break
+
 if __name__ == "__main__":
     run_scripts(script_order)
     run_pwb_scripts(pwb_scripts)
+    run_analysis(analysis_order)
