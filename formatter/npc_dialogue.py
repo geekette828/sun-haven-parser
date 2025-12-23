@@ -22,7 +22,7 @@ import config.constants as constants
 from utils import json_utils
 
 # Paths
-INPUT_JSON_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "npc_one_liners.json")
+INPUT_JSON_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "npc_dialogue.json")
 OUTPUT_FOLDER = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "NPC Dialogue")
 
 INVALID_FILENAME_CHARS = r'<>:"/\|?*'
@@ -145,7 +145,11 @@ def main() -> None:
     total_lines = 0
 
     for npc_name in sorted(data.keys(), key=lambda s: str(s).lower()):
-        npc_data = data.get(npc_name, {})
+        npc_obj = data.get(npc_name, {})
+        if not isinstance(npc_obj, dict):
+            continue
+
+        npc_data = npc_obj.get("one_liners", {})
         if not isinstance(npc_data, dict):
             continue
 
@@ -254,7 +258,7 @@ def main() -> None:
             continue
 
         npc_written += 1
-        outfile = os.path.join(OUTPUT_FOLDER, f"{safe_filename(npc_name)}_one_liner.txt")
+        outfile = os.path.join(OUTPUT_FOLDER, f"{safe_filename(npc_name)} one liners.txt")
         with open(outfile, "w", encoding="utf-8", newline="\n") as f:
             f.write("\n".join(output_lines).rstrip() + "\n")
 

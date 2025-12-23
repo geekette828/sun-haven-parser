@@ -1,5 +1,5 @@
 """
-Read npc_cycles.json and output one wiki-formatted dialogue file per NPC.
+Read npc_dialogue.json and output one wiki-formatted dialogue file per NPC.
 
 - Hearts live on the *response* entry, but are appended to the *Option* line:
     hearts == -1 -> append " {{Heart Points|-|1}}"
@@ -16,16 +16,15 @@ Read npc_cycles.json and output one wiki-formatted dialogue file per NPC.
 import os
 import sys
 import re
-from typing import Any, Dict, List, Optional, Tuple
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.stdout.reconfigure(encoding="utf-8")
 
 import config.constants as constants
 from utils import json_utils
+from typing import Any, Dict, List, Optional, Tuple
 
 # Paths
-INPUT_JSON_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "npc_cycles.json")
+INPUT_JSON_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "npc_dialogue.json")
 OUTPUT_FOLDER = os.path.join(constants.OUTPUT_DIRECTORY, "Wiki Formatted", "NPC Dialogue")
 QUEST_JSON_PATH = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "quest_data_BB_SQ.json")
 
@@ -36,6 +35,10 @@ EMOTION_MAP = {
     4: "blushing",
     5: "sad",
 }
+
+CYCLE_NUM_RE = re.compile(r"^Cycle(\d+)$", flags=re.IGNORECASE)
+CYCLE_P_RE = re.compile(r"^CycleP(\d+)$", flags=re.IGNORECASE)
+
 
 def load_quest_name_map() -> dict:
     """
@@ -88,14 +91,44 @@ def _join_text(entries: Any) -> str:
     return str(entries).strip()
 
 
-def _parse_cycle_index(cycle_key: str) -> int:
+def _cycle_sort_key(cycle_key: str) -> Tuple[int, int, str]:
     """
-    "Cycle00" -> 0, "Cycle01" -> 1, etc.
+    Sort order:
+      CycleP# first (P6, P7, ...)
+      then Cycle##
+      then anything else
     """
-    m = re.match(r"^Cycle(\d+)$", cycle_key or "")
-    if not m:
-        return 0
-    return int(m.group(1))
+    c = (cycle_key or "").strip()
+
+    mp = CYCLE_P_RE.match(c)
+    if mp:
+        return (0, int(mp.group(1)), c.lower())
+
+    mn = CYCLE_NUM_RE.match(c)
+    if mn:
+        return (1, int(mn.group(1)), c.lower())
+
+    return (2, 9_999_999, c.lower())
+
+
+def _cycle_title(cycle_key: str) -> str:
+    """
+    Template title:
+      CycleP6 -> "Cycle P6"
+      Cycle01 -> "Cycle 1"
+      fallback -> raw cycle_key
+    """
+    c = (cycle_key or "").strip()
+
+    mp = CYCLE_P_RE.match(c)
+    if mp:
+        return f"Cycle P{int(mp.group(1))}"
+
+    mn = CYCLE_NUM_RE.match(c)
+    if mn:
+        return f"Cycle {int(mn.group(1))}"
+
+    return c
 
 
 def _split_key(k: str) -> Optional[Tuple[str, int, str]]:
@@ -248,9 +281,7 @@ def _append_response_extras(response_text: str, npc_name: str, resp: Optional[di
 
 
 def _render_cycle(npc: str, cycle_key: str, cycle_obj: Dict[str, Any], quest_name_map: dict) -> str:
-    cycle_number = _parse_cycle_index(cycle_key)
     dialogue_text = _select_dialogue_text(cycle_obj)
-
     response_by_num_suffix, response_base_by_num = _build_response_maps(cycle_obj)
 
     options: List[Tuple[int, str, str]] = []
@@ -270,7 +301,7 @@ def _render_cycle(npc: str, cycle_key: str, cycle_obj: Dict[str, Any], quest_nam
 
     lines: List[str] = []
     lines.append("{{Conversation dialogue|npc = " + npc)
-    lines.append(f"|title = Cycle {cycle_number}")
+    lines.append(f"|title = {_cycle_title(cycle_key)}")
     lines.append("|Dialogue = " + dialogue_text)
 
     emitted_emotion: set[str] = set()
@@ -331,12 +362,18 @@ def main() -> None:
         if not isinstance(npc_obj, dict):
             continue
 
-        cycle_keys = [k for k in npc_obj.keys() if isinstance(k, str) and k.startswith("Cycle")]
-        cycle_keys.sort(key=lambda ck: (_parse_cycle_index(ck), ck))
+        cycles_obj = npc_obj.get("cycles")
+        if isinstance(cycles_obj, dict):
+            npc_cycles = cycles_obj
+        else:
+            npc_cycles = npc_obj
+
+        cycle_keys = [k for k in npc_cycles.keys() if isinstance(k, str) and k.startswith("Cycle")]
+        cycle_keys.sort(key=_cycle_sort_key)
 
         blocks: List[str] = []
         for ck in cycle_keys:
-            cycle_obj = npc_obj.get(ck, {})
+            cycle_obj = npc_cycles.get(ck, {})
             if not isinstance(cycle_obj, dict):
                 continue
             blocks.append(_render_cycle(npc_name, ck, cycle_obj, quest_name_map))

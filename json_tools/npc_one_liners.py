@@ -29,8 +29,21 @@ TERM_RE = re.compile(r"^\s*-\s*Term:\s*(.+?)\s*$")
 LANGUAGES_HEADER_RE = re.compile(r"^\s*Languages:\s*$")
 LANG_ITEM_RE = re.compile(r"^\s*-\s*(.*)\s*$")
 
-ONE_LINER_RE = re.compile(r"^(RNPC|NPC)\.([^.]+)\.OL(?:\.([^.]+))?$", re.IGNORECASE)
-TNPC_ONE_LINER_RE = re.compile(r"^TNPC\.([^.]+)(?:\.OL(\d+))?$", re.IGNORECASE) # TNPC has different shapes:
+ONE_LINER_RE = re.compile(
+    r"^(RNPC|NPC)\.([^.]+)\.OL(?:(\d+)|(?:\.([^.]+)))?$",
+    re.IGNORECASE
+)
+TNPC_ONE_LINER_RE = re.compile(
+    r"^TNPC\.([^.]+)(?:\.OL(\d+))?$",
+    re.IGNORECASE
+)
+
+# NEW: extra RNPC dialogue patterns with wildcards
+EXTRA_RNPC_RE = re.compile(
+    r"^RNPC\.([^.]+)\.(Dating\.Accept|Dating\.Decline|DeclineProposal|AcceptProposal|MLP)(?:\.?(.+))?$",
+    re.IGNORECASE
+)
+
 TRAILING_DIGITS_RE = re.compile(r"\d+$")
 
 
@@ -58,12 +71,17 @@ def decode_yaml_scalar(value: str) -> str:
 
     if len(v) >= 2 and v[0] == "'" and v[-1] == "'":
         inner = v[1:-1]
-        inner = inner.replace("''", "'")  # YAML single-quote escaping
+        inner = inner.replace("''", "'")
         return inner
 
     if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
         inner = v[1:-1]
-        inner = inner.replace(r"\\", "\\").replace(r"\"", '"').replace(r"\n", "\n").replace(r"\t", "\t")
+        inner = (
+            inner.replace(r"\\", "\\")
+            .replace(r"\"", '"')
+            .replace(r"\n", "\n")
+            .replace(r"\t", "\t")
+        )
         return inner
 
     return v
@@ -104,36 +122,64 @@ def extract_term_english_pairs(prefab_path: str) -> List[Tuple[str, str]]:
     return pairs
 
 
-def build_one_liners(pairs: List[Tuple[str, str]]) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
+def build_one_liners(
+    pairs: List[Tuple[str, str]]
+) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
     out: Dict[str, Dict[str, List[Dict[str, str]]]] = {}
 
     for term, text in pairs:
         if not term or is_description_key(term):
             continue
 
-        # NPC/RNPC: ... .OL[.Condition]
+        # NPC / RNPC one-liners: ... .OL[.Condition]
         m = ONE_LINER_RE.match(term)
         if m:
             npc = m.group(2)
-            cond_raw = m.group(3)
-            bucket = normalize_condition(cond_raw)
+            ol_num = m.group(3)
+            cond_raw = m.group(4)
+
+            bucket = "Unconditional" if ol_num else normalize_condition(cond_raw)
 
             npc_map = out.setdefault(npc, {})
-            npc_map.setdefault(bucket, []).append({"term": term, "text": text})
+            npc_map.setdefault(bucket, []).append({
+                "term": term,
+                "text": text
+            })
             continue
 
-        # TNPC: TNPC.<Name> or TNPC.<Name>.OL#
+        # TNPC one-liners
         m2 = TNPC_ONE_LINER_RE.match(term)
         if m2:
             npc = m2.group(1)
-            # TNPC OL1/OL2 are just multiple one-liners, not conditions
             bucket = "Unconditional"
 
             npc_map = out.setdefault(npc, {})
-            npc_map.setdefault(bucket, []).append({"term": term, "text": text})
+            npc_map.setdefault(bucket, []).append({
+                "term": term,
+                "text": text
+            })
+            continue
+
+        # NEW: Extra RNPC dialogue (Dating, Proposal, MLP)
+        m_extra = EXTRA_RNPC_RE.match(term)
+        if m_extra:
+            npc = m_extra.group(1)
+            suffix = m_extra.group(3)
+
+            if suffix:
+                bucket = normalize_condition(suffix)
+            else:
+                bucket = "Unconditional"
+
+            npc_map = out.setdefault(npc, {})
+            npc_map.setdefault(bucket, []).append({
+                "term": term,
+                "text": text
+            })
             continue
 
     return out
+
 
 def main() -> None:
     if not os.path.exists(INPUT_PREFAB_PATH):
@@ -154,10 +200,21 @@ def main() -> None:
         bucket_order = sorted(buckets.keys(), key=lambda s: (s != "Unconditional", s.lower()))
         ordered[npc] = {b: buckets[b] for b in bucket_order}
 
-    json_utils.write_json(ordered, OUTPUT_JSON_PATH, indent=2, ensure_ascii=False, sort_keys=False)
+    json_utils.write_json(
+        ordered,
+        OUTPUT_JSON_PATH,
+        indent=2,
+        ensure_ascii=False,
+        sort_keys=False
+    )
 
     npc_count = len(ordered)
-    line_count = sum(len(lines) for npc_data in ordered.values() for lines in npc_data.values())
+    line_count = sum(
+        len(lines)
+        for npc_data in ordered.values()
+        for lines in npc_data.values()
+    )
+
     print(f"✅ Extracted {line_count} one-liners across {npc_count} NPCs")
     print(f"✅ Wrote: {OUTPUT_JSON_PATH}")
 

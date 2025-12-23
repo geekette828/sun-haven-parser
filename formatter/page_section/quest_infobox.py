@@ -24,9 +24,9 @@ def format_items(items_list, item_lookup):
 def load_item_lookup():
     hardcoded = {
         "60000": "Coins", "60001": "Orbs", "60002": "Tickets",
-        "60004": "Combat EXP", "60005": "Exploration EXP",
+        "60004": "Farming EXP", "60005": "Exploration EXP",
         "60006": "Mining EXP", "60007": "Bonus Mana",
-        "60008": "Fishing EXP", "60009": "Fishing EXP",
+        "60008": "Combat EXP", "60009": "Fishing EXP",
         "18013": "Community Token"
     }
     path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")

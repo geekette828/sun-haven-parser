@@ -1,16 +1,16 @@
 import os
+import re
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import config.constants as constants
-import re
+from utils import file_utils
 from collections import defaultdict
 from mappings.location_mapping import LOCATION_LINKS, PERSONAL_TERMS
-from utils import file_utils
 
 # Testing Config
 testing = False
-test_npc_name = "Claude"  # Case-sensitive match (e.g., "Claude")
+test_npc_name = "Coty"  # Case-sensitive match (e.g., "Claude")
 
 # Paths
 input_directory = os.path.join(constants.INPUT_DIRECTORY, "MonoBehaviour")
@@ -170,12 +170,27 @@ for npc, files in grouped_by_npc.items():
         try:
             content = file_utils.read_file_lines(file_path)
             joined = "\n".join(content)
-            matches = re.findall(r"- name: (.*?)\s+hour: ([0-9.]+)", joined)
-            if matches:
-                path_lines = [f"- {name} — hour {hour}" for name, hour in matches]
+            entries = []
+            current_name = None
+
+            for line in content:
+                line = line.rstrip()
+
+                if line.strip().startswith("- name:"):
+                    current_name = line.split(":", 1)[1].strip()
+                    continue
+
+                if current_name and line.strip().startswith("hour:"):
+                    hour = line.split(":", 1)[1].strip()
+                    entries.append((current_name, hour))
+                    current_name = None  # reset for next block
+
+            if entries:
+                path_lines = [f"- {name} — hour {hour}" for name, hour in entries]
                 key = filename.replace(".asset", "")
                 paths[key].append((filename.replace(".asset", ""), path_lines))
                 debug_groups["\n".join(path_lines)].append(filename.replace(".asset", ""))
+
         except Exception as e:
             file_utils.append_line(debug_log_path, f"[ERROR] Failed to parse {filename}: {e}")
 
@@ -187,6 +202,27 @@ for npc, files in grouped_by_npc.items():
 
     generalA = collect(lambda n: "PathA" in n and "Married" not in n)
     generalB = collect(lambda n: "PathB" in n and "Married" not in n)
+
+    # Plain "<NPC>Path.asset" (no PathA/PathB) should count as General
+    generalBase = collect(lambda n: (
+        ("PathA" not in n) and ("PathB" not in n)
+        and ("Married" not in n) and ("Rain" not in n) and ("Locked" not in n)
+    ))
+
+    def same_block(list1, list2):
+        return extract_schedule_key(list1[0][1]) == extract_schedule_key(list2[0][1])
+
+    if generalA and generalB and same_block(generalA, generalB):
+        group_id = add_grouped_blocks("General", generalA, group_id, schedule_lines, npc)
+    else:
+        if generalA:
+            group_id = add_grouped_blocks("General (A)", generalA, group_id, schedule_lines, npc)
+        if generalB:
+            group_id = add_grouped_blocks("General (B)", generalB, group_id, schedule_lines, npc)
+
+    # If only a base Path exists (like NPCPath), write it as General
+    if generalBase:
+        group_id = add_grouped_blocks("General", generalBase, group_id, schedule_lines, npc)
 
     def same_block(list1, list2):
         return extract_schedule_key(list1[0][1]) == extract_schedule_key(list2[0][1])
@@ -215,7 +251,7 @@ for npc, files in grouped_by_npc.items():
 
     rain = collect(lambda n: "Rain" in n and "Married" not in n)
     if rain:
-        general_blocks = collect(lambda n: ("PathA" in n or "PathB" in n) and "Married" not in n)
+        general_blocks = collect(lambda n: ("Married" not in n) and ("Locked" not in n) and ("Rain" not in n))
         rain_blocks = group_blocks_by_similarity(rain)
         general_blocks_grouped = group_blocks_by_similarity(general_blocks)
 
