@@ -13,7 +13,7 @@ from pywikibot_tools.core import item_infobox_core
 from utils import file_utils, text_utils
 
 SKIP_VARIANTS_BASE = True       # Skip pages that are base names of variant groups
-DRY_RUN = True                  # No actual edits
+DRY_RUN = False                  # No actual edits
 ADD_HISTORY = False              # Add a history bullet if changes were made
 
 TEST_RUN = False                # Only process test pages
@@ -80,6 +80,9 @@ def apply_diffs_with_regex(text, diffs):
         if field == "dlc" and str(expected).lower() in ["false", "no", "0"]:
             continue
 
+        if expected is None or str(expected).strip() == "": # will not overwrite if we don't have a value
+            continue
+
         line_value = f"|{field} = {expected}"
 
         if field in existing_fields:
@@ -139,6 +142,44 @@ for i in range(0, len(pages), BATCH_SIZE):
             all_data=data,
         )
 
+        def normalize_stat_plus(value):
+            if value is None:
+                return value
+            value = str(value)
+            # remove leading + inside stat brackets, keep -
+            return re.sub(r'«\+', '«', value)
+
+        effective_diffs = []
+        for field, expected, actual in diffs:
+            if field == "name":
+                continue
+
+            # skip dlc=false/no/0
+            if field == "dlc" and str(expected).lower() in ["false", "no", "0"]:
+                continue
+
+            # skip overwriting wiki values when JSON is blank
+            if expected is None or str(expected).strip() == "":
+                debug_lines.append(f"[SKIP BLANK EXPECTED] {title} - {field} (wiki='{actual}')")
+                continue
+
+            # ignore + vs no-sign differences for statInc ONLY
+            if field == "statInc":
+                if normalize_stat_plus(expected) == normalize_stat_plus(actual):
+                    debug_lines.append(
+                        f"[SKIP PLUS ONLY] {title} - {field} "
+                        f"(expected='{expected}', actual='{actual}')"
+                    )
+                    continue
+
+            effective_diffs.append((field, expected, actual))
+
+        if not effective_diffs:
+            debug_lines.append(f"[NO APPLICABLE CHANGE] {title}")
+            continue
+
+        diffs = effective_diffs
+
         missing_seed = wiki_params.get(item_infobox_core.AGRI_MISSING_SEED_KEY, "")
         if missing_seed:
             debug_lines.append(
@@ -148,7 +189,7 @@ for i in range(0, len(pages), BATCH_SIZE):
         if not diffs:
             debug_lines.append(f"[NO CHANGE] {title}")
             continue
-        
+
         change_lines.append(f"{title}")
         for field, expected, actual in diffs:
             change_lines.append(f"* {field}: actual:'{actual}' → expected:'{expected}'")
@@ -167,7 +208,22 @@ for i in range(0, len(pages), BATCH_SIZE):
                     new_text = append_history_entry(new_text, summary, patch)
 
                 page.text = new_text
-                page.save(summary="Updating item infobox from JSON data")
+                changed_fields = [field for field, expected, actual in diffs if field != "name"]
+
+                seen = set()
+                changed_fields = [f for f in changed_fields if not (f in seen or seen.add(f))]
+
+                MAX_FIELDS_IN_SUMMARY = 4
+                if len(changed_fields) <= MAX_FIELDS_IN_SUMMARY:
+                    summary = f"Update infobox from JSON: {', '.join(changed_fields)}"
+                else:
+                    shown = changed_fields[:MAX_FIELDS_IN_SUMMARY]
+                    remaining = len(changed_fields) - MAX_FIELDS_IN_SUMMARY
+                    summary = (
+                        f"Update infobox from JSON: "
+                        f"{', '.join(shown)} (+{remaining} more)"
+                    )
+                page.save(summary=summary)
 
                 if not TEST_RUN:
                     time.sleep(SLEEP_INTERVAL)

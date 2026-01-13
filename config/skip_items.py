@@ -12,12 +12,13 @@ SKIP_FIELDS = {
     "Elven Health Book": ["statInc"], # The hp increase isn't in the data files but hardcoded somewhere.
     "Small Mana Tome": ["statInc"], # The mp increase isn't in the data files but hardcoded somewhere.
     
-    "Fire Sprite": ["sell", "currency"],        # These aren't real items
-    "Water Sprite": ["sell", "currency"],       # These aren't real items
-    "Rock Sprite": ["sell", "currency"],        # These aren't real items
-    "Wind Sprite": ["sell", "currency"],        # These aren't real items
-    "White Baby Dragon": ["sell", "currency"],  # These aren't real items
-    "Squirrel": ["sell", "currency"],           # These aren't real items
+    "Fire Sprite": ["sell", "currency", "capacity"],        # These aren't real items
+    "Water Sprite": ["sell", "currency", "capacity"],       # These aren't real items
+    "Rock Sprite": ["sell", "currency", "capacity"],        # These aren't real items
+    "Wind Sprite": ["sell", "currency", "capacity"],        # These aren't real items
+    "White Baby Dragon": ["sell", "currency", "capacity"],  # These aren't real items
+    "Squirrel": ["sell", "currency", "capacity"],          # These aren't real items
+    "Wild Cat": ["sell", "currency", "capacity"],          # These aren't real items
 
     "Tier 1 Sewer Barn Permit": ["hearts"],
     "Tier 2 Sewer Barn Permit": ["hearts"],

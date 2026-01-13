@@ -200,7 +200,7 @@ def _parse_growth_yield_regrowth_from_help(help_desc):
         growth = m.group(1)
 
     m = re.search(
-        r"yield(?:s)?\s*<style=Help>\s*(\d+)\s*crop(?:s)?",
+        r"yield(?:s)?\s*<style=Help>\s*(\d+(?:\.\d+)?)\s*crop(?:s)?",
         hd,
         flags=re.I
     )
@@ -271,6 +271,12 @@ def compare_page_to_json(title, text, item_data, keys_to_check, skip_fields_map=
     wiki_params = get_infobox_param_map(text, title)
     template_name = (get_infobox_template_name(text) or "").strip().lower()
 
+    skip_fields = []
+    if isinstance(skip_fields_map, dict):
+        skip_fields = skip_fields_map.get(title, []) or []
+    elif isinstance(skip_fields_map, (list, set, tuple)):
+        skip_fields = list(skip_fields_map)
+
     # Agriculture special compare
     if template_name == "agriculture infobox":
         diffs = []
@@ -279,7 +285,7 @@ def compare_page_to_json(title, text, item_data, keys_to_check, skip_fields_map=
         # Includes restores/statInc, but ignore if JSON has null/empty/missing for that key.
         crop_keys = []
         for key in AGRI_CROP_KEYS:
-            if skip_fields_map and key in skip_fields_map:
+            if skip_fields and key in skip_fields:
                 continue
 
             json_val = item_data.get(key)
@@ -298,7 +304,7 @@ def compare_page_to_json(title, text, item_data, keys_to_check, skip_fields_map=
                 FIELD_MAP,
                 FIELD_COMPUTATIONS,
                 text_utils.normalize_bool,
-                skip_fields_map=skip_fields_map or {}
+                skip_fields_map=skip_fields_map
             )
             diffs.extend(crop_diffs or [])
 
@@ -321,12 +327,14 @@ def compare_page_to_json(title, text, item_data, keys_to_check, skip_fields_map=
         if not seed_item:
             if seed_name:
                 wiki_params[AGRI_MISSING_SEED_KEY] = seed_name
+            if skip_fields:
+                diffs = [d for d in diffs if d[0] not in skip_fields]
             return diffs, wiki_params
 
         seed_expected = _agriculture_seed_expected(seed_item, fallback_seed_name=seed_name)
 
         for field in AGRI_SEED_KEYS:
-            if skip_fields_map and field in skip_fields_map:
+            if skip_fields and field in skip_fields:
                 continue
 
             expected = seed_expected.get(field, "")
@@ -336,13 +344,15 @@ def compare_page_to_json(title, text, item_data, keys_to_check, skip_fields_map=
             if d:
                 diffs.append(d)
 
+        if skip_fields:
+            diffs = [d for d in diffs if d[0] not in skip_fields]
         return diffs, wiki_params
 
     # Non-agriculture: template-specific compare keys
     keys = get_keys_for_template(template_name)
 
-    if skip_fields_map:
-        keys = [k for k in keys if k not in skip_fields_map]
+    if skip_fields:
+        keys = [k for k in keys if k not in skip_fields]
 
     # Animal special compute: capacity from JSON helpDescription
     if template_name == "animal infobox":
@@ -355,16 +365,19 @@ def compare_page_to_json(title, text, item_data, keys_to_check, skip_fields_map=
             FIELD_MAP,
             FIELD_COMPUTATIONS,
             text_utils.normalize_bool,
-            skip_fields_map=skip_fields_map or {}
+            skip_fields_map=skip_fields_map
         ) or []
 
-        expected_capacity = _parse_animal_capacity_from_help(item_data.get("helpDescription"))
-        actual_capacity = wiki_params.get("capacity", "")
+        if not skip_fields or "capacity" not in skip_fields:
+            expected_capacity = _parse_animal_capacity_from_help(item_data.get("helpDescription"))
+            actual_capacity = wiki_params.get("capacity", "")
 
-        d = _diff_if_changed("capacity", expected_capacity, actual_capacity)
-        if d:
-            diffs.append(d)
+            d = _diff_if_changed("capacity", expected_capacity, actual_capacity)
+            if d:
+                diffs.append(d)
 
+        if skip_fields:
+            diffs = [d for d in diffs if d[0] not in skip_fields]
         return diffs, wiki_params
 
     diffs = compare_instance_generic(
@@ -374,8 +387,11 @@ def compare_page_to_json(title, text, item_data, keys_to_check, skip_fields_map=
         FIELD_MAP,
         FIELD_COMPUTATIONS,
         text_utils.normalize_bool,
-        skip_fields_map=skip_fields_map or {}
+        skip_fields_map=skip_fields_map
     )
+
+    if skip_fields and diffs:
+        diffs = [d for d in diffs if d[0] not in skip_fields]
     return diffs, wiki_params
 
 

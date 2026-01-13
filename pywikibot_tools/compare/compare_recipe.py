@@ -5,10 +5,10 @@ import mwparserfromhell
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+import config.constants as constants
+from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 from pywikibot_tools.core import recipe_core
 from utils import file_utils, recipe_utils
-from config import constants
-from config.skip_items import SKIP_ITEMS, SKIP_FIELDS
 
 json_file_path = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "recipes_data.json")
 output_file = os.path.join(constants.OUTPUT_DIRECTORY, "Pywikibot", "recipe_compare.txt")
