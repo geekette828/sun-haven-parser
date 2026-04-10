@@ -42,7 +42,6 @@ SKIP_ITEMS are pages we want to ignore.
 '''
 SKIP_ITEMS = [
     "11043",
-    "Ocean Treasure Chest",
     "aegis",
     "adamant ore node",
     "alchemy bundle",

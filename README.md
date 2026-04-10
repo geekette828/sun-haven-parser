@@ -1,185 +1,208 @@
-Collection of Parser Items for the Sun Haven wiki found at: https://sunhaven.wiki.gg/ <br>
-Putting these into output files, so we can do a compare between patches, and only update pages that need it.
+Collection of Parser scripts for the Sun Haven wiki found at: https://sunhaven.wiki.gg/ <br>
+Reads raw game asset files, produces structured JSON caches, formats them into wiki-ready output, and uses Pywikibot to compare and update live wiki pages.
+
+# Pipeline Overview
+
+The project runs as a four-layer pipeline:
+
+```
+builders/  →  formatters/  →  exporters/  →  wiki/
+  (JSON)       (wikitext)      (txt files)   (pywikibot)
+```
+
+1. **builders/** — Parse raw game asset files and write structured JSON caches.
+2. **formatters/** — Pure functions that convert structured data into wikitext strings. No file I/O.
+3. **exporters/** — Read JSON caches, call formatters, and write `.txt` output files grouped for wiki use.
+4. **wiki/** — Pywikibot scripts that compare/update/create live wiki pages using the exporter output and JSON caches.
+
+Run `_run_for_new_patch.py` to execute builders and exporters in the correct order.
+
+---
 
 # File Structure
+
 ```
 Sun Haven Parser/
-├── _output/
-├── _input/
 │
-├── analysis/
-│   ├── compare_patch_item_descriptions.py
-│   └── compare_patch_item_pages.py
+├── _run_for_new_patch.py         → Runs builders and exporters in the correct order for a new patch.
+│
+├── builders/                     → Layer 1: Parse raw game files → structured JSON caches.
+│   ├── item_data.py              → ItemData dataclass and sub-dataclasses (StatEntry, ItemClassification, etc.)
+│   ├── item_builder.py           → Parses MonoBehaviour item files → items_data.json
+│   ├── recipe_builder.py         → Parses RecipeList asset files → recipes_data.json
+│   ├── shop_builder.py           → Parses shop inventory assets → shops_data.json
+│   ├── npc_dialogue_builder.py   → Parses NPC dialogue files → npc_dialogue_data.json
+│   ├── quest_builder.py          → Parses quest assets → quests_data.json
+│   ├── entity_builder.py         → Parses enemy/entity data from Scenes → entities_data.json
+│   ├── fish_spawner_builder.py   → Parses fish spawn data from Scenes → fish_spawner_data.json
+│   ├── image_builder.py          → Maps Sprite GUIDs to image filenames → images_data.json
+│   ├── breakable_object_builder.py → Parses breakable object data
+│   └── cutscene_builder.py       → Parses cutscene .cs script files → cutscenes_data.json
+│
+├── formatters/                   → Layer 2: Pure wikitext generators (no file I/O).
+│   ├── item/
+│   │   ├── item_infobox.py       → Generates item infobox wikitext from ItemData.
+│   │   ├── item_recipe.py        → Generates {{Recipe}} wikitext; owns format_recipe() and normalize_workbench().
+│   │   ├── item_summary.py       → Generates item summary section.
+│   │   └── item_navbox.py        → Selects the correct navbox template for an item.
+│   ├── quest/
+│   │   ├── quest_infobox.py      → Generates quest infobox wikitext.
+│   │   ├── quest_sections.py     → Generates quest page section blocks.
+│   │   ├── quest_summary.py      → Generates quest summary section.
+│   │   └── quest_context.py      → Extracts a normalised context dict from a raw quest record.
+│   └── pages/
+│       ├── item_page.py          → Assembles a complete item wiki page.
+│       ├── npc_page.py           → Assembles a complete NPC wiki page.
+│       └── quest_page.py         → Assembles a complete quest wiki page.
+│
+├── exporters/                    → Layer 3: Read JSON caches, call formatters, write output .txt files.
+│   ├── all_item_descriptions.py  → Writes Module:Description formatted output.
+│   ├── all_recipes.py            → Writes all {{Recipe}} templates grouped alphabetically.
+│   ├── all_shops.py              → Writes all shop inventory sections.
+│   ├── all_monster_drops.py      → Writes all monster drop tables.
+│   ├── all_enemy_infoboxes.py    → Writes all enemy infobox templates.
+│   ├── all_cutscenes.py          → Writes all cutscene dialogue.
+│   ├── all_dialogue.py           → Writes all NPC one-liner dialogue files.
+│   ├── all_npc_names.py          → Writes the unique NPC names list for patch comparison.
+│   ├── npc_dialogue.py           → Writes per-NPC one-liner files.
+│   ├── npc_cycles.py             → Writes per-NPC conversation cycle files.
+│   ├── npc_walk_schedule.py      → Writes per-NPC schedule files.
+│   ├── npc_romance_dialogue_unique_gifts.py
+│   ├── npc_romance_gift_preferences.py
+│   ├── npc_wedding_cutscene.py
+│   ├── fish_spawn_chance.py      → Writes fish spawn chance tables.
+│   ├── create_item_pages.py      → Assembles and writes full item page text files.
+│   ├── create_npc_pages.py       → Assembles and writes full NPC page text files.
+│   └── create_quest_pages.py     → Assembles and writes full quest page text files.
+│
+├── mappings/                     → Reference data only. Update these when new game content is added.
+│   ├── item_classification.py    → Classification rules (item type / subtype / category). Update for new item types.
+│   ├── location_mapping.py       → LOCATION_LINKS and PERSONAL_TERMS dicts. Update for new locations / NPCs.
+│   └── workbench_aliases.py      → WORKBENCH_ALIASES dict + normalize_workbench(). Update for new workbenches.
+│
+├── wiki/                         → Layer 4: Pywikibot scripts for live wiki operations.
+│   ├── shared/
+│   │   ├── item_infobox_core.py  → Shared logic for item infobox compare/update/create operations.
+│   │   └── recipe_core.py        → Shared logic for recipe compare/update/create operations.
+│   ├── compare/
+│   │   ├── compare_item_infobox.py → Compares live wiki item infoboxes against items_data.json; logs diffs.
+│   │   ├── compare_recipe.py       → Compares live wiki Recipe templates against recipes_data.json; logs diffs.
+│   │   ├── infobox_fields.py       → FIELD_MAP and FIELD_COMPUTATIONS tables used by compare/update tools.
+│   │   └── recipe_fields.py        → RECIPE_FIELD_MAP, RECIPE_COMPUTE_MAP, RECIPE_EXTRA_FIELDS tables.
+│   ├── create/
+│   │   ├── missing_item_page.py    → Creates missing item pages from the item builder cache.
+│   │   ├── missing_npc_page.py     → Creates missing NPC pages and uploads associated NPC images.
+│   │   ├── missing_item_image.py   → Uploads missing item images.
+│   │   ├── upload_floor_wallpaper_display.py
+│   │   ├── upload_house_customization_display.py
+│   │   ├── upload_mount_display.py
+│   │   └── upload_wanted_item_images.py
+│   ├── update/
+│   │   ├── update_item_infobox.py       → Updates live wiki item infoboxes to match items_data.json.
+│   │   ├── update_recipe.py             → Updates live wiki Recipe templates to match recipes_data.json.
+│   │   ├── top_shelf_rare_finds.py      → Updates topShelf / rareFinds flags on item pages.
+│   │   ├── dlc_mount_image_categories.py
+│   │   ├── dlc_pet_image_categories.py
+│   │   ├── update_image_scale_whitespace.py
+│   │   └── update_rnpc_bust_filenames.py
+│   ├── delete/
+│   │   ├── deduplicate_house_parts.py   → Removes duplicate house customization images; creates redirects.
+│   │   └── unused_categories.py         → Removes unused categories matching a set of criteria.
+│   ├── validators/
+│   │   ├── missing_item.py              → Lists item pages missing from the wiki based on items_data.json.
+│   │   ├── missing_item_images.py       → Lists item images missing from the wiki.
+│   │   ├── missing_quests.py            → Lists quest pages missing from the wiki.
+│   │   └── missing_recipe_template.py   → Lists pages missing a {{Recipe}} template.
+│   ├── formatting_recipe_template.py    → Standardises Recipe template formatting before compare runs.
+│   ├── nulledit.py                      → Performs null edits to refresh cached page data.
+│   └── redirect_creation.py             → Creates redirect pages to specific base pages.
 │
 ├── config/
-│   ├── constants.example.py
-│   └── skip_items.py
+│   ├── constants.example.py      → Template — copy to constants.py and fill in your local paths.
+│   └── skip_items.py             → Items and patterns to exclude from wiki operations.
 │
 ├── utils/
-│   ├── compre_utils.py       → Utility has functions around comparing wiki pages to the raw data.
-│   ├── file_utils.py         → Utility pulls together functions around read/write with logs or structured text files.
-│   ├── guid_utils.py         → Utility pulls together functions around guid extraction.
-│   ├── json_utils.py         → Utility pulls together functions around JSON parsing.
-│   ├── recipe_utils.py       → Utility pulls together functions around recipe formatting.
-│   ├── text_utils.py         → Utility pulls together functions around general string clean up.
-│   └── wiki_utils.py         → Utility has functions around pywikibot and getting items from the wiki.
+│   ├── compare_utils.py          → Generic field-level diff logic for wiki compare tools.
+│   ├── file_utils.py             → Read/write helpers for structured text files and debug logs.
+│   ├── guid_utils.py             → GUID extraction and lookup helpers.
+│   ├── history_utils.py          → Generates {{History}} template entries.
+│   ├── image_utils.py            → Image processing helpers (scale, crop, etc.).
+│   ├── json_utils.py             → JSON load/write wrappers.
+│   ├── recipe_utils.py           → Recipe formatting and time-parsing helpers.
+│   ├── text_utils.py             → General string clean-up (apostrophe normalisation, whitespace, etc.).
+│   └── wiki_utils.py             → Pywikibot helpers (page fetch, template parsing, etc.).
 │
-├── pwb/                      → Pywikibot engine
+├── analysis/                     → One-off comparison scripts for patch-to-patch diffs.
+│   ├── compare_patch_item_descriptions.py
+│   ├── compare_patch_item_pages.py
+│   ├── compare_patch_bb_quests.py
+│   ├── compare_patch_npc_names.py
+│   └── compare_builder_output.py
+│
+├── pwb/                          → Vendored Pywikibot engine (no separate install needed).
 │   ├── pwb.py
-│   ├── pywikibot/            → Core library
-│   ├── scripts/              → Required for login and maintenance commands
+│   ├── pywikibot/                → Core Pywikibot library.
+│   ├── scripts/                  → Required for login and maintenance commands.
 │   ├── families/
 │   │   └── sunhaven_family.py
-│   └── user-config.py        → Your wiki credentials
+│   └── user-config.py            → Your wiki credentials (not committed).
 │
-├── formatter/                    → Scripts in this directory will format data for wiki consumption.
-│   ├── page_assembly
-│   │   ├── create_item_page.py       → Uses item_infobox, item_recipe, item_summary, navbox scripts to build item pages.
-│   │   └── create_quest_page.py
-│   ├── page_section
-│   │   ├── item_infobox.py           → Creates a formatted item infobox from the json data.
-│   │   ├── item_recipe.py            → Creates a formatted recipe template from the json data.
-│   │   ├── item_summary.py           → Creates a formatted summary from category data.
-│   │   ├── navbox.py                 → Assigns a navbox type based on category data.
-│   │   ├── quest_infobox.py          → Creates a formatted quest infobox from the json data.
-│   │   ├── quest_sections.py         → Assigns certain quest page sections to different quest types.
-│   │   └── quest_summary.py          → Creates a formatted summary from quest type data.
-│   ├── all_dialogue.py           → Creates a directory of all dialgoue for all NPCs.
-│   ├── all_item_descriptions.py  → Creates the format for `Module:Description`.
-│   ├── all_monster_drops.py      → A list of all drops and % to drop item from monsters.
-│   ├── all_npc_names.py          → A list of all NPCs that have speaking lines.
-│   ├── all_recipes.py            → A list of all recipies, in the `Template:Recipie` format in one output.
-│   ├── all_shops.py              → Formats all shop inventory sections.
-│   ├── quest_infobox.py          → Creates a formatted quest infobox from the json data.
-│   ├── quest_sections.py         → Assigns certain quest page sections to different quest types.
-│   └── quest_summary.py          → Creates a formatted summary from quest type data.
-│       
-├── json_tools/                   → These scripts create json objects that most other scripts use to pull their data from.
-│   ├── image_list.py             → Creates list of image file names and their GUID mapping. 
-│   ├── item_list.py              → Creates list of item details from monobehaviour files. 
-│   ├── quest_list.py             → Creates list of quest details.
-│   ├── recipes_list.py           → Creates list of recipe details.
-│   └── shop_inventory.py         → Creates list of shop inventory details.
-|
-├── pywikibot_tools/
-│   ├── compare/
-│   │   ├── compare_item_infobox.py                 → Compares wiki item infobox template to the items json, logs diffs.
-│   │   ├── compare_recipe.py                       → Compares wiki recipe template to the recipe json, logs diffs.
-│   ├── core/
-│   │   ├── item_infobox_core.py                    → Core item infobox scripts for compare/update/create.
-│   │   ├── recipe_core.py                          → Core recipe scripts for compare/update/create.
-│   ├── create/
-│   │   ├── missing_item_image.py                   → Uploads missing item images.
-│   │   ├── missing_item_page.py                    → Creates missing item pages using `formatter/item_page/create_page.py`.
-│   │   ├── upload_floor_wallpaper_display.py       → Uploads the display images of wallpaper and flooring. Removes the "missing" category.
-│   │   ├── upload_house_customization_display.py   → Uploads the display images of door, window, wall, patios, and roof images of houseing customizations.
-│   │   └── upload_mount_display.py                 → Merges and uploads mount display images.
-│   ├── delete/
-│   │   ├── deduplicate_house_parts.py              → Removes the duplicated house customization images. Sets up proper redirects.
-│   |   └── unused_categories.py                    → Removes unused categories that meet a certain criteria.
-│   ├── update/
-│   │   ├── dlc_mount_image_categories.py           → Puts specific missing categories on mount image files.
-│   │   ├── dlc_pet_image_categories.py             → Puts specific missing categories on pet image files.
-│   │   ├── update_image_scale_whitespace.py        → Checks for small images, scales and crops them.
-│   │   ├── update_item_infobox.py                  → Updates wiki item infobox template to match items json.
-│   │   ├── update_recipe.py                        → Updates wiki recipe template to match recipe json.
-│   |   └── update_uncategorized_files.py           → Categorizes files from Special:UncategorizedFiles to clean up file metadata.
-│   ├── validators/
-│   │   ├── missing_item_images.py                  → Compares items.json to the wiki to find missing item images.
-│   │   ├── missing_item.py                         → Lists missing item pages based on the item json file.
-│   │   ├── missing_quests.py                       → Lists missing quest pages based on the quest json files.
-│   |   └── missing_recipe_template.py              → Lists pages missing the recipe template, based on the recipe json file.
-│   ├── formatting_recipe_template.py               → Standardizes the recipe template, so the compare script can run.
-│   └── redirect_creation.py                        → Creates redirect pages to specific base pages.
-|
-├── _run_for_new_patch.py               → Runs JSON and Formatter scripts in correct order for new patch.
-├── pwb.ps1                             → Recommended launcher script for pywikibot stuff
+├── pwb.ps1                       → Recommended launcher for all Pywikibot commands.
 ├── .gitignore
 └── README.md
 ```
 
+---
+
 # Using the Parser
+
 ## Getting the Assets
 1. Download an application that allows you to look at the assets. I use [AssetRipper](https://github.com/AssetRipper/AssetRipper).
 2. In the preferred asset manager, load the `Sun Haven_Data` folder. For most people it will be located in something like this:
-  * Windows: `C:/Program Files (x86)/Steam/steamapps/common/Sun Haven/Sun Haven_Data`
-  * Linux: `${HOME}/.steam/steam/steamapps/common/Sun Haven/Sun Haven_Data`
-3. Export the folder to an area of your choosing. You will want to choose the export type: `Unity Project`. This is how it will export:
+   * Windows: `C:/Program Files (x86)/Steam/steamapps/common/Sun Haven/Sun Haven_Data`
+   * Linux: `${HOME}/.steam/steam/steamapps/common/Sun Haven/Sun Haven_Data`
+3. Export the folder to an area of your choosing. Choose export type: `Unity Project`. This is the structure you will get:
+
 ### Asset Directory Structure
 ```
 Unity Project Export
 └── ExportedProject
     ├── Assets
-    │   ├── AssetBundle
-    │   ├── AudioClip
-    │   ├── AudioManager
-    │   ├── BuildSettings
-    │   ├── CustomRenderTexture
-    │   ├── DelayedCallManager
-    │   ├── EditorBuildSettings
-    │   ├── EditorSettings
-    │   ├── Font
-    │   ├── GraphicsSettings
-    │   ├── GameObject              # Entity information [Monster/NPC/Resource stats and drop info] 
-    │   ├── InputManager
-    │   ├── LightingSettings
-    │   ├── Mesh
-    │   ├── MonoBehaviour           # This is where the majority of the item data is.
-    │   ├── MonoManager
-    │   ├── NavMeshProjectSettings
-    │   ├── Physics2DSettings
-    │   ├── PhysicsManager
-    │   ├── PhysicsMaterial2D
-    │   ├── PlayerSettings
-    │   ├── PrefabHierarchyObject
-    │   ├── QualitySettings
-    │   ├── RenderTexture
-    │   ├── ResourceManager
-    │   ├── Resources
-    │   ├── RuntimeInitializeOnLoadManager
-    │   ├── SceneHierarchyObject
-    │   ├── Shader
-    │   ├── ShaderNameRegistry
-    │   ├── Sprite                  # This is where the png filename and GUID information is.
-    │   ├── SpriteAtlas
-    │   ├── StreamingManager
+    │   ├── GameObject              # Entity information [Monster/NPC/Resource stats and drop info]
+    │   ├── MonoBehaviour           # The majority of item, recipe, shop, and quest data.
+    │   ├── Sprite                  # PNG filenames and GUID mappings.
     │   ├── SunHaven
-    │   │     └── Scenes            # This is fishing chance data        
-    │   ├── TagManager
-    │   ├── TextAsset               # This is where the files for the conversations and dialogues are.
-    │   ├── Texture2D               # This is where many of the images are.
-    │   ├── TimeManager
-    │   ├── UnityConnectSettings    
-    │   ├── VFXManager
-    │   ├──────────────
-    │   ├── English.PREFAB          # This holds the actual in-game names of items, along with dialogue
-    │   ├── English.prefab.META     # This is required for mapping purposes
-    │   └── A Bunch of other .asset and .meta files    
-    ├── Assembilies
+    │   │     └── Scenes            # Fishing spawn data and entity/enemy data.
+    │   ├── TextAsset               # Conversation and dialogue files.
+    │   ├── Texture2D               # Image files.
+    │   ├── English.PREFAB          # In-game item names and dialogue strings.
+    │   └── English.prefab.META     # Required for GUID mapping.
+    ├── Assemblies
     └── Scripts
 ```
-4. After that export is done, export the same package as export type: `Primary Content`. This is how we will get the scripts for the cutscene dialogue, allowing us to know who is talking. <br>
-You will take the scripts folder IN THIS FORMAT (not the scripts folder of the other format) and put it into the input folder of the parser.
+
+4. Export the same package a second time as export type: `Primary Content`. This provides the C# script files used to parse cutscene dialogue. Take the `Scripts/` folder from this export and place it in the parser's input folder.
+
 ```
 Primary Content Export
 ├── Assemblies
 ├── Assets
 └── Scripts
-    └── A Bunch of file folders that hold cutscene.cs files
+    └── (cutscene .cs files)
 ```
 
-## Using the collection of scripts
-4. Rename & update `constants.example.py` where applicable for your paths.
-5. Take the necessary file folders from the ripped project and drop them into the parser project input folder.
-6. Run all of the JSON scripts first, to generate objects that the rest of the scripts will use to pull their data from. Then run all of the formatter scripts.
-  * I recommend comparing the most recent pull of data to the previous pull of data using a comparison application like WinMerge.
+## Running the Parser
+5. Copy `config/constants.example.py` to `config/constants.py` and fill in your local paths.
+6. Drop the required asset folders into the parser's input directory.
+7. Run `_run_for_new_patch.py` to execute all builders then all exporters in the correct order. Output files land in the directory configured in `constants.py`.
+   * Use a diff tool like WinMerge to compare the new output against the previous patch's output to identify what changed.
 
 ## Using Pywikibot
-Some scripts in this project use the mediawiki api [Pywikibot](https://support.wiki.gg/wiki/Pywikibot) to perform wiki operations such as page creation, comparison, or image uploads. This project includes a full, vendored version of Pywikibot inside the pwb/ folder. There’s no need to install it separately or use it as a submodule.
+Scripts in `wiki/` use the MediaWiki API via [Pywikibot](https://support.wiki.gg/wiki/Pywikibot) to perform wiki operations such as page creation, comparison, and image uploads. A full vendored copy of Pywikibot is included in `pwb/` — no separate install needed.
 
     💡 All Pywikibot commands should be run through the included pwb.ps1 launcher to ensure the correct environment is used.
 
 ### First Time Setup
-1. Copy the provided `pwb/user-config.py.sample` to `pwb/user-config.py` and `pwb/user-password.py.sample` to `pwb/user-password.py`
-2. Open `pwb/user-config.py` and change the username.
-3. Update user-password.py is created in the same folder and contains your login credentials.
+1. Copy `pwb/user-config.py.sample` to `pwb/user-config.py` and `pwb/user-password.py.sample` to `pwb/user-password.py`.
+2. Open `pwb/user-config.py` and set your wiki username.
+3. Add your login credentials to `pwb/user-password.py`.
