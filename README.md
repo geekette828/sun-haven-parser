@@ -56,6 +56,8 @@ Sun Haven Parser/
 │       └── quest_page.py         → Assembles a complete quest wiki page.
 │
 ├── exporters/                    → Layer 3: Read JSON caches, call formatters, write output .txt files.
+│   ├── images/
+│   │   ├── item_infobox.py       → Composites individual house part sprites into a single exterior image per style per tier.
 │   ├── all_item_descriptions.py  → Writes Module:Description formatted output.
 │   ├── all_recipes.py            → Writes all {{Recipe}} templates grouped alphabetically.
 │   ├── all_shops.py              → Writes all shop inventory sections.
@@ -95,6 +97,7 @@ Sun Haven Parser/
 │   │   ├── missing_item_image.py   → Uploads missing item images.
 │   │   ├── upload_floor_wallpaper_display.py
 │   │   ├── upload_house_customization_display.py
+│   │   ├── upload_house_exteriors.py    → Uploads composited house exterior images to the wiki
 │   │   ├── upload_mount_display.py
 │   │   └── upload_wanted_item_images.py
 │   ├── update/
@@ -103,6 +106,7 @@ Sun Haven Parser/
 │   │   ├── top_shelf_rare_finds.py      → Updates topShelf / rareFinds flags on item pages.
 │   │   ├── dlc_mount_image_categories.py
 │   │   ├── dlc_pet_image_categories.py
+│   │   ├── update_house_part_pages.py   → Updates house customisation wiki pages with a full-set media gallery.
 │   │   ├── update_image_scale_whitespace.py
 │   │   └── update_rnpc_bust_filenames.py
 │   ├── delete/
