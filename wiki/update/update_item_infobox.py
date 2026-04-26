@@ -16,8 +16,7 @@ SKIP_VARIANTS_BASE = True       # Skip pages that are base names of variant grou
 DRY_RUN = False                  # No actual edits
 ADD_HISTORY = False              # Add a history bullet if changes were made
 
-TEST_RUN = False                # Only process test pages
-TEST_PAGES = ["Leaf Wrapped Tiger Trout"]
+ARG_PAGES = sys.argv[1:]        # Page titles passed as command-line arguments
 
 JSON_FILE = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
 OUTPUT_FILE = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "pywikibot", "item_infobox_update.txt")
@@ -40,7 +39,7 @@ def fetch_pages(titles):
     return page_texts
 
 
-pages = item_infobox_core.get_infobox_pages(TEST_RUN, TEST_PAGES)
+pages = list(ARG_PAGES) if ARG_PAGES else item_infobox_core.get_infobox_pages(False, [])
 data = item_infobox_core.load_normalized_json(JSON_FILE)
 
 debug_lines = []
@@ -225,7 +224,7 @@ for i in range(0, len(pages), BATCH_SIZE):
                     )
                 page.save(summary=summary)
 
-                if not TEST_RUN:
+                if not ARG_PAGES:
                     time.sleep(SLEEP_INTERVAL)
 
             updated.append(title)
@@ -242,7 +241,7 @@ for i in range(0, len(pages), BATCH_SIZE):
         print(
             f"     🔄 Updated {i + BATCH_SIZE} of {len(pages)} pages ({percent}% complete). Sleeping {SLEEP_INTERVAL} seconds."
         )
-        if not TEST_RUN:
+        if not ARG_PAGES:
             time.sleep(SLEEP_INTERVAL)
 
 with open(debug_log_path, "w", encoding="utf-8") as dbg:

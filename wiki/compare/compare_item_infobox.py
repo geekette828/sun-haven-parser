@@ -189,6 +189,7 @@ for i in range(0, total, BATCH_SIZE):
             time.sleep(SLEEP_INTERVAL)
 
 
+os.makedirs(os.path.dirname(output_file), exist_ok=True)
 with open(output_file, "w", encoding="utf-8") as out:
     out.write("=== Mismatches ===\n")
     for title, diffs in mismatches:

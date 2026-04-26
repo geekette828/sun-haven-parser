@@ -137,7 +137,10 @@ def get_infobox_param_map(wikitext, page_title):
 def _normalize_text(v):
     if v is None:
         return ""
-    return re.sub(r"\s+", " ", str(v)).strip()
+    s = re.sub(r"\s+", " ", str(v)).strip()
+    # Treat "+N" and "N" as identical — wiki pages are inconsistent about the + prefix
+    s = re.sub(r"\+(?=[\d.])", "", s)
+    return s
 
 
 def _norm_key(name):
@@ -225,12 +228,34 @@ def _agriculture_seed_expected(seed_item, fallback_seed_name=None):
     if not seed_item:
         return {}
 
-    seed_name = seed_item.get("Name") or seed_item.get("name") or fallback_seed_name or ""
+    seed_name = seed_item.get("name") or fallback_seed_name or ""
 
     season = _season_string_from_seasons(seed_item.get("seasons"), seed_name)
     exp = seed_item.get("exp", "")
 
-    growth, crop_yield, regrowth = _parse_growth_yield_regrowth_from_help(seed_item.get("helpDescription"))
+    # Growth: parse from helpDescription first (matches in-game text exactly).
+    # Fall back to last crop_stage's days_to_grow + 1 if helpDescription has no growth info.
+    growth, _, _ = _parse_growth_yield_regrowth_from_help(seed_item.get("help_description", ""))
+    if not growth:
+        crop_stages = seed_item.get("crop_stages", [])
+        if crop_stages:
+            growth = str(int(crop_stages[-1]["days_to_grow"]) + 1)
+
+    # CropYield: use the crop_yield field (from dropRange.x on the seed asset).
+    # Fall back to helpDescription parsing, then default to "1".
+    crop_yield_raw = seed_item.get("crop_yield")
+    if crop_yield_raw is not None and int(crop_yield_raw) > 0:
+        crop_yield = str(int(crop_yield_raw))
+    else:
+        _, crop_yield, _ = _parse_growth_yield_regrowth_from_help(seed_item.get("help_description", ""))
+
+    # Regrowth: use regrowable flag + days_to_regrow field.
+    # Only report a regrowth value when the crop actually regrows.
+    if seed_item.get("regrowable", False):
+        days = seed_item.get("days_to_regrow")
+        regrowth = str(int(days)) if days else ""
+    else:
+        regrowth = ""
 
     return {
         "season": _normalize_text(season),
@@ -369,7 +394,7 @@ def compare_page_to_json(title, text, item_data, keys_to_check, skip_fields_map=
         ) or []
 
         if not skip_fields or "capacity" not in skip_fields:
-            expected_capacity = _parse_animal_capacity_from_help(item_data.get("helpDescription"))
+            expected_capacity = _parse_animal_capacity_from_help(item_data.get("help_description"))
             actual_capacity = wiki_params.get("capacity", "")
 
             d = _diff_if_changed("capacity", expected_capacity, actual_capacity)

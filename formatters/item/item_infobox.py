@@ -79,8 +79,11 @@ def compute_stat_inc(item: ItemData) -> str:
         if food.increase is None or str(food.increase) == "999":
             continue
         stat_name = constants.STAT_TYPE_MAPPING.get(food.stat, f"Stat{food.stat}")
-        inc_text = constants.FOOD_STAT_INCREASES.get(int(food.increase), f"+{int(food.increase)}")
-        parts.append(f"{stat_name}»({inc_text})")
+        tier_name = constants.FOOD_STAT_INCREASES.get(int(food.increase))
+        if tier_name is not None:
+            parts.append(f"{stat_name}»({tier_name.lower()})")
+        else:
+            parts.append(f"{stat_name}»{int(food.increase)}")
 
     for buff in item.stat_buff:
         if buff.value is None or str(buff.value) == "999" or buff.value == 999:
@@ -99,6 +102,12 @@ def compute_stat_inc(item: ItemData) -> str:
         value_text = str(int(value_f)) if value_f.is_integer() else str(round(value_f, 2)).rstrip("0").rstrip(".")
         stat_name = constants.STAT_TYPE_MAPPING.get(max_stat.stat_type, f"Stat{max_stat.stat_type}")
         parts.append(f"{stat_name}»+{value_text}")
+
+    for exp_entry in item.exps:
+        if not exp_entry.amount:
+            continue
+        profession_name = constants.PROFESSION_EXP.get(exp_entry.profession, f"Profession{exp_entry.profession}")
+        parts.append(f"{profession_name} EXP»{exp_entry.amount}")
 
     return "; ".join(parts)
 

@@ -38,7 +38,7 @@ def compare_instance_generic(
     item_name = json_obj.get("Name", "").strip()
     skip_fields = skip_fields_map.get(item_name, [])
 
-    can_sell = json_obj.get("canSell", 1)
+    can_sell = json_obj.get("can_sell", 1)
 
     for field, (json_key, normalize_fn) in field_map.items():
         if field in skip_fields:

@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import config.constants as constants
 from builders.item_data import (
     CropStage,
+    ExpsEntry,
     FoodStatEntry,
     ItemClassification,
     ItemData,
@@ -125,6 +126,9 @@ def _item_data_from_dict(d: dict) -> ItemData:
             stat_type=x["stat_type"], value=x["value"], duration=x["duration"]
         )
 
+    def _exps_entry(x: dict) -> ExpsEntry:
+        return ExpsEntry(profession=x["profession"], amount=x["amount"])
+
     def _crop_stage(x: dict) -> CropStage:
         return CropStage(days_to_grow=x["days_to_grow"], guid=x.get("guid"))
 
@@ -167,6 +171,9 @@ def _item_data_from_dict(d: dict) -> ItemData:
         is_fruit=d.get("is_fruit", False),
         is_artisanry=d.get("is_artisanry", False),
         is_potion=d.get("is_potion", False),
+        crop_yield=d.get("crop_yield"),
+        days_to_regrow=d.get("days_to_regrow"),
+        regrowable=d.get("regrowable", False),
         has_set_season=d.get("has_set_season"),
         set_season=d.get("set_season"),
         seasons=d.get("seasons"),
@@ -174,6 +181,7 @@ def _item_data_from_dict(d: dict) -> ItemData:
         max_stats=[_stat_entry(x) for x in d.get("max_stats", [])],
         food_stat=[_food_stat_entry(x) for x in d.get("food_stat", [])],
         stat_buff=[_stat_buff_entry(x) for x in d.get("stat_buff", [])],
+        exps=[_exps_entry(x) for x in d.get("exps", [])],
         crop_stages=[_crop_stage(x) for x in d.get("crop_stages", [])],
         placeable_on_tables=d.get("placeable_on_tables", False),
         placeable_on_walls=d.get("placeable_on_walls", False),
@@ -271,40 +279,54 @@ def _extract_stat_buff(lines: list[str]) -> list[StatBuffEntry]:
     capturing = False
     capturing_stats = False
     duration: Optional[float] = None
-    current_stat: Optional[StatBuffEntry] = None
     entries: list[StatBuffEntry] = []
+
+    # Sub-fields of the statBuff block that are not stats/duration — skip them
+    _SKIP_KEYS = ("buffType:", "buffName:", "description:")
 
     for line in lines:
         line = line.strip()
         if line.startswith("statBuff:"):
             capturing = True
+            capturing_stats = False
+            duration = None
+            entries = []
             continue
-        if capturing:
-            if line.startswith("stats:"):
-                capturing_stats = True
-                continue
-            if match := re.match(r"duration:\s*([\d.]+)", line):
-                duration = _parse_number(match.group(1))
-                for e in entries:
-                    if e.duration == 0:
-                        entries[entries.index(e)] = StatBuffEntry(e.stat_type, e.value, int(duration))
-            if capturing_stats:
-                if match := re.match(r"-\s*statType:\s*(\d+)", line):
-                    current_stat = StatBuffEntry(
-                        stat_type=int(match.group(1)),
-                        value=0.0,
-                        duration=int(duration) if duration is not None else 0,
-                    )
-                    entries.append(current_stat)
-                elif match := re.match(r"value:\s*([\d.]+)", line):
-                    if entries:
-                        last = entries[-1]
-                        entries[-1] = StatBuffEntry(last.stat_type, _parse_number(match.group(1)), last.duration)
-                elif re.match(r"^\S", line):
-                    capturing_stats = False
-                    capturing = False
+        if not capturing:
+            continue
+
+        # duration can appear before or after the stats list
+        if match := re.match(r"duration:\s*([\d.]+)", line):
+            duration = _parse_number(match.group(1))
+            for i, e in enumerate(entries):
+                if e.duration == 0:
+                    entries[i] = StatBuffEntry(e.stat_type, e.value, int(duration))
+            continue
+
+        if line.startswith("stats:"):
+            capturing_stats = True
+            continue
+
+        # Skip known sub-fields that would otherwise trigger the stop condition
+        if line.startswith(_SKIP_KEYS):
+            continue
+
+        if capturing_stats:
+            if match := re.match(r"-\s*statType:\s*(\d+)", line):
+                entries.append(StatBuffEntry(
+                    stat_type=int(match.group(1)),
+                    value=0.0,
+                    duration=int(duration) if duration is not None else 0,
+                ))
+            elif match := re.match(r"value:\s*(-?[\d.]+)", line):
+                if entries:
+                    last = entries[-1]
+                    entries[-1] = StatBuffEntry(last.stat_type, _parse_number(match.group(1)), last.duration)
             elif re.match(r"^\S", line):
+                capturing_stats = False
                 capturing = False
+        elif re.match(r"^\S", line):
+            capturing = False
 
     return entries
 
@@ -332,6 +354,9 @@ def _extract_attributes(asset_file: str) -> dict:
         "is_fruit": False,
         "is_artisanry": False,
         "is_potion": False,
+        "crop_yield": None,
+        "days_to_regrow": None,
+        "regrowable": False,
         "has_set_season": None,
         "set_season": None,
         "exp": None,
@@ -343,6 +368,7 @@ def _extract_attributes(asset_file: str) -> dict:
         "max_stats": [],
         "food_stat": [],
         "stat_buff": [],
+        "exps": [],
         "crop_stages": [],
         "seasons": None,
         "icon_guid": None,
@@ -375,15 +401,19 @@ def _extract_attributes(asset_file: str) -> dict:
         "setSeason": "set_season",
         "armorSet": "armor_set",
         "exp": "exp",
+        "experience": "exp",
+        "daysToRegrow": "days_to_regrow",
     }
+
+    boolean_fields["regrowable"] = "regrowable"
 
     # Pre-compile combined patterns for performance
     _NUMERIC_PATTERN = re.compile(
         r"^(health|mana|requiredLevel|stackSize|sellPrice|orbsSellPrice|ticketSellPrice"
-        r"|rarity|hearts|decorationType|hasSetSeason|setSeason|armorSet|exp):\s*([\d.]+)"
+        r"|rarity|hearts|decorationType|hasSetSeason|setSeason|armorSet|exp|experience|daysToRegrow):\s*([\d.]+)"
     )
     _BOOL_PATTERN = re.compile(
-        r"^(isDLCItem|isForageable|isGem|isAnimalProduct|isMeal|isFruit|isArtisanryItem|isPotion|canSell):\s*(\d+)"
+        r"^(isDLCItem|isForageable|isGem|isAnimalProduct|isMeal|isFruit|isArtisanryItem|isPotion|canSell|regrowable):\s*(\d+)"
     )
 
     try:
@@ -392,6 +422,7 @@ def _extract_attributes(asset_file: str) -> dict:
         capturing_stats = False
         capturing_max_stats = False
         capturing_food_stat = False
+        capturing_exps = False
         capturing_seasons = False
         capturing_crop_stages = False
         description_lines: list[str] = []
@@ -443,7 +474,7 @@ def _extract_attributes(asset_file: str) -> dict:
             if capturing_stats:
                 if match := re.match(r"-\s*statType:\s*(\d+)", line):
                     attrs["stats"].append({"stat_type": int(match.group(1)), "value": None})
-                elif match := re.match(r"value:\s*([\d.]+)", line):
+                elif match := re.match(r"value:\s*(-?[\d.]+)", line):
                     if attrs["stats"]:
                         attrs["stats"][-1]["value"] = _parse_number(match.group(1))
                 elif re.match(r"^\S", line):
@@ -456,7 +487,7 @@ def _extract_attributes(asset_file: str) -> dict:
             if capturing_max_stats:
                 if match := re.match(r"-\s*statType:\s*(\d+)", line):
                     attrs["max_stats"].append({"stat_type": int(match.group(1)), "value": None})
-                elif match := re.match(r"value:\s*([\d.]+)", line):
+                elif match := re.match(r"value:\s*(-?[\d.]+)", line):
                     if attrs["max_stats"]:
                         attrs["max_stats"][-1]["value"] = _parse_number(match.group(1))
                 elif re.match(r"^\S", line):
@@ -475,6 +506,23 @@ def _extract_attributes(asset_file: str) -> dict:
                 elif re.match(r"^\S", line):
                     capturing_food_stat = False
 
+            # exps (EXP bonuses granted when the item is consumed)
+            if line.startswith("exps:"):
+                capturing_exps = True
+                continue
+            if capturing_exps:
+                if match := re.match(r"-\s*profession:\s*(\d+)", line):
+                    attrs["exps"].append({"profession": int(match.group(1)), "amount": 0})
+                elif match := re.match(r"amount:\s*(\d+)", line):
+                    if attrs["exps"]:
+                        attrs["exps"][-1]["amount"] = int(match.group(1))
+                elif re.match(r"^\S", line):
+                    capturing_exps = False
+
+            # dropRange: {x: N, y: M} — crop yield comes from x value
+            if match := re.match(r"dropRange:\s*\{x:\s*([\d.]+)", line):
+                attrs["crop_yield"] = int(floor(float(match.group(1))))
+
             # cropStages
             if re.match(r"^\s*cropStages:\s*$", line):
                 capturing_crop_stages = True
@@ -486,6 +534,8 @@ def _extract_attributes(asset_file: str) -> dict:
                 elif match := re.match(r"sprite:.*guid:\s*([\da-f]+)", line):
                     if crop_stages:
                         crop_stages[-1]["guid"] = match.group(1)
+                elif re.match(r"^(height|offset|animator):", line):
+                    pass  # sub-fields within a crop stage entry — keep capturing
                 elif re.match(r"^\S", line):
                     capturing_crop_stages = False
 
@@ -665,6 +715,9 @@ def build_all_items(force_rebuild: bool = False) -> dict[str, ItemData]:
             is_fruit=attrs.get("is_fruit", False),
             is_artisanry=attrs.get("is_artisanry", False),
             is_potion=attrs.get("is_potion", False),
+            crop_yield=attrs.get("crop_yield"),
+            days_to_regrow=attrs.get("days_to_regrow"),
+            regrowable=attrs.get("regrowable", False),
             has_set_season=attrs.get("has_set_season"),
             set_season=attrs.get("set_season"),
             seasons=attrs.get("seasons"),
@@ -672,6 +725,7 @@ def build_all_items(force_rebuild: bool = False) -> dict[str, ItemData]:
             max_stats=[StatEntry(s["stat_type"], s["value"] or 0.0) for s in attrs.get("max_stats", [])],
             food_stat=[FoodStatEntry(f["increase"], f["stat"] or 0) for f in attrs.get("food_stat", [])],
             stat_buff=stat_buff_entries,
+            exps=[ExpsEntry(e["profession"], e["amount"]) for e in attrs.get("exps", [])],
             crop_stages=[CropStage(c["days_to_grow"], c.get("guid")) for c in attrs.get("crop_stages", [])],
             placeable_on_tables=attrs.get("placeable_on_tables", False),
             placeable_on_walls=attrs.get("placeable_on_walls", False),

@@ -92,6 +92,7 @@ STAT_TYPE_MAPPING = {
     66: "Mana Per Craft",
     67: "Black Gem Drop Chance",
     68: "Crafting Speed",
+    69: "Withergate Mining Damage",
     999: "none",
 }
 
@@ -125,4 +126,12 @@ RARITY_TYPE_MAPPING = {
     2: "Rare",
     3: "Epic",
     4: "Legendary",
+}
+
+PROFESSION_EXP = {
+    0: "Combat",
+    1: "Farming",
+    2: "Mining",
+    3: "Fishing",
+    4: "Exploration",
 }

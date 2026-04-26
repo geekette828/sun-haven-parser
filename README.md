@@ -106,7 +106,7 @@ Sun Haven Parser/
 │   │   ├── top_shelf_rare_finds.py      → Updates topShelf / rareFinds flags on item pages.
 │   │   ├── dlc_mount_image_categories.py
 │   │   ├── dlc_pet_image_categories.py
-│   │   ├── update_house_part_pages.py   → Updates house customisation wiki pages with a full-set media gallery.
+│   │   ├── update_house_part_pages.py   → Updates house customisation wiki pages with a full-set media gallery.git
 │   │   ├── update_image_scale_whitespace.py
 │   │   └── update_rnpc_bust_filenames.py
 │   ├── delete/

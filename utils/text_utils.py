@@ -55,12 +55,15 @@ def normalize_list_string(s: str, delimiter: str = ';') -> str:
 def normalize_for_compare(value):
     """
     Normalize a string for case-insensitive, whitespace-insensitive comparison.
-    Replaces curly apostrophes, strips and collapses whitespace, and lowercases.
+    Replaces curly apostrophes, strips and collapses whitespace, lowercases,
+    and treats '+N' and 'N' as identical (only '-' prefix is significant).
     """
     if not isinstance(value, str):
         return value
     value = normalize_apostrophe(value)
     value = re.sub(r'\s+', '', value.strip())
+    # Strip '+' that is used as an optional positive sign before digits/decimals
+    value = re.sub(r'\+(?=[\d.])', '', value)
     return value.lower()
 
 

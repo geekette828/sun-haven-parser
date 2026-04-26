@@ -43,6 +43,13 @@ class StatBuffEntry:
 
 
 @dataclass
+class ExpsEntry:
+    """An EXP bonus entry from consuming a food item (exps array)."""
+    profession: int
+    amount: int
+
+
+@dataclass
 class CropStage:
     """A single crop growth stage (crop_stages array)."""
     days_to_grow: float
@@ -114,6 +121,11 @@ class ItemData:
     is_artisanry: bool = False
     is_potion: bool = False
 
+    # --- Crop / Seed Fields (populated from seed .asset; overlaid onto crop items) ---
+    crop_yield: Optional[int] = None       # from dropRange.x on seed assets
+    days_to_regrow: Optional[int] = None   # from daysToRegrow on seed assets
+    regrowable: bool = False               # from regrowable on seed assets
+
     # --- Season Info ---
     has_set_season: Optional[int] = None
     set_season: Optional[int] = None
@@ -124,6 +136,7 @@ class ItemData:
     max_stats: list[StatEntry] = field(default_factory=list)
     food_stat: list[FoodStatEntry] = field(default_factory=list)
     stat_buff: list[StatBuffEntry] = field(default_factory=list)
+    exps: list[ExpsEntry] = field(default_factory=list)
     crop_stages: list[CropStage] = field(default_factory=list)
 
     # --- Placement (extracted from prefab files) ---
