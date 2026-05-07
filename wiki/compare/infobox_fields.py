@@ -65,6 +65,9 @@ def _fmt_price(v) -> str:
 
 
 def compute_sell(item: dict) -> str:
+    # can_sell=False → item explicitly cannot be sold
+    if not item.get("can_sell", False):
+        return "no"
     sell_values = []
     if item.get("sell_price", 0):
         sell_values.append(_fmt_price(item["sell_price"]))
@@ -72,10 +75,14 @@ def compute_sell(item: dict) -> str:
         sell_values.append(_fmt_price(item["orbs_sell_price"]))
     if item.get("ticket_sell_price", 0):
         sell_values.append(_fmt_price(item["ticket_sell_price"]))
-    return "; ".join(sell_values)
+    # can_sell=True but all prices are 0 → default "0 Coins"
+    return "; ".join(sell_values) if sell_values else "0"
 
 
 def compute_currency(item: dict) -> str:
+    # can_sell=False → no currency
+    if not item.get("can_sell", False):
+        return ""
     sell_types = []
     if item.get("sell_price", 0):
         sell_types.append("Coins")
@@ -83,7 +90,8 @@ def compute_currency(item: dict) -> str:
         sell_types.append("Orbs")
     if item.get("ticket_sell_price", 0):
         sell_types.append("Tickets")
-    return "; ".join(sell_types)
+    # can_sell=True but all prices are 0 → default currency is Coins
+    return "; ".join(sell_types) if sell_types else "Coins"
 
 
 def compute_restores(item: dict) -> str:
@@ -194,8 +202,9 @@ def compute_effect(item: dict) -> str:
             stat_name = constants.STAT_TYPE_MAPPING.get(stat_type, "none")
             if stat_name == "none":
                 continue
-            # Percentage values (≤ 1 in absolute terms) → display as N%
-            if abs(value) <= 1:
+            # Percentage values (strictly < 1) → display as N%
+            # Values of exactly 1 (or greater) are flat stats, not percentages.
+            if abs(value) < 1:
                 value_text = f"{int(value * 100)}%"
             else:
                 value_text = str(int(value)) if float(value).is_integer() else str(round(value, 2)).rstrip("0").rstrip(".")

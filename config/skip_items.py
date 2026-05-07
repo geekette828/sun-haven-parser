@@ -32,9 +32,10 @@ SKIP_FIELDS = {
     "Fall Token": ["hearts"],
     "Winter Token": ["hearts"],
 
-    "Coins": ["sell", "stack"],                 # Bad data
-    "Tickets": ["sell", "stack"],               # Bad data
-    "Mana Orbs": ["sell", "stack"],             # Bad data
+    "Coins": ["sell", "currency", "stack"],                 # Bad data
+    "Tickets": ["sell", "currency", "stack"],               # Bad data
+    "Mana Orbs": ["sell", "currency", "stack"],             # Bad data
+    "Doubloons": ["sell", "currency", "stack"],             # Bad data
 }
 
 '''

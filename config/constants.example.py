@@ -90,9 +90,10 @@ STAT_TYPE_MAPPING = {
     64: "Fishing Win Area",
     65: "Fishing Sweet Spot Area",
     66: "Mana Per Craft",
-    67: "Black Gem Drop Chance",
+    67: "Black Diamond Drop Chance",
     68: "Crafting Speed",
     69: "Withergate Mining Damage",
+    70: "Orbs Per Day",
     999: "none",
 }
 

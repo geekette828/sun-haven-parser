@@ -10,6 +10,25 @@ from utils.text_utils import (
     normalize_for_compare
 )
 
+# Fields whose semicolon-separated parts may appear in any order on-wiki.
+_ORDER_INSENSITIVE_FIELDS = {"effect", "statInc", "restores"}
+
+
+def _fields_match(key: str, expected_val: str, actual_val: str) -> bool:
+    """Compare two field values.
+
+    normalize_for_compare already treats '+N' == 'N' while preserving '-N',
+    so only the order issue needs extra handling here.
+    For order-insensitive fields, split on ';', sort the parts, then compare.
+    """
+    exp_n = normalize_for_compare(expected_val)
+    act_n = normalize_for_compare(actual_val)
+    if key in _ORDER_INSENSITIVE_FIELDS:
+        exp_n = ";".join(sorted(p for p in exp_n.split(";") if p))
+        act_n = ";".join(sorted(p for p in act_n.split(";") if p))
+    return exp_n == act_n
+
+
 def normalize_title(s: str) -> str:
     t = normalize_apostrophe(s or "")
     return clean_whitespace(t).lower()
@@ -80,7 +99,7 @@ def compare_instance_generic(
         if key == "sell":
             expected_val = "no" if not can_sell else expected_values.get(key, "")
             actual_val = wiki_params.get(key, "")
-            if normalize_for_compare(expected_val) != normalize_for_compare(actual_val):
+            if not _fields_match(key, expected_val, actual_val):
                 differences.append((key, expected_val, actual_val))
             continue
 
@@ -89,7 +108,7 @@ def compare_instance_generic(
 
         expected_val = expected_values.get(key, "")
         actual_val = wiki_params.get(key, "")
-        if normalize_for_compare(expected_val) != normalize_for_compare(actual_val):
+        if not _fields_match(key, expected_val, actual_val):
             differences.append((key, expected_val, actual_val))
 
     return differences

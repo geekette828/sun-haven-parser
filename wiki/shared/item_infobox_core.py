@@ -241,13 +241,9 @@ def _agriculture_seed_expected(seed_item, fallback_seed_name=None):
         if crop_stages:
             growth = str(int(crop_stages[-1]["days_to_grow"]) + 1)
 
-    # CropYield: use the crop_yield field (from dropRange.x on the seed asset).
-    # Fall back to helpDescription parsing, then default to "1".
-    crop_yield_raw = seed_item.get("crop_yield")
-    if crop_yield_raw is not None and int(crop_yield_raw) > 0:
-        crop_yield = str(int(crop_yield_raw))
-    else:
-        _, crop_yield, _ = _parse_growth_yield_regrowth_from_help(seed_item.get("help_description", ""))
+    # CropYield: parse from helpDescription (matches in-game text exactly,
+    # handles fractional yields like 1.5, and avoids dropRange.x truncation).
+    _, crop_yield, _ = _parse_growth_yield_regrowth_from_help(seed_item.get("help_description", ""))
 
     # Regrowth: use regrowable flag + days_to_regrow field.
     # Only report a regrowth value when the crop actually regrows.
@@ -278,9 +274,26 @@ def _parse_animal_capacity_from_help(help_desc):
     return m.group(1) if m else ""
 
 
+# Fields whose semicolon-separated parts can appear in any order on-wiki.
+_ORDER_INSENSITIVE_FIELDS = {"effect", "statInc", "restores"}
+
+
+def _normalize_for_compare(field, value):
+    """Normalise a field value for comparison.
+
+    For semicolon-separated fields the order of parts is irrelevant,
+    so sort them before comparing to avoid false mismatches.
+    """
+    s = _normalize_text(value)
+    if field in _ORDER_INSENSITIVE_FIELDS and s:
+        parts = [p.strip() for p in s.split(";") if p.strip()]
+        return "; ".join(sorted(parts))
+    return s
+
+
 def _diff_if_changed(field, expected, actual):
-    exp_n = _normalize_text(expected)
-    act_n = _normalize_text(actual)
+    exp_n = _normalize_for_compare(field, expected)
+    act_n = _normalize_for_compare(field, actual)
     if exp_n == act_n:
         return None
     return (field, exp_n, act_n)
