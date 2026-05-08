@@ -15,3 +15,5 @@ pwb/apicache
 pwb/pywikibot-Geekette828.lwp
 pwb/user-config.py
 pwb/user-password.py
+
+gui_app.py

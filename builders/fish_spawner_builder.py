@@ -70,11 +70,13 @@ def _process_unity_file(filepath: str) -> dict | None:
             return None
 
         named_fish, seasonal = _parse_fish_block(match.group(1))
+        has_seasonal = bool(re.search(r"hasSeasonalFish: 1", match.group(1)))
         scene_name = os.path.splitext(os.path.basename(filepath))[0]
         return {
-            "scene_name":    scene_name,
-            "fish_drops":    named_fish,
-            "seasonal_fish": seasonal,
+            "scene_name":        scene_name,
+            "fish_drops":        named_fish,
+            "has_seasonal_fish": has_seasonal,
+            "seasonal_fish":     seasonal,
         }
     except Exception as exc:
         file_utils.write_debug_log(f"Error processing {filepath}: {exc}", _DEBUG_LOG)
