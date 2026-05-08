@@ -16,7 +16,7 @@ SKIP_VARIANTS_BASE = True       # Skip pages that are base names of variant grou
 DRY_RUN = False                  # No actual edits
 ADD_HISTORY = False              # Add a history bullet if changes were made
 
-ARG_PAGES = sys.argv[1:]        # Page titles passed as command-line arguments
+ARG_PAGES = [a.lstrip("-") for a in sys.argv[1:]]  # Page titles; strip leading dashes (e.g. --Seaweed → Seaweed)
 
 JSON_FILE = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "items_data.json")
 OUTPUT_FILE = os.path.join(constants.OUTPUT_DIRECTORY, "JSON Data", "pywikibot", "item_infobox_update.txt")
@@ -61,16 +61,28 @@ def apply_diffs_with_regex(text, diffs):
     closing_line_index = -1
     closing_inline = False
 
-    for i, line in enumerate(lines):
-        if line.strip() == "}}":
+    # Scan from the bottom — the outer infobox }} is always last.
+    # Scanning from the top risks hitting a nested template's }} first
+    # (e.g. |requirement = {{SkillLevel|combat|25}}).
+    for i in range(len(lines) - 1, -1, -1):
+        line = lines[i].strip()
+        if line == "}}":
             closing_line_index = i
             break
-        elif line.strip().endswith("}}"):
+        elif line.endswith("}}"):
             closing_line_index = i
             closing_inline = True
             break
 
     existing_fields = {param.name.strip(): i for i, param in enumerate(infobox.params)}
+
+    # Normalize: if }} is on the same line as the last param, split it onto its
+    # own line now so all insertion logic below can treat }} as a standalone line.
+    if closing_inline and closing_line_index != -1:
+        lines[closing_line_index] = re.sub(r'\s*\}\}\s*$', '', lines[closing_line_index])
+        lines.insert(closing_line_index + 1, "}}")
+        closing_line_index += 1
+        closing_inline = False
 
     for field, expected, _ in diffs:
         if field == "name":
@@ -92,8 +104,7 @@ def apply_diffs_with_regex(text, diffs):
         else:
             insert_idx = closing_line_index if closing_line_index != -1 else len(lines)
             lines.insert(insert_idx, line_value)
-            if closing_inline:
-                lines[insert_idx + 1:] = ["}}"]
+            closing_line_index += 1  # keep index pointing at }} after each insert
 
     if not any(line.strip() == "}}" or line.strip().endswith("}}") for line in lines):
         lines.append("}}")
@@ -237,9 +248,10 @@ for i in range(0, len(pages), BATCH_SIZE):
             debug_lines.append(f"[FAILED] {title} - {str(e)}")
 
     if i // BATCH_SIZE % 10 == 0:
-        percent = round(((i + BATCH_SIZE) / len(pages)) * 100, 1)
+        processed = i + len(batch)
+        percent = round((processed / len(pages)) * 100, 1)
         print(
-            f"     🔄 Updated {i + BATCH_SIZE} of {len(pages)} pages ({percent}% complete). Sleeping {SLEEP_INTERVAL} seconds."
+            f"     🔄 Updated {processed} of {len(pages)} pages ({percent}% complete). Sleeping {SLEEP_INTERVAL} seconds."
         )
         if not ARG_PAGES:
             time.sleep(SLEEP_INTERVAL)
